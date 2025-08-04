@@ -25,7 +25,24 @@ ParseSeuratObj <- merge(ParseSeuratObj[[1]], y = toMerge,
                   add.cell.ids = paste0('seuObj', seq(1,8)), project = "ParseLangat")
 
 #Use Parse barcoding plate to label cells
+#Going to try just left joining and seeing if virus expression matches up
+ParseBarcodePlate <- read_csv("ParseBarcodePlate.csv")
+ParseBarcodePlate$orig.ident <- paste0('0', as.character(seq(1:48)))
+ParseSeuratObj[[]] <- left_join(ParseSeuratObj[[]], ParseBarcodePlate, by = 'orig.ident')
 
+#Assign viral reads from labels
+#practice with only first sublibrary
+subLibOneViruses <- read_table("viralReadCountsUnadjusted/P36207_1001_S21_L002_R1_001_LGTV_reads", 
+                                                     col_names = FALSE)
+subLibOneViruses$cell <- substr(subLibOneViruses$X2, start = 6, stop = 14)
+ParseSeuratObj$cell <- substr(colnames(ParseSeuratObj), start = 9, stop = 16)
+ParseSeuratObj$subLib <- substr(colnames(ParseSeuratObj), start = 1, stop = 7)
+
+ParseSeuratObjWell1 <- subset(ParseSeuratObj, subLib == 'seuObj1')
+ParseSeuratObj[[]] <- left_join(ParseSeuratObj[[]], subLibOneViruses, by = 'cell')
+ParseSeuratObj$X1[is.na(ParseSeuratObj$X1)] = 0
+ggplot(ParseSeuratObj[[]], aes(x = orig.ident, y = X1))+
+  geom_boxplot()
 
 
 #Label mitochondrial gene expression
