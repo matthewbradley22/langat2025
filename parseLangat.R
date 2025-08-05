@@ -65,7 +65,7 @@ wellMap <- data.frame(well = c(paste0('A', seq(1,12)), paste0('B', seq(1,12)),
 
 #Plot viral counts vs well/treatment. Looks right
 ggplot(ParseSeuratObj[[]], aes(x = orig.ident, y = virusCount, col = Treatment))+
-  geom_boxplot() +
+  geom_point() +
   scale_x_discrete(labels= wellMap$well)+
   theme(axis.text.x = element_text(angle = 90))
 
@@ -80,6 +80,8 @@ ParseSeuratObj <- subset(ParseSeuratObj, nFeature_RNA > 200)
 Idents(ParseSeuratObj) <- "all"  #Stops violin plot from grouping by seurat cluster
 VlnPlot(ParseSeuratObj, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
         ncol = 3, pt.size = 0)
+
+ParseSeuratObj <- subset(ParseSeuratObj, nFeature_RNA < 7500 & nCount_RNA < 100000)
 
 #Run through data processing and visualization before integration
 ParseSeuratObj <- NormalizeData(ParseSeuratObj)
