@@ -27,22 +27,47 @@ ParseSeuratObj <- merge(ParseSeuratObj[[1]], y = toMerge,
 #Use Parse barcoding plate to label cells
 #Going to try just left joining and seeing if virus expression matches up
 ParseBarcodePlate <- read_csv("ParseBarcodePlate.csv")
-ParseBarcodePlate$orig.ident <- paste0('0', as.character(seq(1:48)))
+ParseBarcodePlate$orig.ident <- c(paste0('0', as.character(seq(1:9))), seq(10,48))
 ParseSeuratObj[[]] <- left_join(ParseSeuratObj[[]], ParseBarcodePlate, by = 'orig.ident')
 
 #Assign viral reads from labels
-#practice with only first sublibrary
-subLibOneViruses <- read_table("viralReadCountsUnadjusted/P36207_1001_S21_L002_R1_001_LGTV_reads", 
-                                                     col_names = FALSE)
-subLibOneViruses$cell <- substr(subLibOneViruses$X2, start = 6, stop = 14)
+#List files with viral reads
+virusCountFiles <- list.files('./viralReadCountsUnadjusted/')
+virusCountFiles <- virusCountFiles[grep('P36207', virusCountFiles)]
+
+viralCountsUnadjusted <- lapply(virusCountFiles, FUN = function(x){
+  subLibViralCounts <- read_table(paste0("viralReadCountsUnadjusted/", x), 
+                                 col_names = FALSE)
+  subLibViralCounts
+})
+
+#For each sublibrary create a df with counts of virus per cell barcode
+#Also adds a sublibrary column for joining purposes afterwards
+for(i in 1:length(viralCountsUnadjusted)){
+  dat = viralCountsUnadjusted[[i]]
+  dat$subLib <- paste0('seuObj', as.character(i))
+  dat$cell <- substr(dat$X2, start = 6, stop = 14)
+  dat <- dat[c(1,3,4)]
+  colnames(dat)[1] = 'virusCount'
+  viralCountsUnadjusted[[i]] <- dat
+}
+
+viralCountsUnadjusted <- bind_rows(viralCountsUnadjusted)
+
 ParseSeuratObj$cell <- substr(colnames(ParseSeuratObj), start = 9, stop = 16)
 ParseSeuratObj$subLib <- substr(colnames(ParseSeuratObj), start = 1, stop = 7)
 
-ParseSeuratObjWell1 <- subset(ParseSeuratObj, subLib == 'seuObj1')
-ParseSeuratObj[[]] <- left_join(ParseSeuratObj[[]], subLibOneViruses, by = 'cell')
-ParseSeuratObj$X1[is.na(ParseSeuratObj$X1)] = 0
-ggplot(ParseSeuratObj[[]], aes(x = orig.ident, y = X1))+
-  geom_boxplot()
+ParseSeuratObj[[]] <- left_join(ParseSeuratObj[[]], viralCountsUnadjusted, by = c('subLib', 'cell'))
+ParseSeuratObj$virusCount[is.na(ParseSeuratObj$virusCount)] = 0
+
+wellMap <- data.frame(well = c(paste0('A', seq(1,12)), paste0('B', seq(1,12)),
+                               paste0('C', seq(1,12)),   paste0('D', seq(1,12))))
+
+#Plot viral counts vs well/treatment. Looks right
+ggplot(ParseSeuratObj[[]], aes(x = orig.ident, y = virusCount, col = Treatment))+
+  geom_boxplot() +
+  scale_x_discrete(labels= wellMap$well)+
+  theme(axis.text.x = element_text(angle = 90))
 
 
 #Label mitochondrial gene expression
