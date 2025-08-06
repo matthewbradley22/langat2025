@@ -1,3 +1,4 @@
+#Very few samples in wells 16, 17, 18
 #Load in libraries
 library(Seurat)
 library(dplyr)
@@ -6,10 +7,10 @@ library(readr)
 library(ggplot2)
 
 #List out our data files, and read them into R
-parseOutput <- list.files("./unfilteredParseOutput")
+parseOutput <- list.files("./FilteredParseOutput/")
 
 ParseMatricies <- lapply(parseOutput, FUN = function(x){
-  ReadParseBio(paste0("unfilteredParseOutput/", x))
+  ReadParseBio(paste0("./FilteredParseOutput/", x))
 })
 
 #Convert data to Seurat objects  
@@ -25,7 +26,7 @@ toMerge <- c(ParseSeuratObj[[2]], ParseSeuratObj[[3]], ParseSeuratObj[[4]],
 
 #Merge data before integration
 ParseSeuratObj <- merge(ParseSeuratObj[[1]], y = toMerge, 
-                  add.cell.ids = paste0('seuObj', seq(1,8)), project = "ParseLangat")
+                        add.cell.ids = paste0('seuObj', seq(1,8)), project = "ParseLangat")
 
 
 #Use Parse barcoding plate to label cells
@@ -44,7 +45,7 @@ virusCountFiles <- virusCountFiles[grep('P36207', virusCountFiles)]
 
 viralCountsUnadjusted <- lapply(virusCountFiles, FUN = function(x){
   subLibViralCounts <- read_table(paste0("viralReadCountsUnadjusted/", x), 
-                                 col_names = FALSE)
+                                  col_names = FALSE)
   subLibViralCounts
 })
 
@@ -89,13 +90,6 @@ ParseSeuratObj[["percent.mt"]] <- PercentageFeatureSet(ParseSeuratObj, pattern =
 Idents(ParseSeuratObj) <- "all"  #Stops violin plot from grouping by seurat cluster
 VlnPlot(ParseSeuratObj, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
         ncol = 3, pt.size = 0)
-
-#Violin plot without high expression to look at lower cutoff
-#Check how many cells are actually over 5000 features or 5000 count
-ParseSeuratObj <- subset(ParseSeuratObj, nFeature_RNA < 500 & nCount_RNA < 2000)
-
-ParseSeuratObj <- subset(ParseSeuratObj, nFeature_RNA > 200 & 
-                           nFeature_RNA < 7500 & nCount_RNA < 100000)
 
 #Run through data processing and visualization before integration
 ParseSeuratObj <- NormalizeData(ParseSeuratObj)
