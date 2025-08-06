@@ -1,6 +1,7 @@
-#are these samples pooled and how many samples are there?
 #Load in libraries
 library(Seurat)
+library(SingleR)
+library(celldex)
 
 #List out our data files, and read them into R
 parseOutput <- list.files("./unfilteredParseOutput")
@@ -69,6 +70,8 @@ ggplot(ParseSeuratObj[[]], aes(x = orig.ident, y = virusCount, col = Treatment))
   scale_x_discrete(labels= wellMap$well)+
   theme(axis.text.x = element_text(angle = 90))
 
+#Check percent of cells in each group expressing virus
+
 
 #Label mitochondrial gene expression
 ParseSeuratObj[["percent.mt"]] <- PercentageFeatureSet(ParseSeuratObj, pattern = "^mt-")
@@ -96,7 +99,7 @@ DimPlot(ParseSeuratObj, group.by = 'orig.ident')
 
 #Integrate data
 #Need to choose integration method - rpca fastest
-#Can look at running in parellel to increase speed. Also at running v4 integration
+#Can look at running in parellel to increase speed. CCA takes 5+ hours. RPCA much much faster
 ParseSeuratObj_int <- IntegrateLayers(object = ParseSeuratObj, method = CCAIntegration,
                                       orig.reduction = "pca",  new.reduction = "integrated.cca", 
                                       verbose = TRUE)
@@ -104,35 +107,71 @@ ParseSeuratObj_int <- IntegrateLayers(object = ParseSeuratObj, method = CCAInteg
 # re-join layers after integration
 ParseSeuratObj_int[["RNA"]] <- JoinLayers(ParseSeuratObj_int[["RNA"]])
 
-ParseSeuratObj_int <- FindNeighbors(ParseSeuratObj_int, reduction = "integrated.rpca", dims = 1:30)
+ParseSeuratObj_int <- FindNeighbors(ParseSeuratObj_int, reduction = "integrated.cca", dims = 1:30)
 ParseSeuratObj_int <- FindClusters(ParseSeuratObj_int, resolution = 1)
 
-ParseSeuratObj_int <- RunUMAP(ParseSeuratObj_int, dims = 1:30, reduction = "integrated.rpca")
-DimPlot(ParseSeuratObj_int, reduction = "umap", group.by = c("seurat_clusters"))
+ParseSeuratObj_int <- RunUMAP(ParseSeuratObj_int, dims = 1:30, reduction = "integrated.cca")
+DimPlot(ParseSeuratObj_int, reduction = "umap", group.by = c("seurat_clusters"), label = TRUE)
 
-#Look at canonical gene markers
-#Not sure best cell markers, this thread offers some https://www.biostars.org/p/9571136/
+
+####Annotate cell types ####
+#Will try automatic annotation
+#Mouse rna seq reference
+ref <- fetchReference("mouse_rnaseq", "2024-02-26")
+pred <- SingleR(test=ParseSeuratObj_int[['RNA']]$data, ref=ref, labels=ref$label.main)
+ParseSeuratObj_int$singleR_labels <- pred$labels
+plotScoreHeatmap(pred)
+DimPlot(ParseSeuratObj_int, group.by = 'singleR_labels', label = TRUE)
+
+#### Look at canonical gene markers for annotation ####
+#Paper has some canonical markers for cell types
+#https://umu.diva-portal.org/smash/get/diva2:1897514/FULLTEXT01.pdf
 
 #This paper https://link.springer.com/article/10.1007/s10571-021-01159-3
-#Heterogeneity and Molecular Markers for CNS Glial Cells Revealed by Single-Cell Transcriptomics has
-#lists of markers
+#Heterogeneity and Molecular Markers for CNS Glial Cells Revealed by Single-Cell Transcriptomics also 
+#has lists of markers
 
 #Some neuron markers
 FeaturePlot(ParseSeuratObj_int, 'Snap25')
+FeaturePlot(ParseSeuratObj_int, 'Pcp2')
+FeaturePlot(ParseSeuratObj_int, 'Rbfox3')
+FeaturePlot(ParseSeuratObj_int, 'Dpp10')
+
+FeaturePlot(ParseSeuratObj_int, 'Foxp1')
 
 #Endothelial cells
 FeaturePlot(ParseSeuratObj_int, 'Flt1')
 
 #Astrocytes
 FeaturePlot(ParseSeuratObj_int, 'Gfap')
+FeaturePlot(ParseSeuratObj_int, 'Aqp4')
+FeaturePlot(ParseSeuratObj_int, 'Fgfr3')
 FeaturePlot(ParseSeuratObj_int, 'Aldh1l1')
 FeaturePlot(ParseSeuratObj_int, 'Slc1a3')
 
 #Microglia
+FeaturePlot(ParseSeuratObj_int, 'Ctss')
+FeaturePlot(ParseSeuratObj_int, 'Csf1r')
+FeaturePlot(ParseSeuratObj_int, 'Cx3cr1')
 FeaturePlot(ParseSeuratObj_int, 'C1qa')
 FeaturePlot(ParseSeuratObj_int, 'Tmem119')
 FeaturePlot(ParseSeuratObj_int, 'P2ry12')
 
+#Oligo
+FeaturePlot(ParseSeuratObj_int, 'Mag')
+FeaturePlot(ParseSeuratObj_int, 'Mog')
+
+#OPC
+FeaturePlot(ParseSeuratObj_int, 'Pdgfra')
+FeaturePlot(ParseSeuratObj_int, 'Cspg4')
+
+#Macrophage markers
+FeaturePlot(ParseSeuratObj_int, 'Ptprc')
+
+
+#Look at specific clusters top markers to confirm cell types
+#Cluster 0 uprefulated w Chil3, Ms4a8a, Saa3, GM15056. Looks like macrophages
+possibleMacrophages <- FindMarkers(ParseSeuratObj_int, ident.1 = 0, group.by = 'seurat_clusters', only.pos = TRUE)
 
 
 
