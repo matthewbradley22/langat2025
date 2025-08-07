@@ -17,7 +17,8 @@ ParseSeuratObj_int$singleR_labels <- pred$labels
 plotScoreHeatmap(pred)
 
 #UMAP with cell assignments
-DimPlot(ParseSeuratObj_int, group.by = 'singleR_labels', label = TRUE)
+DimPlot(ParseSeuratObj_int, group.by = 'singleR_labels', reduction = "umap.integrated",
+        label = TRUE)
 clusterAssignments <- table(Assigned=pred$pruned.labels, Cluster= ParseSeuratObj_int$seurat_clusters)
 pheatmap(log2(clusterAssignments+10), color=colorRampPalette(c("white", "blue"))(101))
 

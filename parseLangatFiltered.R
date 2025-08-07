@@ -5,6 +5,7 @@ library(dplyr)
 library(scDblFinder)
 library(readr)
 library(ggplot2)
+library(gridExtra)
 
 #List out our data files, and read them into R
 parseOutput <- list.files("./FilteredParseOutput/")
@@ -40,11 +41,20 @@ ParseSeuratObj$subLib <- substr(colnames(ParseSeuratObj), start = 1, stop = 7)
 
 #Assign viral reads from labels
 #List files with viral reads
+#importing both undajusted and partially adjusted (after fragmentation) viral counts
 virusCountFiles <- list.files('./viralReadCountsUnadjusted/')
+virusCountFilesP <- list.files('./viralReadCountsPartiallyAdjusted/')
+
 virusCountFiles <- virusCountFiles[grep('P36207', virusCountFiles)]
 
 viralCountsUnadjusted <- lapply(virusCountFiles, FUN = function(x){
   subLibViralCounts <- read_table(paste0("viralReadCountsUnadjusted/", x), 
+                                  col_names = FALSE)
+  subLibViralCounts
+})
+
+viralCountsPartAdjusted <- lapply(virusCountFilesP, FUN = function(x){
+  subLibViralCounts <- read_table(paste0("viralReadCountsPartiallyAdjusted/", x), 
                                   col_names = FALSE)
   subLibViralCounts
 })
@@ -60,21 +70,38 @@ for(i in 1:length(viralCountsUnadjusted)){
   viralCountsUnadjusted[[i]] <- dat
 }
 
+for(i in 1:length(viralCountsPartAdjusted)){
+  dat = viralCountsPartAdjusted[[i]]
+  dat$subLib <- paste0('seuObj', as.character(i))
+  dat$cell <- substr(dat$X2, start = 6, stop = 14)
+  dat <- dat[c(1,3,4)]
+  colnames(dat)[1] = 'virusCountPAdj'
+  viralCountsPartAdjusted[[i]] <- dat
+}
+
 viralCountsUnadjusted <- bind_rows(viralCountsUnadjusted)
+viralCountsPartAdjusted <- bind_rows(viralCountsPartAdjusted)
 
 ParseSeuratObj$cell <- substr(colnames(ParseSeuratObj), start = 9, stop = 16)
 
 ParseSeuratObj[[]] <- left_join(ParseSeuratObj[[]], viralCountsUnadjusted, by = c('subLib', 'cell'))
+ParseSeuratObj[[]] <- left_join(ParseSeuratObj[[]], viralCountsPartAdjusted, by = c('subLib', 'cell'))
+
 ParseSeuratObj$virusCount[is.na(ParseSeuratObj$virusCount)] = 0
+ParseSeuratObj$virusCountPAdj[is.na(ParseSeuratObj$virusCountPAdj)] = 0
 
 wellMap <- data.frame(well = c(paste0('A', seq(1,12)), paste0('B', seq(1,12)),
                                paste0('C', seq(1,12)),   paste0('D', seq(1,12))))
 
 #Plot viral counts vs well/treatment. Looks right
-ggplot(ParseSeuratObj[[]], aes(x = orig.ident, y = virusCount, col = Treatment))+
+ggplot(ParseSeuratObj[[]], aes(x = orig.ident, y = virusCountPAdj, col = Treatment))+
   geom_point() +
   scale_x_discrete(labels= wellMap$well)+
   theme(axis.text.x = element_text(angle = 90))
+
+ggplot(ParseSeuratObj[[]], aes(x = virusCount, y = virusCountPAdj))+
+  geom_point()+
+  geom_abline(slope=1)
 
 #Check percent of cells in each group expressing virus
 ParseSeuratObj[[]] %>% mutate(virusPresent = ifelse(virusCount>0, 'yes', 'no')) %>% 
@@ -103,7 +130,6 @@ ParseSeuratObj <- RunUMAP(ParseSeuratObj, dims = 1:30, reduction = "pca", reduct
 DimPlot(ParseSeuratObj)
 
 #Look at potential doublets
-
 Parse_sce <- ParseSeuratObj %>% JoinLayers() %>%  as.SingleCellExperiment()
 
 #Use sublibraries as samples for scdblfinder
@@ -117,8 +143,7 @@ DimPlot(ParseSeuratObj, group.by = 'scDblFinderLabel')
 
 
 #Integrate data
-#Need to choose integration method - rpca fastest
-#Can look at running in parellel to increase speed. CCA takes 5+ hours. RPCA much much faster
+#choosing integration method - rpca fastest, cca takes 5+ hours
 ParseSeuratObj_int <- IntegrateLayers(object = ParseSeuratObj, method = RPCAIntegration,
                                       orig.reduction = "pca",  new.reduction = "integrated.rpca", 
                                       verbose = TRUE)
@@ -129,7 +154,14 @@ ParseSeuratObj_int[["RNA"]] <- JoinLayers(ParseSeuratObj_int[["RNA"]])
 ParseSeuratObj_int <- FindNeighbors(ParseSeuratObj_int, reduction = "integrated.rpca", dims = 1:30)
 ParseSeuratObj_int <- FindClusters(ParseSeuratObj_int, resolution = 1)
 
-ParseSeuratObj_int <- RunUMAP(ParseSeuratObj_int, dims = 1:30, reduction = "integrated.rpca")
-DimPlot(ParseSeuratObj_int, reduction = "umap", group.by = c("seurat_clusters"), label = TRUE)
+ParseSeuratObj_int <- RunUMAP(ParseSeuratObj_int, dims = 1:30, reduction = "integrated.rpca", 
+                              reduction.name = "umap.integrated")
 
+intUMAP <- DimPlot(ParseSeuratObj_int, reduction = "umap.integrated", group.by = c("seurat_clusters"), label = TRUE)+
+  NoLegend()+
+  ggtitle('Integrated UMAP')
+unIntUmap <- DimPlot(ParseSeuratObj_int, reduction = "umap.unintegrated", group.by = c("seurat_clusters"), label = TRUE)+
+  NoLegend()+
+  ggtitle('Unintegrated UMAP')
 
+grid.arrange(intUMAP, unIntUmap, ncol=2)
