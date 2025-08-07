@@ -6,8 +6,8 @@ library(celldex)
 library(pheatmap)
 
 #Load in data
-ParseSeuratObj_int <- LoadSeuratRds('./ccaIntegratedDat.rds')
-
+#ParseSeuratObj_int <- LoadSeuratRds('./ccaIntegratedDat.rds')
+ParseSeuratObj_int <- LoadSeuratRds("./FilteredRpcaIntegratedDat.rds")
 ####Annotate cell types ####
 #Will try automatic annotation
 #Mouse rna seq reference
@@ -21,7 +21,25 @@ DimPlot(ParseSeuratObj_int, group.by = 'singleR_labels', label = TRUE)
 clusterAssignments <- table(Assigned=pred$pruned.labels, Cluster= ParseSeuratObj_int$seurat_clusters)
 pheatmap(log2(clusterAssignments+10), color=colorRampPalette(c("white", "blue"))(101))
 
-#### Look at canonical gene markers for annotation ####
+####Data is loaded in with doublets, so can start here ####
+#Look at doublets in integrated data
+DimPlot(ParseSeuratObj_int, group.by = 'scDblFinderLabel')
+ParseSeuratObj_int <- subset(ParseSeuratObj_int, scDblFinderLabel == 'singlet')
+
+#Plot viral counts vs well/treatment. 
+#removing doublets doesn't get rid of viral contamination in PBS samples
+ggplot(ParseSeuratObj_int[[]], aes(x = orig.ident, y = virusCount, col = Treatment))+
+  geom_point() +
+  scale_x_discrete(labels= wellMap$well)+
+  theme(axis.text.x = element_text(angle = 90))
+
+ParseSeuratObj_int[[]] %>% mutate(virusPresent = ifelse(virusCount>0, 'yes', 'no')) %>% 
+  group_by(Treatment, virusPresent) %>% dplyr::summarise(count = n()) %>% 
+  ggplot(aes(x = Treatment, y = count, fill = virusPresent))+
+  geom_bar(stat = 'identity', position = 'dodge')
+
+#### Manual annotation ####
+
 #Paper has some canonical markers for cell types
 #https://umu.diva-portal.org/smash/get/diva2:1897514/FULLTEXT01.pdf
 
@@ -66,33 +84,19 @@ FeaturePlot(ParseSeuratObj_int, 'Cspg4')
 #Macrophage markers
 FeaturePlot(ParseSeuratObj_int, 'Ptprc')
 FeaturePlot(ParseSeuratObj_int, 'Ccr2')
-FeaturePlot(ParseSeuratObj_int, 'Fn1')
+
 
 #T cells
 FeaturePlot(ParseSeuratObj_int, 'Cd3g')
 
-#### Manual annotation ####
+DimPlot(ParseSeuratObj_int, label = TRUE)
+
 #Look at specific clusters top markers to confirm cell types
-#Cluster 0 upregulated w Chil3, Ms4a8a, Saa3, GM15056. Looks like macrophages
-possibleMacrophages <- FindMarkers(ParseSeuratObj_int, ident.1 = 0, group.by = 'seurat_clusters', only.pos = TRUE)
 
-#Cluster 7: Adgre4, MS4a genes (monocyte?)... This one more confusing
-possibleMacrophages2 <- FindMarkers(ParseSeuratObj_int, ident.1 = 7, group.by = 'seurat_clusters', only.pos = TRUE)
-
-#Cluster 26 (granulocytes?): Retnlg, s100a9, s100a8, Mrgpra2a
-possibleGranulocytes <- FindMarkers(ParseSeuratObj_int, ident.1 = 26, 
-                                    group.by = 'seurat_clusters', only.pos = TRUE)
-
-#Interesting cluster w Foxb1 near the top, but not a ton of astrocyte markers afaik
-possibleAstrocytes <- FindMarkers(ParseSeuratObj_int, ident.1 = 8, 
-                                    group.by = 'seurat_clusters', only.pos = TRUE)
-
-possibleAstrocytes2 <- FindMarkers(ParseSeuratObj_int, ident.1 = 19, 
-                                  group.by = 'seurat_clusters', only.pos = TRUE)
 #Manual annotation
 clusters <- ParseSeuratObj_int$seurat_clusters
-ParseSeuratObj_int$markerBasedAnnotation <- case_when(clusters == 0 ~ 'macrophages',
-                                                      cluster == 26 ~ 'granulocytes')
+ParseSeuratObj_int$markerBasedAnnotation <- case_when(clusters == 27 ~ 'neurons',
+                                                      )
 
 
 

@@ -99,8 +99,8 @@ ParseSeuratObj <- RunPCA(ParseSeuratObj)
 ElbowPlot(ParseSeuratObj, ndims = 40)
 ParseSeuratObj <- FindNeighbors(ParseSeuratObj, dims = 1:30, reduction = "pca")
 ParseSeuratObj <- FindClusters(ParseSeuratObj, resolution = 2, cluster.name = "unintegrated_clusters")  
-ParseSeuratObj <- RunUMAP(ParseSeuratObj, dims = 1:30, reduction = "pca")
-DimPlot(ParseSeuratObj, group.by = 'orig.ident')
+ParseSeuratObj <- RunUMAP(ParseSeuratObj, dims = 1:30, reduction = "pca", reduction.name = "umap.unintegrated")
+DimPlot(ParseSeuratObj)
 
 #Look at potential doublets
 
@@ -110,24 +110,26 @@ Parse_sce <- ParseSeuratObj %>% JoinLayers() %>%  as.SingleCellExperiment()
 Parse_sce <- scDblFinder(Parse_sce, dbr.sd=1, samples = 'subLib')
 table(Parse_sce$scDblFinder.class)
 ParseSeuratObj$scDblFinderLabel <- Parse_sce$scDblFinder.class
+DimPlot(ParseSeuratObj, group.by = 'scDblFinderLabel')
 
-ParseSeuratObj <- subset(ParseSeuratObj, scDblFinderLabel == 'singlet')
+#Keep doublets for now, see if they group together
+#ParseSeuratObj <- subset(ParseSeuratObj, scDblFinderLabel == 'singlet')
 
 
 #Integrate data
 #Need to choose integration method - rpca fastest
 #Can look at running in parellel to increase speed. CCA takes 5+ hours. RPCA much much faster
-ParseSeuratObj_int <- IntegrateLayers(object = ParseSeuratObj, method = CCAIntegration,
-                                      orig.reduction = "pca",  new.reduction = "integrated.cca", 
+ParseSeuratObj_int <- IntegrateLayers(object = ParseSeuratObj, method = RPCAIntegration,
+                                      orig.reduction = "pca",  new.reduction = "integrated.rpca", 
                                       verbose = TRUE)
 
 # re-join layers after integration
 ParseSeuratObj_int[["RNA"]] <- JoinLayers(ParseSeuratObj_int[["RNA"]])
 
-ParseSeuratObj_int <- FindNeighbors(ParseSeuratObj_int, reduction = "integrated.cca", dims = 1:30)
+ParseSeuratObj_int <- FindNeighbors(ParseSeuratObj_int, reduction = "integrated.rpca", dims = 1:30)
 ParseSeuratObj_int <- FindClusters(ParseSeuratObj_int, resolution = 1)
 
-ParseSeuratObj_int <- RunUMAP(ParseSeuratObj_int, dims = 1:30, reduction = "integrated.cca")
+ParseSeuratObj_int <- RunUMAP(ParseSeuratObj_int, dims = 1:30, reduction = "integrated.rpca")
 DimPlot(ParseSeuratObj_int, reduction = "umap", group.by = c("seurat_clusters"), label = TRUE)
 
 
