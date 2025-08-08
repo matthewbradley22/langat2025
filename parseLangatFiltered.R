@@ -16,8 +16,7 @@ ParseMatricies <- lapply(parseOutput, FUN = function(x){
 
 #Convert data to Seurat objects  
 ParseSeuratObj <- lapply(ParseMatricies, FUN = function(x){
-  CreateSeuratObject(counts = x, project = "Langat", 
-                     min.cells = 1, min.features = 20)
+  CreateSeuratObject(counts = x, project = "Langat")
 })
 
 #Can also combine this data using split-pipe combined, instead of doing it here
@@ -148,7 +147,7 @@ ParseSeuratObj_int <- IntegrateLayers(object = ParseSeuratObj, method = RPCAInte
                                       orig.reduction = "pca",  new.reduction = "integrated.rpca", 
                                       verbose = TRUE)
 
-# re-join layers after integration
+#re-join layers after integration
 ParseSeuratObj_int[["RNA"]] <- JoinLayers(ParseSeuratObj_int[["RNA"]])
 
 ParseSeuratObj_int <- FindNeighbors(ParseSeuratObj_int, reduction = "integrated.rpca", dims = 1:30)

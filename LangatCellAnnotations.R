@@ -4,6 +4,7 @@ library(Seurat)
 library(SingleR)
 library(celldex)
 library(pheatmap)
+library(dplyr)
 
 #Load in data
 #ParseSeuratObj_int <- LoadSeuratRds('./ccaIntegratedDat.rds')
@@ -34,12 +35,43 @@ ggplot(ParseSeuratObj_int[[]], aes(x = orig.ident, y = virusCount, col = Treatme
   scale_x_discrete(labels= wellMap$well)+
   theme(axis.text.x = element_text(angle = 90))
 
+#Look at neo1 across genotypes
+ParseSeuratObj_int$neo_exp <- ParseSeuratObj_int[['RNA']]$data['Neo1',]
+ggplot(ParseSeuratObj_int[[]], aes(x = Well, y = neo_exp))+
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90))
+
+
+#Count of virus presence
 ParseSeuratObj_int[[]] %>% mutate(virusPresent = ifelse(virusCount>0, 'yes', 'no')) %>% 
   group_by(Treatment, virusPresent) %>% dplyr::summarise(count = n()) %>% 
   ggplot(aes(x = Treatment, y = count, fill = virusPresent))+
   geom_bar(stat = 'identity', position = 'dodge')
 
-#### Manual annotation ####
+#Plot of virus presence over small amount
+ParseSeuratObj_int[[]] %>% mutate(virusHight = ifelse(virusCount>3, 'yes', 'no')) %>% 
+  group_by(Treatment, virusHight) %>% dplyr::summarise(count = n()) %>% 
+  ggplot(aes(x = Treatment, y = count, fill = virusHight))+
+  geom_bar(stat = 'identity', position = 'dodge')
+
+#Look at virus presence across celltypes
+ParseSeuratObj_int[[]] <- ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCount > 0, 'yes', 'no')) 
+  DimPlot(ParseSeuratObj_int, group.by = 'virusPresence')
+
+ParseSeuratObj_int[[]] %>% group_by(singleR_labels, virusPresence) %>% dplyr::summarise(count = n()) %>% 
+  ggplot(aes(x = singleR_labels, y = count, fill = virusPresence))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Look at cell counts per well
+table(ParseSeuratObj_int$Well) %>% barplot()
+
+#Most pbs cells with virus have very low amount, could just filter by amount
+pbsWithVirus <- subset(ParseSeuratObj_int, Treatment == 'PBS' & virusCountPAdj > 0)
+summary(pbsWithVirus$virusCountPAdj)
+hist(pbsWithVirus$virusCountPAdj)
+
+#### Manual annotatTimepoint#### Manual annotation ####
 
 #Paper has some canonical markers for cell types
 #https://umu.diva-portal.org/smash/get/diva2:1897514/FULLTEXT01.pdf
@@ -49,55 +81,48 @@ ParseSeuratObj_int[[]] %>% mutate(virusPresent = ifelse(virusCount>0, 'yes', 'no
 #has lists of markers
 
 #Some neuron markers
-FeaturePlot(ParseSeuratObj_int, 'Snap25')
-FeaturePlot(ParseSeuratObj_int, 'Pcp2')
-FeaturePlot(ParseSeuratObj_int, 'Rbfox3')
-FeaturePlot(ParseSeuratObj_int, 'Dpp10')
-FeaturePlot(ParseSeuratObj_int, 'Syt1')
+FeaturePlot(ParseSeuratObj_int, 'Snap25', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Pcp2', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Rbfox3', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Dpp10', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Syt1', reduction = 'umap.integrated')
 
 
 #Endothelial cells
-FeaturePlot(ParseSeuratObj_int, 'Flt1')
+FeaturePlot(ParseSeuratObj_int, 'Flt1', reduction = 'umap.integrated')
 
 #Astrocytes
-FeaturePlot(ParseSeuratObj_int, 'Gfap')
-FeaturePlot(ParseSeuratObj_int, 'Aqp4')
-FeaturePlot(ParseSeuratObj_int, 'Fgfr3')
-FeaturePlot(ParseSeuratObj_int, 'Aldh1l1')
-FeaturePlot(ParseSeuratObj_int, 'Slc1a3')
+FeaturePlot(ParseSeuratObj_int, 'Gfap', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Aqp4', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Fgfr3', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Aldh1l1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Slc1a3', reduction = 'umap.integrated')
 
 #Microglia
-FeaturePlot(ParseSeuratObj_int, 'Ctss')
-FeaturePlot(ParseSeuratObj_int, 'Csf1r')
-FeaturePlot(ParseSeuratObj_int, 'Cx3cr1')
-FeaturePlot(ParseSeuratObj_int, 'C1qa')
-FeaturePlot(ParseSeuratObj_int, 'Tmem119')
-FeaturePlot(ParseSeuratObj_int, 'P2ry12')
+FeaturePlot(ParseSeuratObj_int, 'Ctss', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Csf1r', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cx3cr1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'C1qa', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Tmem119', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'P2ry12', reduction = 'umap.integrated')
 
 #Oligo
-FeaturePlot(ParseSeuratObj_int, 'Mag')
-FeaturePlot(ParseSeuratObj_int, 'Mog')
+FeaturePlot(ParseSeuratObj_int, 'Mag',reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Mog', reduction = 'umap.integrated')
 
 #OPC
-FeaturePlot(ParseSeuratObj_int, 'Pdgfra')
-FeaturePlot(ParseSeuratObj_int, 'Cspg4')
+FeaturePlot(ParseSeuratObj_int, 'Pdgfra', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cspg4', reduction = 'umap.integrated')
 
 #Macrophage markers
-FeaturePlot(ParseSeuratObj_int, 'Ptprc')
-FeaturePlot(ParseSeuratObj_int, 'Ccr2')
+FeaturePlot(ParseSeuratObj_int, 'Ptprc', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
 
 
 #T cells
-FeaturePlot(ParseSeuratObj_int, 'Cd3g')
+FeaturePlot(ParseSeuratObj_int, 'Cd3g', reduction = 'umap.integrated')
 
 DimPlot(ParseSeuratObj_int, label = TRUE)
-
-#Look at specific clusters top markers to confirm cell types
-
-#Manual annotation
-clusters <- ParseSeuratObj_int$seurat_clusters
-ParseSeuratObj_int$markerBasedAnnotation <- case_when(clusters == 27 ~ 'neurons',
-                                                      )
 
 
 
