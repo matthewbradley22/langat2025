@@ -96,6 +96,8 @@ FeaturePlot(ParseSeuratObj_int, 'Aqp4', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Fgfr3', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Aldh1l1', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Slc1a3', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Gli3', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Slc39a12', reduction = 'umap.integrated')
 
 #Microglia
 FeaturePlot(ParseSeuratObj_int, 'Ctss', reduction = 'umap.integrated')
