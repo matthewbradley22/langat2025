@@ -36,33 +36,35 @@ DimPlot(neurons, reduction = 'umap')
 table(neurons$Organ)
 
 #Using allen cell atlas: https://knowledge.brain-map.org/celltypes for celltype markers
+#and panglao  https://panglaodb.se/markers.html?cell_type=%27Purkinje%20neurons%27
 
 #Inhibitory neuron markers - don't really show up
 FeaturePlot(neurons, 'Gad1', reduction = 'umap')
+FeaturePlot(neurons, 'Gad2', reduction = 'umap')
 FeaturePlot(neurons, 'Dlx6os1', reduction = 'umap')
+FeaturePlot(neurons, 'Dlx6os1', reduction = 'umap')
+FeaturePlot(neurons, 'Slc6a1', reduction = 'umap')
 
 #Excitatory markers. Looks like they're all excitatory
-#Atoh1 from this paper https://www.cell.com/current-biology/fulltext/S0960-9822(18)30992-8
 FeaturePlot(neurons, 'Sv2b', reduction = 'umap')
 FeaturePlot(neurons, 'Arpp21', reduction = 'umap')
-FeaturePlot(neurons, 'Atoh1', reduction = 'umap')
+FeaturePlot(neurons, 'Slc7a7', reduction = 'umap')
+FeaturePlot(neurons, 'Slc7a6', reduction = 'umap')
 
 #Purkinje markers from https://pmc.ncbi.nlm.nih.gov/articles/PMC9497131/
 FeaturePlot(neurons, 'Rora', reduction = 'umap')
-FeaturePlot(neurons, 'Dab1', reduction = 'umap')
 FeaturePlot(neurons, 'Foxp2', reduction = 'umap')
-FeaturePlot(neurons, 'Cntnap4', reduction = 'umap')
+FeaturePlot(neurons, 'Car8', reduction = 'umap')
 
 #Other markers here https://panglaodb.se/markers.html?cell_type=%27Purkinje%20neurons%27
 FeaturePlot(neurons, 'Calb1', reduction = 'umap')
-FeaturePlot(neurons, 'Gad2', reduction = 'umap')
-FeaturePlot(neurons, 'Grid2', reduction = 'umap')
-FeaturePlot(neurons, 'Gad1', reduction = 'umap')
+
 
 #Look at deg markers present.
 neuronMarkers <- FindAllMarkers(neurons, assay = 'RNA')
 neuronMarkers
 
+#### NUP Expression ####
 #Look for NUP
 FeaturePlot(neurons, 'Nup98', reduction = 'umap')
 FeaturePlot(neurons, 'Nup153', reduction = 'umap')
@@ -87,6 +89,7 @@ ggplot(nupDat, aes(x = factor(virusPresent), y = nup98))+
   geom_point()
 
 nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nup98Mean = mean(nup98))
+
 nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup98Present)) %>% 
   ggplot(aes(x = factor(virusPresent), y = nupProportions, fill = virusPresent))+
   geom_bar(stat = 'identity')+
