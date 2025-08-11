@@ -17,8 +17,13 @@ DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', label = TRUE) +
 DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', label = TRUE, group.by = 'singleR_labels') +
   NoLegend()
 
+#Neurons appear to make up clusters 24, 24, 37, and 44
+table(subset(ParseSeuratObj_int, singleR_labels == 'Neurons')$seurat_clusters)
+
+#Look at proportions of neurons in each cluster, if low proportion then consider looking closer
 table(subset(ParseSeuratObj_int, seurat_clusters == '27')$singleR_labels)
 table(subset(ParseSeuratObj_int, seurat_clusters == '24')$singleR_labels)
+table(subset(ParseSeuratObj_int, seurat_clusters == '37')$singleR_labels)
 table(subset(ParseSeuratObj_int, seurat_clusters == '44')$singleR_labels)
 
 #Look at markers in neurons
@@ -27,13 +32,20 @@ neuronMarkers <- FindMarkers(ParseSeuratObj_int, group.by = 'singleR_labels',
 
 #Can start with conservative approach of subsetting by celltype and cluster, removing doublets
 neurons <- subset(ParseSeuratObj_int, singleR_labels == 'Neurons' & seurat_clusters %in% c('27', '24',
-                                                                                           '44'))
+                                                                                          '37', '44'))
+
 
 table(neurons$Genotype)
 table(neurons$Treatment)
 table(neurons$Timepoint)
+
+#More neurons in cerebellum is interesting
 table(neurons$Organ)
+
+#Check virus presence. Make this slightly stricter later on (need > 1 virus) for closer analysis
+neurons$virusPresent <- ifelse(neurons$virusCountPAdj > 0, 1, 0)
 table(neurons$virusPresent)
+table(neurons$virusPresent, neurons$Organ)
 
 #Rerun through data processing and visualization
 neurons <- NormalizeData(neurons)

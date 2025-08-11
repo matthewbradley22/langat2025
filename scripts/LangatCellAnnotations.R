@@ -122,8 +122,15 @@ FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
 #T cells
 FeaturePlot(ParseSeuratObj_int, 'Cd3g', reduction = 'umap.integrated')
 
-DimPlot(ParseSeuratObj_int, label = TRUE)
+#Pericytes
+#Along with PangloaDB, this paper has pericyte markers: 
+#https://www.sciencedirect.com/science/article/pii/S1537189124001605
+FeaturePlot(ParseSeuratObj_int, 'Pdgfrb', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Acta2', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Atp13a5', reduction = 'umap.integrated')
 
 
-
+#Dimplots for convenience
+DimPlot(ParseSeuratObj_int, label = TRUE, reduction = 'umap.integrated')
+DimPlot(ParseSeuratObj_int, label = TRUE, group.by = 'singleR_labels', reduction = 'umap.integrated')
 
