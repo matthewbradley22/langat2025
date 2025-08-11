@@ -8,6 +8,9 @@ library(dplyr)
 #Load in data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
 
+#filter to singlets. went through analysis and filtering made sense, doublets mostly clustered together 
+ParseSeuratObj_int <- subset(ParseSeuratObj_int, scDblFinderLabel == 'singlet')
+
 DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', label = TRUE) +
   NoLegend()
 
@@ -15,10 +18,22 @@ DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', label = TRUE, group.b
   NoLegend()
 
 table(subset(ParseSeuratObj_int, seurat_clusters == '27')$singleR_labels)
+table(subset(ParseSeuratObj_int, seurat_clusters == '24')$singleR_labels)
 table(subset(ParseSeuratObj_int, seurat_clusters == '44')$singleR_labels)
 
-#Can start with conservative approach of subsetting by celltype and cluster
-neurons <- subset(ParseSeuratObj_int, singleR_labels == 'Neurons' & seurat_clusters %in% c('27','44'))
+#Look at markers in neurons
+neuronMarkers <- FindMarkers(ParseSeuratObj_int, group.by = 'singleR_labels',
+                             ident.1 = 'Neurons')
+
+#Can start with conservative approach of subsetting by celltype and cluster, removing doublets
+neurons <- subset(ParseSeuratObj_int, singleR_labels == 'Neurons' & seurat_clusters %in% c('27', '24',
+                                                                                           '44'))
+
+table(neurons$Genotype)
+table(neurons$Treatment)
+table(neurons$Timepoint)
+table(neurons$Organ)
+table(neurons$virusPresent)
 
 #Rerun through data processing and visualization
 neurons <- NormalizeData(neurons)
@@ -65,6 +80,7 @@ neuronMarkers <- FindAllMarkers(neurons, assay = 'RNA')
 neuronMarkers
 
 #### NUP Expression ####
+#split this by brain organ
 #Look for NUP
 FeaturePlot(neurons, 'Nup98', reduction = 'umap')
 FeaturePlot(neurons, 'Nup153', reduction = 'umap')
