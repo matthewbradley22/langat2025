@@ -32,9 +32,10 @@ createPseudoBulk <- function(data, variables){
   # Get count matrix
   cluster_counts <- FetchData(bulk, layer="counts", vars=rownames(bulk))
   
+  designForm <- reformulate(variables)
   dds <- DESeqDataSetFromMatrix(t(cluster_counts),
                                 colData = bulk@meta.data,
-                                design = ~ Genotype + Treatment + Timepoint + isInfected)
+                                design = designForm)
 }
 
 

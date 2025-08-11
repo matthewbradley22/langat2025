@@ -5,6 +5,9 @@ library(Seurat)
 library(ggplot2)
 library(dplyr)
 
+#Source functions
+source('./scripts/langatFunctions.R')
+
 #Load in data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
 
@@ -14,8 +17,8 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, scDblFinderLabel == 'singlet')
 DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', label = TRUE) +
   NoLegend()
 
-DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', label = TRUE, group.by = 'singleR_labels') +
-  NoLegend()
+DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', group.by = 'singleR_labels',
+        cols = c(rep('gray', 14), 'red', rep('gray', 3))) 
 
 #Neurons appear to make up clusters 24, 24, 37, and 44
 table(subset(ParseSeuratObj_int, singleR_labels == 'Neurons')$seurat_clusters)
@@ -26,9 +29,6 @@ table(subset(ParseSeuratObj_int, seurat_clusters == '24')$singleR_labels)
 table(subset(ParseSeuratObj_int, seurat_clusters == '37')$singleR_labels)
 table(subset(ParseSeuratObj_int, seurat_clusters == '44')$singleR_labels)
 
-#Look at markers in neurons
-neuronMarkers <- FindMarkers(ParseSeuratObj_int, group.by = 'singleR_labels',
-                             ident.1 = 'Neurons')
 
 #Can start with conservative approach of subsetting by celltype and cluster, removing doublets
 neurons <- subset(ParseSeuratObj_int, singleR_labels == 'Neurons' & seurat_clusters %in% c('27', '24',
@@ -36,15 +36,15 @@ neurons <- subset(ParseSeuratObj_int, singleR_labels == 'Neurons' & seurat_clust
 
 
 table(neurons$Genotype)
-table(neurons$Treatment)
-table(neurons$Timepoint)
+table(neurons$Treatment) %>% barplot(main = 'Neurons across treatments') 
+table(neurons$Timepoint)%>% barplot(main = 'Neurons across times') 
 
 #More neurons in cerebellum is interesting
-table(neurons$Organ)
+table(neurons$Organ)%>% barplot(main = 'Neurons across organs') 
 
 #Check virus presence. Make this slightly stricter later on (need > 1 virus) for closer analysis
 neurons$virusPresent <- ifelse(neurons$virusCountPAdj > 0, 1, 0)
-table(neurons$virusPresent)
+table(neurons$virusPresent) %>% barplot(main = 'Neurons with viral reads') 
 table(neurons$virusPresent, neurons$Organ)
 
 #Rerun through data processing and visualization
@@ -57,22 +57,20 @@ neurons <- FindNeighbors(neurons, dims = 1:30, reduction = "pca")
 neurons <- FindClusters(neurons, resolution = 2, cluster.name = "neuron_clusters")  
 neurons <- RunUMAP(neurons, dims = 1:30, reduction = "pca", reduction.name = "umap")
 
-DimPlot(neurons, reduction = 'umap')
+DimPlot(neurons, reduction = 'umap', label = TRUE)
 
 #How many neurons from each brain region
-table(neurons$Organ)
 
 #Using allen cell atlas: https://knowledge.brain-map.org/celltypes for celltype markers
 #and panglao  https://panglaodb.se/markers.html?cell_type=%27Purkinje%20neurons%27
 
-#Inhibitory neuron markers - don't really show up
+#Inhibitory neuron markers
 FeaturePlot(neurons, 'Gad1', reduction = 'umap')
 FeaturePlot(neurons, 'Gad2', reduction = 'umap')
 FeaturePlot(neurons, 'Dlx6os1', reduction = 'umap')
-FeaturePlot(neurons, 'Dlx6os1', reduction = 'umap')
 FeaturePlot(neurons, 'Slc6a1', reduction = 'umap')
 
-#Excitatory markers. Looks like they're all excitatory
+#Excitatory markers
 FeaturePlot(neurons, 'Sv2b', reduction = 'umap')
 FeaturePlot(neurons, 'Arpp21', reduction = 'umap')
 FeaturePlot(neurons, 'Slc7a7', reduction = 'umap')
@@ -84,8 +82,11 @@ FeaturePlot(neurons, 'Foxp2', reduction = 'umap')
 FeaturePlot(neurons, 'Car8', reduction = 'umap')
 
 #Other markers here https://panglaodb.se/markers.html?cell_type=%27Purkinje%20neurons%27
+#and from here, good source https://www.nature.com/articles/s41593-021-00872-y#MOESM1
 FeaturePlot(neurons, 'Calb1', reduction = 'umap')
-
+FeaturePlot(neurons, 'Skor2', reduction = 'umap')
+FeaturePlot(neurons, 'Itpr1', reduction = 'umap')
+FeaturePlot(neurons, 'Pcp2', reduction = 'umap')
 
 #Look at deg markers present.
 neuronMarkers <- FindAllMarkers(neurons, assay = 'RNA')
@@ -108,10 +109,10 @@ table(neurons$Treatment, neurons$virusPresent)
 Nup98Exp <- neurons[['RNA']]$data['Nup98',]
 Nup153Exp <- neurons[['RNA']]$data['Nup153',]
 nupDat <- data.frame(virus = neurons$virusCountPAdj, virusPresent = neurons$virusPresent,
-                     nup98 = Nup98Exp, nup153 = Nup153Exp)
+                     nup98 = Nup98Exp, nup153 = Nup153Exp, organ = neurons$Organ)
 nupDat <- nupDat %>% mutate(nup98Present = ifelse(nup98 > 0, 1, 0))
 nupDat <- nupDat %>% mutate(nup153Present = ifelse(nup153 > 0, 1, 0))
-#Median of nup98 much higher in viral infected cells
+
 ggplot(nupDat, aes(x = factor(virusPresent), y = nup98))+
   geom_boxplot() +
   geom_point()
@@ -141,4 +142,49 @@ nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup
   theme(legend.position = 'None')+
   ylim(0,1)
 
+#Split by organ
+cerebellum <- nupDat[nupDat$organ == 'Cerebellum',]
+cerebrum <- nupDat[nupDat$organ == 'Cerebrum',]
+
+ggplot(cerebellum, aes(x = factor(virusPresent), y = nup98))+
+  geom_boxplot() +
+  geom_point() +
+  xlab('Virus Presence')+
+  ylab('Nup98 expression')
+
+cerebellum %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup98Present)) %>% 
+  ggplot(aes(x = factor(virusPresent), y = nupProportions, fill = virusPresent))+
+  geom_bar(stat = 'identity')+
+  ylab('Proportion of cells expressing Nup98') +
+  xlab('Virus Presence') +
+  theme(legend.position = 'None')+
+  ylim(0,1)
+
+ggplot(cerebrum, aes(x = factor(virusPresent), y = nup98))+
+  geom_boxplot() +
+  geom_point() +
+  xlab('Virus Presence')+
+  ylab('Nup98 expression')
+
+cerebrum %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup98Present)) %>% 
+  ggplot(aes(x = factor(virusPresent), y = nupProportions, fill = virusPresent))+
+  geom_bar(stat = 'identity')+
+  ylab('Proportion of cells expressing Nup98') +
+  xlab('Virus Presence') +
+  theme(legend.position = 'None')+
+  ylim(0,1)
+
+
+#Look at markers in neurons
+neuronMarkers <- FindMarkers(ParseSeuratObj_int, group.by = 'singleR_labels',
+                             ident.1 = 'Neurons')
+
+# Don't think we have enough infected neurons to evaluate how infection changes over time
+#if I create pseudobulk object with expected design formula, end up with some groups of only 1 cell
+neuronPB <- createPseudoBulk(neurons, c("Genotype", "Treatment", "Timepoint","Organ"))
+neuronPB <- DESeq(neuronPB)
+resultsNames(neuronPB)
+
+#nothing significant
+res <- results(neuronPB, contrast = c('Timepoint', 'Day 5', 'Day 3'))
 

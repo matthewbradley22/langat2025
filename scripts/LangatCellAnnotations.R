@@ -82,7 +82,6 @@ hist(pbsWithVirus$virusCountPAdj)
 
 #Some neuron markers
 FeaturePlot(ParseSeuratObj_int, 'Snap25', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Pcp2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Rbfox3', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Dpp10', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Syt1', reduction = 'umap.integrated')
@@ -129,8 +128,21 @@ FeaturePlot(ParseSeuratObj_int, 'Pdgfrb', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Acta2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Atp13a5', reduction = 'umap.integrated')
 
+#Epithelial cells
+FeaturePlot(ParseSeuratObj_int, 'Krt14', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Epcam', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cdh1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Sytl2', reduction = 'umap.integrated')
+
 
 #Dimplots for convenience
 DimPlot(ParseSeuratObj_int, label = TRUE, reduction = 'umap.integrated')
 DimPlot(ParseSeuratObj_int, label = TRUE, group.by = 'singleR_labels', reduction = 'umap.integrated')
+
+#Custom annotation based on singleR, for use in paper probably
+ParseSeuratObj_int$manualAnnotation <- 
+  case_when(ParseSeuratObj_int$seurat_clusters %in% c('27', '24',
+                                                      '37','44') &
+              ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons')
+
 
