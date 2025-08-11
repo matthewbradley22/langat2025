@@ -68,26 +68,46 @@ FeaturePlot(neurons, 'Nup98', reduction = 'umap')
 FeaturePlot(neurons, 'Nup153', reduction = 'umap')
 
 #Compare between cells w and without virus
+#Set virus cutoff greater than 1
+neurons$virusPresent <- ifelse(neurons$virusCountPAdj > 1, 1, 0)
+table(neurons$Treatment, neurons$virusPresent)
+
+neurons = subset(neurons, Treatment != 'PBS' | virusPresent == 0)
+table(neurons$Treatment, neurons$virusPresent)
 
 Nup98Exp <- neurons[['RNA']]$data['Nup98',]
 Nup153Exp <- neurons[['RNA']]$data['Nup153',]
-nupDat <- data.frame(virus = neurons$virusCount, nup98 = Nup98Exp, nup153 = Nup153Exp)
-nupDat$virusPresent <- ifelse(nupDat$virus > 0, 'yes', 'no')
-
+nupDat <- data.frame(virus = neurons$virusCountPAdj, virusPresent = neurons$virusPresent,
+                     nup98 = Nup98Exp, nup153 = Nup153Exp)
+nupDat <- nupDat %>% mutate(nup98Present = ifelse(nup98 > 0, 1, 0))
+nupDat <- nupDat %>% mutate(nup153Present = ifelse(nup153 > 0, 1, 0))
 #Median of nup98 much higher in viral infected cells
-ggplot(nupDat, aes(x = virusPresent, y = nup98))+
+ggplot(nupDat, aes(x = factor(virusPresent), y = nup98))+
   geom_boxplot() +
   geom_point()
 
-nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nup98Mean <- mean(nup98))
-nupDat %>% mutate(nup98Present = ifelse(nup98 > 0, 1, 0)) %>% 
-  group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup98Present))
+nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nup98Mean = mean(nup98))
+nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup98Present)) %>% 
+  ggplot(aes(x = factor(virusPresent), y = nupProportions, fill = virusPresent))+
+  geom_bar(stat = 'identity')+
+  ylab('Proportion of cells expressing Nup98') +
+  xlab('Virus Presence') +
+  theme(legend.position = 'None')+
+  ylim(0,1)
 
-ggplot(nupDat, aes(x = virusPresent, y = nup153))+
+table(nupDat$virusPresent)
+
+ggplot(nupDat, aes(x = factor(virusPresent), y = nup153))+
   geom_boxplot()
 
 nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nup153 <- mean(nup153))
-nupDat %>% mutate(nup153Present = ifelse(nup153 > 0, 1, 0)) %>% 
-  group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup153Present))
+
+nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup153Present)) %>% 
+  ggplot(aes(x = factor(virusPresent), y = nupProportions, fill = virusPresent))+
+  geom_bar(stat = 'identity')+
+  ylab('Proportion of cells expressing Nup153') +
+  xlab('Virus Presence') +
+  theme(legend.position = 'None')+
+  ylim(0,1)
 
 
