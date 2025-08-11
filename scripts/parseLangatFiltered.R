@@ -8,7 +8,7 @@ library(ggplot2)
 library(gridExtra)
 
 #List out our data files, and read them into R
-parseOutput <- list.files("./FilteredParseOutput/")
+parseOutput <- list.files("./data/FilteredParseOutput/")
 
 ParseMatricies <- lapply(parseOutput, FUN = function(x){
   ReadParseBio(paste0("./FilteredParseOutput/", x))

@@ -1,0 +1,93 @@
+#Explore neurons in data
+
+#Load packages
+library(Seurat)
+library(ggplot2)
+library(dplyr)
+
+#Load in data
+ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
+
+DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', label = TRUE) +
+  NoLegend()
+
+DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', label = TRUE, group.by = 'singleR_labels') +
+  NoLegend()
+
+table(subset(ParseSeuratObj_int, seurat_clusters == '27')$singleR_labels)
+table(subset(ParseSeuratObj_int, seurat_clusters == '44')$singleR_labels)
+
+#Can start with conservative approach of subsetting by celltype and cluster
+neurons <- subset(ParseSeuratObj_int, singleR_labels == 'Neurons' & seurat_clusters %in% c('27','44'))
+
+#Rerun through data processing and visualization
+neurons <- NormalizeData(neurons)
+neurons <- FindVariableFeatures(neurons)
+neurons <- ScaleData(neurons)
+neurons <- RunPCA(neurons)
+ElbowPlot(neurons, ndims = 40)
+neurons <- FindNeighbors(neurons, dims = 1:30, reduction = "pca")
+neurons <- FindClusters(neurons, resolution = 2, cluster.name = "neuron_clusters")  
+neurons <- RunUMAP(neurons, dims = 1:30, reduction = "pca", reduction.name = "umap")
+
+DimPlot(neurons, reduction = 'umap')
+
+#How many neurons from each brain region
+table(neurons$Organ)
+
+#Using allen cell atlas: https://knowledge.brain-map.org/celltypes for celltype markers
+
+#Inhibitory neuron markers - don't really show up
+FeaturePlot(neurons, 'Gad1', reduction = 'umap')
+FeaturePlot(neurons, 'Dlx6os1', reduction = 'umap')
+
+#Excitatory markers. Looks like they're all excitatory
+#Atoh1 from this paper https://www.cell.com/current-biology/fulltext/S0960-9822(18)30992-8
+FeaturePlot(neurons, 'Sv2b', reduction = 'umap')
+FeaturePlot(neurons, 'Arpp21', reduction = 'umap')
+FeaturePlot(neurons, 'Atoh1', reduction = 'umap')
+
+#Purkinje markers from https://pmc.ncbi.nlm.nih.gov/articles/PMC9497131/
+FeaturePlot(neurons, 'Rora', reduction = 'umap')
+FeaturePlot(neurons, 'Dab1', reduction = 'umap')
+FeaturePlot(neurons, 'Foxp2', reduction = 'umap')
+FeaturePlot(neurons, 'Cntnap4', reduction = 'umap')
+
+#Other markers here https://panglaodb.se/markers.html?cell_type=%27Purkinje%20neurons%27
+FeaturePlot(neurons, 'Calb1', reduction = 'umap')
+FeaturePlot(neurons, 'Gad2', reduction = 'umap')
+FeaturePlot(neurons, 'Grid2', reduction = 'umap')
+FeaturePlot(neurons, 'Gad1', reduction = 'umap')
+
+#Look at deg markers present.
+neuronMarkers <- FindAllMarkers(neurons, assay = 'RNA')
+neuronMarkers
+
+#Look for NUP
+FeaturePlot(neurons, 'Nup98', reduction = 'umap')
+FeaturePlot(neurons, 'Nup153', reduction = 'umap')
+
+#Compare between cells w and without virus
+
+Nup98Exp <- neurons[['RNA']]$data['Nup98',]
+Nup153Exp <- neurons[['RNA']]$data['Nup153',]
+nupDat <- data.frame(virus = neurons$virusCount, nup98 = Nup98Exp, nup153 = Nup153Exp)
+nupDat$virusPresent <- ifelse(nupDat$virus > 0, 'yes', 'no')
+
+#Median of nup98 much higher in viral infected cells
+ggplot(nupDat, aes(x = virusPresent, y = nup98))+
+  geom_boxplot() +
+  geom_point()
+
+nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nup98Mean <- mean(nup98))
+nupDat %>% mutate(nup98Present = ifelse(nup98 > 0, 1, 0)) %>% 
+  group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup98Present))
+
+ggplot(nupDat, aes(x = virusPresent, y = nup153))+
+  geom_boxplot()
+
+nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nup153 <- mean(nup153))
+nupDat %>% mutate(nup153Present = ifelse(nup153 > 0, 1, 0)) %>% 
+  group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup153Present))
+
+
