@@ -11,7 +11,7 @@ library(gridExtra)
 parseOutput <- list.files("./data/FilteredParseOutput/")
 
 ParseMatricies <- lapply(parseOutput, FUN = function(x){
-  ReadParseBio(paste0("./FilteredParseOutput/", x))
+  ReadParseBio(paste0("./data/FilteredParseOutput/", x))
 })
 
 #Convert data to Seurat objects  
@@ -58,6 +58,8 @@ viralCountsPartAdjusted <- lapply(virusCountFilesP, FUN = function(x){
   subLibViralCounts
 })
 
+
+
 #For each sublibrary create a df with counts of virus per cell barcode
 #Also adds a sublibrary column for joining purposes afterwards
 for(i in 1:length(viralCountsUnadjusted)){
@@ -78,8 +80,11 @@ for(i in 1:length(viralCountsPartAdjusted)){
   viralCountsPartAdjusted[[i]] <- dat
 }
 
+
+
 viralCountsUnadjusted <- bind_rows(viralCountsUnadjusted)
 viralCountsPartAdjusted <- bind_rows(viralCountsPartAdjusted)
+
 
 ParseSeuratObj$cell <- substr(colnames(ParseSeuratObj), start = 9, stop = 16)
 
@@ -164,3 +169,81 @@ unIntUmap <- DimPlot(ParseSeuratObj_int, reduction = "umap.unintegrated", group.
   ggtitle('Unintegrated UMAP')
 
 grid.arrange(intUMAP, unIntUmap, ncol=2)
+
+#Add neo reads in same way viral reads were added 
+
+#Neo reads
+neoFilesP <- list.files('./neoCountsPartiallyAdjusted/')
+
+neoCountsPartAdjusted <- lapply(neoFilesP, FUN = function(x){
+  subLibNeoCounts <- read_table(paste0("neoCountsPartiallyAdjusted/", x), 
+                                col_names = FALSE)
+  subLibNeoCounts
+})
+
+# Convert neo reads in same way as viral above
+for(i in 1:length(neoCountsPartAdjusted)){
+  dat = neoCountsPartAdjusted[[i]]
+  dat$subLib <- paste0('seuObj', as.character(i))
+  dat$cell <- substr(dat$X2, start = 6, stop = 14)
+  dat <- dat[c(1,3,4)]
+  colnames(dat)[1] = 'neoCountPAdj'
+  neoCountsPartAdjusted[[i]] <- dat
+}
+
+neoCountsPartAdjusted <- bind_rows(neoCountsPartAdjusted)
+
+ParseSeuratObj_int[[]] <- left_join(ParseSeuratObj_int[[]], 
+                                    neoCountsPartAdjusted, by = c('subLib', 'cell'))
+
+ParseSeuratObj_int$neoCountPAdj[is.na(ParseSeuratObj_int$neoCountPAdj)] = 0
+
+#plot neo counts
+ParseSeuratObj_int$neoPresence <- ifelse(ParseSeuratObj_int$neoCountPAdj > 0, 'yes', 'no')
+ParseSeuratObj_int[[]] %>% group_by(orig.ident) %>% dplyr::summarise(totalNeo = sum(neoCountPAdj),
+                                                                     Genotype = unique(Genotype)) %>% 
+  ggplot(aes(x = orig.ident, y = totalNeo, fill = Genotype))+
+  geom_bar(stat = 'identity')+
+  scale_x_discrete(labels= wellMap$well)+
+  theme(axis.text.x = element_text(angle = 90))+
+  ylab('Total Neo reads')
+
+#proportion of cells expressing neo
+ParseSeuratObj_int[[]] %>% group_by(orig.ident) %>% dplyr::summarise(neoProp = mean(neoPresence == 'yes'),
+                                                                     Genotype = unique(Genotype)) %>% 
+  ggplot(aes(x = orig.ident, y = neoProp, fill = Genotype))+
+  geom_bar(stat = 'identity')+
+  ylab('Proportion of cells expressing Neo')+
+  scale_x_discrete(labels= wellMap$well)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Plot total cells as well
+table(ParseSeuratObj_int$Genotype ,ParseSeuratObj_int$orig.ident) %>% as.data.frame() %>% 
+  ggplot(aes(x = Var2, y = Freq, fill = Var1))+
+  geom_bar(stat = 'identity')+
+  scale_x_discrete(labels= wellMap$well)+
+  theme(axis.text.x = element_text(angle = 90))+
+  ylab('Total Cells in Sample')+
+  xlab('Sample Well')
+
+ggplot(ParseSeuratObj_int[[]], aes(x = orig.ident, y = neoPresence, fill = neoPresence))+
+  geom_bar(stat = 'identity', position = 'stack') +
+  scale_x_discrete(labels= wellMap$well)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Proportion of infection by genotype
+ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 0, 'yes', 'no')) %>% 
+  group_by(Genotype) %>% 
+  dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
+  ggplot(aes(x = Genotype, y = virusPresenceProp, fill = Genotype)) +
+  geom_bar(stat = 'identity')+
+  ylab('Virus presence (threshold 1 viral read)')
+
+ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 4, 'yes', 'no')) %>% 
+  group_by(Genotype) %>% 
+  dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
+  ggplot(aes(x = Genotype, y = virusPresenceProp, fill = Genotype)) +
+  geom_bar(stat = 'identity')+
+  ylab('Virus presence (threshold 5 viral reads)')
+
+
