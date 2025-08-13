@@ -1,5 +1,4 @@
 #Explore neurons in data
-
 #Load packages
 library(Seurat)
 library(ggplot2)
@@ -58,7 +57,7 @@ neurons <- FindClusters(neurons, resolution = 2, cluster.name = "neuron_clusters
 neurons <- RunUMAP(neurons, dims = 1:30, reduction = "pca", reduction.name = "umap")
 
 DimPlot(neurons, reduction = 'umap', label = TRUE)
-
+DimPlot(neurons, reduction = 'umap', group.by = 'Organ')
 #How many neurons from each brain region
 
 #Using allen cell atlas: https://knowledge.brain-map.org/celltypes for celltype markers
@@ -97,10 +96,11 @@ neuronMarkers
 #Look for NUP
 FeaturePlot(neurons, 'Nup98', reduction = 'umap')
 FeaturePlot(neurons, 'Nup153', reduction = 'umap')
+FeaturePlot(neurons, 'virusPresent', reduction = 'umap')
 
 #Compare between cells w and without virus
-#Set virus cutoff greater than 1
-neurons$virusPresent <- ifelse(neurons$virusCountPAdj > 1, 1, 0)
+#Set virus cutoff greater than 4
+neurons$virusPresent <- ifelse(neurons$virusCountPAdj > 2, 1, 0)
 table(neurons$Treatment, neurons$virusPresent)
 
 neurons = subset(neurons, Treatment != 'PBS' | virusPresent == 0)
@@ -118,29 +118,27 @@ ggplot(nupDat, aes(x = factor(virusPresent), y = nup98))+
   geom_point()
 
 nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nup98Mean = mean(nup98))
-
-nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup98Present)) %>% 
-  ggplot(aes(x = factor(virusPresent), y = nupProportions, fill = virusPresent))+
-  geom_bar(stat = 'identity')+
-  ylab('Proportion of cells expressing Nup98') +
-  xlab('Virus Presence') +
-  theme(legend.position = 'None')+
-  ylim(0,1)
-
 table(nupDat$virusPresent)
+
+#Quick function for plotting barplots
+nupBarPlot <- function(dat, nupDat, xtitle = '', ytitle = ''){
+  dat %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(!! sym(nupDat))) %>% 
+    ggplot(aes(x = factor(virusPresent), y = nupProportions, fill = virusPresent))+
+    geom_bar(stat = 'identity')+
+    ylab(ytitle) +
+    xlab(xtitle) +
+    theme(legend.position = 'None')+
+    ylim(0,1)
+}
+
+nupBarPlot(dat = nupDat, nupDat = 'nup98Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup98')
+
 
 ggplot(nupDat, aes(x = factor(virusPresent), y = nup153))+
   geom_boxplot()
 
-nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nup153 <- mean(nup153))
+nupBarPlot(nupDat, 'nup153Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup153')
 
-nupDat %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup153Present)) %>% 
-  ggplot(aes(x = factor(virusPresent), y = nupProportions, fill = virusPresent))+
-  geom_bar(stat = 'identity')+
-  ylab('Proportion of cells expressing Nup153') +
-  xlab('Virus Presence') +
-  theme(legend.position = 'None')+
-  ylim(0,1)
 
 #Split by organ
 cerebellum <- nupDat[nupDat$organ == 'Cerebellum',]
@@ -152,13 +150,7 @@ ggplot(cerebellum, aes(x = factor(virusPresent), y = nup98))+
   xlab('Virus Presence')+
   ylab('Nup98 expression')
 
-cerebellum %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup98Present)) %>% 
-  ggplot(aes(x = factor(virusPresent), y = nupProportions, fill = virusPresent))+
-  geom_bar(stat = 'identity')+
-  ylab('Proportion of cells expressing Nup98') +
-  xlab('Virus Presence') +
-  theme(legend.position = 'None')+
-  ylim(0,1)
+nupBarPlot(cerebellum, 'nup98Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup98')
 
 ggplot(cerebrum, aes(x = factor(virusPresent), y = nup98))+
   geom_boxplot() +
@@ -166,25 +158,68 @@ ggplot(cerebrum, aes(x = factor(virusPresent), y = nup98))+
   xlab('Virus Presence')+
   ylab('Nup98 expression')
 
-cerebrum %>% group_by(virusPresent) %>% dplyr::summarise(nupProportions = mean(nup98Present)) %>% 
-  ggplot(aes(x = factor(virusPresent), y = nupProportions, fill = virusPresent))+
-  geom_bar(stat = 'identity')+
-  ylab('Proportion of cells expressing Nup98') +
-  xlab('Virus Presence') +
-  theme(legend.position = 'None')+
-  ylim(0,1)
+
+nupBarPlot(cerebrum, 'nup98Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup98')
+
+#NUP153 barplots
+
+nupBarPlot(cerebellum, 'nup153Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup153')
+nupBarPlot(cerebrum, 'nup153Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup153')
+
+#Subset to just excitatory neuron clusters based on marker genes
+exNeurons <- subset(neurons, neuron_clusters %in% c(1,0,4,16,9,6,17,7,8))
+FeaturePlot(exNeurons, 'Sv2b', reduction = 'umap')
+
+Nup98ExpEx <- exNeurons[['RNA']]$data['Nup98',]
+Nup153ExpEx <- exNeurons[['RNA']]$data['Nup153',]
+nupDatEx <- data.frame(virus = exNeurons$virusCountPAdj, virusPresent = exNeurons$virusPresent,
+                     nup98 = Nup98ExpEx, nup153 = Nup153ExpEx, organ = exNeurons$Organ)
+
+nupDatEx <- nupDatEx %>% mutate(nup98Present = ifelse(nup98 > 0, 1, 0))
+nupDatEx <- nupDatEx %>% mutate(nup153Present = ifelse(nup153 > 0, 1, 0))
+
+cerebellumEx <- nupDatEx[nupDatEx$organ == 'Cerebellum',]
+cerebrumEx <- nupDatEx[nupDatEx$organ == 'Cerebrum',]
+
+nupBarPlot(cerebellumEx, 'nup98Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup98')
+nupBarPlot(cerebrumEx, 'nup98Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup98')
+
+nupBarPlot(cerebellumEx, 'nup153Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup153')
+nupBarPlot(cerebrumEx, 'nup153Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup153')
 
 
-#Look at markers in neurons
-neuronMarkers <- FindMarkers(ParseSeuratObj_int, group.by = 'singleR_labels',
-                             ident.1 = 'Neurons')
-
-# Don't think we have enough infected neurons to evaluate how infection changes over time
-#if I create pseudobulk object with expected design formula, end up with some groups of only 1 cell
-neuronPB <- createPseudoBulk(neurons, c("Genotype", "Treatment", "Timepoint","Organ"))
+# Pretty small group sizes for pseudobulk, might not be able to do too much with these
+#Remember pbs neurons that had >2 viral reads were filtered
+exNeurons$virusPresent = factor(exNeurons$virusPresent)
+neuronPB <- createPseudoBulk(exNeurons, c("Genotype", "Treatment", "Timepoint","Organ", 'virusPresent'))
 neuronPB <- DESeq(neuronPB)
 resultsNames(neuronPB)
 
-#nothing significant
-res <- results(neuronPB, contrast = c('Timepoint', 'Day 5', 'Day 3'))
 
+#nothing significant
+res <- results(neuronPB, contrast = c('virusPresent', '1', '0'))
+res[order(res$padj),] %>% as.data.frame() %>% arrange(padj) %>% head(n = 20)
+
+#Percent neurons infected each time point
+neurons[[]] %>% group_by(Timepoint) %>% mutate(virusPresent = ifelse(virusCountPAdj>4, 1, 0)) %>% 
+  summarise(virusProp = mean(virusPresent)) %>% ggplot(aes(x = Timepoint, y = virusProp,
+                                                           fill = Timepoint))+
+  geom_bar(stat = 'identity')+
+  theme(legend.position = 'None')
+
+cerebellum <- subset(neurons, Organ == 'Cerebellum')
+cerebellum[[]] %>% group_by(Timepoint) %>% mutate(virusPresent = ifelse(virusCountPAdj>2, 1, 0)) %>% 
+  summarise(virusProp = mean(virusPresent)) %>% ggplot(aes(x = Timepoint, y = virusProp,
+                                                           fill = Timepoint))+
+  geom_bar(stat = 'identity')+
+  theme(legend.position = 'None')+
+  ylab('Proportion cells with virus')
+
+
+cerebrum <- subset(neurons, Organ == 'Cerebrum')
+cerebrum[[]] %>% group_by(Timepoint) %>% mutate(virusPresent = ifelse(virusCountPAdj>2, 1, 0)) %>% 
+  summarise(virusProp = mean(virusPresent)) %>% ggplot(aes(x = Timepoint, y = virusProp,
+                                                           fill = Timepoint))+
+  geom_bar(stat = 'identity')+
+  theme(legend.position = 'None')+
+  ylab('Proportion cells with virus')

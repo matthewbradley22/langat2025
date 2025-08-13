@@ -145,6 +145,12 @@ DimPlot(ParseSeuratObj, group.by = 'scDblFinderLabel')
 #Keep doublets for now, see if they group together
 #ParseSeuratObj <- subset(ParseSeuratObj, scDblFinderLabel == 'singlet')
 
+#Plot virus locations based on treatment
+table(ParseSeuratObj$Organ, ParseSeuratObj$Treatment) %>% as.data.frame() %>% 
+  ggplot(aes(x = Var1, y = Freq, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  xlab('Organ')+
+  ylab('Number of cells')
 
 #Integrate data
 #choosing integration method - rpca fastest, cca takes 5+ hours
@@ -246,4 +252,23 @@ ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 4, 'ye
   geom_bar(stat = 'identity')+
   ylab('Virus presence (threshold 5 viral reads)')
 
+#Which cells have a lot of virus reads
+highVirus <- subset(ParseSeuratObj_int, virusCountPAdj > 400)
+table(highVirus$singleR_labels)
 
+#Plot viral counts vs well/treatment. Looks right
+ggplot(ParseSeuratObj_int[[]], aes(x = orig.ident, y = virusCountPAdj, col = Treatment))+
+  geom_point() +
+  scale_x_discrete(labels= wellMap$well)+
+  theme(axis.text.x = element_text(angle = 90))
+
+ggplot(highVirus[[]], aes(x = orig.ident, y = virusCountPAdj, col = singleR_labels))+
+  geom_point() +
+  scale_x_discrete(labels= wellMap[table(highVirus$orig.ident) %>% names() %>% as.numeric(),])+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Virus dot plot
+DotPlot(ParseSeuratObj_int, features = 'virusCountPAdj', group.by = 'singleR_labels')
+
+ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 2, 1, 0)) %>% 
+  group_by(Organ) %>% summarise(virusProp = mean(virusPresence))

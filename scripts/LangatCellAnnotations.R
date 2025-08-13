@@ -145,6 +145,9 @@ DimPlot(ParseSeuratObj_int, label = TRUE, group.by = 'singleR_labels', reduction
 ParseSeuratObj_int$manualAnnotation <- 
   case_when(ParseSeuratObj_int$seurat_clusters %in% c('27', '24',
                                                       '37','44') &
-              ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons')
+              ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons',
+            ParseSeuratObj_int$seurat_clusters %in% c('4', '5', '12', '15', '18', '21', '35', '40',
+                                                      '25', '34', '38', '39', '33', '14')&
+              ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes')
 
 

@@ -7,7 +7,7 @@ library(Seurat)
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
 
 #Subset to cerebellum data
-cerebellumObj <- subset(ParseSeuratObj_int, Organ == 'Cerebellum')
+cerebellumObj <- subset(ParseSeuratObj_int, Organ == 'Cerebellum' & scDblFinderLabel == 'singlet')
 cerebellumObj$isInfected = ifelse(cerebellumObj$virusCountPAdj>0, 'yes', 'no')
 
 #Rerun through data processing and visualization
@@ -21,16 +21,14 @@ cerebellumObj <- FindClusters(cerebellumObj, resolution = 2, cluster.name = "cer
 cerebellumObj <- RunUMAP(cerebellumObj, dims = 1:30, reduction = "pca", reduction.name = "umap")
 
 #Look at doublets
-DimPlot(cerebellumObj, reduction = 'umap', group.by = 'scDblFinderLabel', label = TRUE)
-cerebellumObj <- subset(cerebellumObj, scDblFinderLabel == 'singlet')
-
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'singleR_labels', label = TRUE)
-DimPlot(cerebellumObj, reduction = 'umap', group.by = 'Timepoint', label = TRUE)
+DimPlot(cerebellumObj, reduction = 'umap', group.by = 'Timepoint')
+DimPlot(cerebellumObj, reduction = 'umap', group.by = 'Genotype')
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'cerebellum_clusters', label = TRUE)
 
 
 #Timepoint differences
-cerebellumObj[[]] %>%  mutate(virusPresence = ifelse(virusCountPAdj > 4, 'yes', 'no')) %>% 
+cerebellumObj[[]] %>%  mutate(virusPresence = ifelse(virusCountPAdj > 0, 'yes', 'no')) %>% 
   group_by(Timepoint, Genotype) %>% 
   dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
   ggplot(aes(x = Genotype, y = virusPresenceProp, fill = Timepoint))+
@@ -38,3 +36,5 @@ cerebellumObj[[]] %>%  mutate(virusPresence = ifelse(virusCountPAdj > 4, 'yes', 
 
 
 table(cerebellumObj$Treatment)
+
+
