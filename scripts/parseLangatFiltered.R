@@ -10,6 +10,14 @@ library(gridExtra)
 #List out our data files, and read them into R
 parseOutput <- list.files("./data/FilteredParseOutput/")
 
+#Can load integrated data and skip integration steps
+ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
+
+#Load well labels for mapping orig ident to well
+wellMap <- data.frame(well = c(paste0('A', seq(1,12)), paste0('B', seq(1,12)),
+                               paste0('C', seq(1,12)),   paste0('D', seq(1,12))))
+
+
 ParseMatricies <- lapply(parseOutput, FUN = function(x){
   ReadParseBio(paste0("./data/FilteredParseOutput/", x))
 })
@@ -94,8 +102,6 @@ ParseSeuratObj[[]] <- left_join(ParseSeuratObj[[]], viralCountsPartAdjusted, by 
 ParseSeuratObj$virusCount[is.na(ParseSeuratObj$virusCount)] = 0
 ParseSeuratObj$virusCountPAdj[is.na(ParseSeuratObj$virusCountPAdj)] = 0
 
-wellMap <- data.frame(well = c(paste0('A', seq(1,12)), paste0('B', seq(1,12)),
-                               paste0('C', seq(1,12)),   paste0('D', seq(1,12))))
 
 #Plot viral counts vs well/treatment. Looks right
 ggplot(ParseSeuratObj[[]], aes(x = orig.ident, y = virusCountPAdj, col = Treatment))+
@@ -176,6 +182,7 @@ unIntUmap <- DimPlot(ParseSeuratObj_int, reduction = "umap.unintegrated", group.
 
 grid.arrange(intUMAP, unIntUmap, ncol=2)
 
+#### Can start here with integrated data ####
 #Add neo reads in same way viral reads were added 
 
 #Neo reads
@@ -231,11 +238,6 @@ table(ParseSeuratObj_int$Genotype ,ParseSeuratObj_int$orig.ident) %>% as.data.fr
   theme(axis.text.x = element_text(angle = 90))+
   ylab('Total Cells in Sample')+
   xlab('Sample Well')
-
-ggplot(ParseSeuratObj_int[[]], aes(x = orig.ident, y = neoPresence, fill = neoPresence))+
-  geom_bar(stat = 'identity', position = 'stack') +
-  scale_x_discrete(labels= wellMap$well)+
-  theme(axis.text.x = element_text(angle = 90))
 
 #Proportion of infection by genotype
 ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 0, 'yes', 'no')) %>% 

@@ -136,10 +136,48 @@ FeaturePlot(ParseSeuratObj_int, 'Epcam', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Cdh1', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Sytl2', reduction = 'umap.integrated')
 
+#Cardiomocytes markers
+FeaturePlot(ParseSeuratObj_int, 'Fgf2', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Tcap', reduction = 'umap.integrated')
+#Hopx marker from here https://pmc.ncbi.nlm.nih.gov/articles/PMC6220122/
+FeaturePlot(ParseSeuratObj_int, 'Hopx', reduction = 'umap.integrated')
+
+#Cardiomocytes markers from https://pmc.ncbi.nlm.nih.gov/articles/PMC10905351/
+FeaturePlot(ParseSeuratObj_int, 'Tnnt1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Actn1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Tpm3', reduction = 'umap.integrated')
+
+#Fibroblast markers
+#Good fribroblast paper https://pmc.ncbi.nlm.nih.gov/articles/PMC10318398/
+#Says some of these markers cannot differentiate between fibro and muscle cells
+FeaturePlot(ParseSeuratObj_int, 'Vim', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Pdgfrb', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Fbln1', reduction = 'umap.integrated')
+
+#Choroid plexus cells
+#TTR only really expressed in choroid plexus looks like https://www.proteinatlas.org/ENSG00000118271-TTR/brain
+#More markers here https://www.nature.com/articles/s41380-021-01416-3 and from Pangao
+FeaturePlot(ParseSeuratObj_int, 'Ttr', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Kl', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Clic6', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Folr1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Prlr', reduction = 'umap.integrated')
 
 #Dimplots for convenience
 DimPlot(ParseSeuratObj_int, label = TRUE, reduction = 'umap.integrated')
 DimPlot(ParseSeuratObj_int, label = TRUE, group.by = 'singleR_labels', reduction = 'umap.integrated')
+
+#Look at DEGs
+#think 31 is pericytes based on degs and top markers matching up w pericytes in panglaodb
+markers31 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 31,
+                       only.pos = TRUE)
+
+#Looks like could be smooth muscle cells based on plugging markers in pangaodb and marker expression above
+markers32 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 32,
+                       only.pos = TRUE)
+
+markers16 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 16,
+                         only.pos = TRUE)
 
 #Custom annotation based on singleR, for use in paper probably
 ParseSeuratObj_int$manualAnnotation <- 
@@ -148,6 +186,9 @@ ParseSeuratObj_int$manualAnnotation <-
               ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons',
             ParseSeuratObj_int$seurat_clusters %in% c('4', '5', '12', '15', '18', '21', '35', '40',
                                                       '25', '34', '38', '39', '33', '14')&
-              ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes')
+              ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
+            ParseSeuratObj_int$seurat_clusters == '31'~ 'Pericytes',
+            ParseSeuratObj_int$seurat_clusters == '32'~ 'Muscle cells')
 
+DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated')
 

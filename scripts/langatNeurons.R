@@ -22,12 +22,8 @@ DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', group.by = 'singleR_l
 #Neurons appear to make up clusters 24, 24, 37, and 44
 table(subset(ParseSeuratObj_int, singleR_labels == 'Neurons')$seurat_clusters)
 
-#Look at proportions of neurons in each cluster, if low proportion then consider looking closer
+#Can look at proportions of neurons in each cluster, if low proportion then consider looking closer
 table(subset(ParseSeuratObj_int, seurat_clusters == '27')$singleR_labels)
-table(subset(ParseSeuratObj_int, seurat_clusters == '24')$singleR_labels)
-table(subset(ParseSeuratObj_int, seurat_clusters == '37')$singleR_labels)
-table(subset(ParseSeuratObj_int, seurat_clusters == '44')$singleR_labels)
-
 
 #Can start with conservative approach of subsetting by celltype and cluster, removing doublets
 neurons <- subset(ParseSeuratObj_int, singleR_labels == 'Neurons' & seurat_clusters %in% c('27', '24',
@@ -44,7 +40,7 @@ table(neurons$Organ)%>% barplot(main = 'Neurons across organs')
 #Check virus presence. Make this slightly stricter later on (need > 1 virus) for closer analysis
 neurons$virusPresent <- ifelse(neurons$virusCountPAdj > 0, 1, 0)
 table(neurons$virusPresent) %>% barplot(main = 'Neurons with viral reads') 
-table(neurons$virusPresent, neurons$Organ)
+table(neurons$virusPresent, neurons$Organ) %>% barplot(legend.text = TRUE)
 
 #Rerun through data processing and visualization
 neurons <- NormalizeData(neurons)
@@ -57,8 +53,17 @@ neurons <- FindClusters(neurons, resolution = 2, cluster.name = "neuron_clusters
 neurons <- RunUMAP(neurons, dims = 1:30, reduction = "pca", reduction.name = "umap")
 
 DimPlot(neurons, reduction = 'umap', label = TRUE)
-DimPlot(neurons, reduction = 'umap', group.by = 'Organ')
+
 #How many neurons from each brain region
+DimPlot(neurons, reduction = 'umap', group.by = 'Organ')
+
+#Split between wt and ips infection levels
+neurons[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 4, 'yes', 'no')) %>% 
+  group_by(Genotype) %>% 
+  dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
+  ggplot(aes(x = Genotype, y = virusPresenceProp, fill = Genotype)) +
+  geom_bar(stat = 'identity')+
+  ylab('Virus presence (threshold 1 viral read)')
 
 #Using allen cell atlas: https://knowledge.brain-map.org/celltypes for celltype markers
 #and panglao  https://panglaodb.se/markers.html?cell_type=%27Purkinje%20neurons%27
@@ -166,6 +171,13 @@ nupBarPlot(cerebrum, 'nup98Present', xtitle = 'Virus Presence', ytitle = 'Propor
 nupBarPlot(cerebellum, 'nup153Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup153')
 nupBarPlot(cerebrum, 'nup153Present', xtitle = 'Virus Presence', ytitle = 'Proportion of cells expressing Nup153')
 
+
+#Compare excitatory and inhibitory viral expression
+neurons$subtype = case_when(neurons$neuron_clusters %in% c(1,0,4,16,9,6,17,7,8) ~ 'excitatory',
+                            neurons$neuron_clusters %in%  c(2,3,5,10,11)~'inhibitory')
+neurons[[]] %>% mutate(virusPresent = ifelse(neurons$virusCountPAdj > 3, 1, 0)) %>% group_by(subtype) %>% 
+  summarise(virusProp = mean(virusPresent)) 
+
 #Subset to just excitatory neuron clusters based on marker genes
 exNeurons <- subset(neurons, neuron_clusters %in% c(1,0,4,16,9,6,17,7,8))
 FeaturePlot(exNeurons, 'Sv2b', reduction = 'umap')
@@ -209,8 +221,7 @@ neurons[[]] %>% group_by(Timepoint) %>% mutate(virusPresent = ifelse(virusCountP
 
 cerebellum <- subset(neurons, Organ == 'Cerebellum')
 cerebellum[[]] %>% group_by(Timepoint) %>% mutate(virusPresent = ifelse(virusCountPAdj>2, 1, 0)) %>% 
-  summarise(virusProp = mean(virusPresent)) %>% ggplot(aes(x = Timepoint, y = virusProp,
-                                                           fill = Timepoint))+
+  summarise(virusProp = mean(virusPresent)) %>% ggplot(aes(x = Timepoint, y = virusProp, fill = Timepoint))+
   geom_bar(stat = 'identity')+
   theme(legend.position = 'None')+
   ylab('Proportion cells with virus')
