@@ -246,6 +246,7 @@ markers14 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
                          only.pos = TRUE)
 
 #Custom annotation based on singleR, for use in paper probably
+#Created on singlet data
 ParseSeuratObj_int$manualAnnotation <- 
   case_when(ParseSeuratObj_int$seurat_clusters %in% c('27', '24',
                                                       '37','44') &

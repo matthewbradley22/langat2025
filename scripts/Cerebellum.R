@@ -6,6 +6,8 @@ library(Seurat)
 #Load in data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
 
+#Good to load in manual annotations from LangatCellAnnotations.R as well
+
 #Subset to cerebellum data
 cerebellumObj <- subset(ParseSeuratObj_int, Organ == 'Cerebellum' & scDblFinderLabel == 'singlet')
 cerebellumObj$isInfected = ifelse(cerebellumObj$virusCountPAdj>0, 'yes', 'no')
@@ -21,20 +23,26 @@ cerebellumObj <- FindClusters(cerebellumObj, resolution = 2, cluster.name = "cer
 cerebellumObj <- RunUMAP(cerebellumObj, dims = 1:30, reduction = "pca", reduction.name = "umap")
 
 #Look at doublets
-DimPlot(cerebellumObj, reduction = 'umap', group.by = 'singleR_labels', label = TRUE)
+DimPlot(cerebellumObj, reduction = 'umap', group.by = 'manualAnnotation', label = TRUE) + NoLegend()
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'Timepoint')
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'Genotype')
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'cerebellum_clusters', label = TRUE)
 
 
 #Timepoint differences
-cerebellumObj[[]] %>%  mutate(virusPresence = ifelse(virusCountPAdj > 0, 'yes', 'no')) %>% 
-  group_by(Timepoint, Genotype) %>% 
+cerebellumObj[[]] <- cerebellumObj[[]] %>%  mutate(virusPresence = ifelse(virusCountPAdj > 2, 'yes', 'no'))
+cerebellumObj[[]]  %>% group_by(Timepoint, Genotype) %>% 
   dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
   ggplot(aes(x = Genotype, y = virusPresenceProp, fill = Timepoint))+
   geom_bar(stat = 'identity', position = 'dodge')
 
 
-table(cerebellumObj$Treatment)
+table(cerebellumObj$manualAnnotation, cerebellumObj$virusPresence) %>% as.data.frame() %>% 
+  ggplot(aes(x = Var1, y = Freq, fill = Var2))+
+  geom_bar(stat='identity', position = 'dodge')+
+  theme(axis.text.x = element_text(angle = 90))
 
-
+cerebellumObj[[]] %>% group_by(manualAnnotation) %>% dplyr::count(virusPresence) %>% 
+ ggplot(aes(x = manualAnnotation, y = n, fill = virusPresence))+
+  geom_bar(position = 'fill', stat = 'identity')+
+  theme(axis.text.x = element_text(angle = 90))
