@@ -207,6 +207,13 @@ FeaturePlot(ParseSeuratObj_int, 'Clic6', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Folr1', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Prlr', reduction = 'umap.integrated')
 
+#Neutrophils and other granluocytes
+#Some markers from a 10x list linked here https://www.10xgenomics.com/support/software/cell-ranger/latest/tutorials/cr-tutorial-neutrophils
+FeaturePlot(ParseSeuratObj_int, 'Csf3r', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'S100a8', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Il1r2', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'S100a9', reduction = 'umap.integrated')
+
 #Dimplots for convenience
 DimPlot(ParseSeuratObj_int, label = TRUE, reduction = 'umap.integrated')
 DimPlot(ParseSeuratObj_int, label = TRUE, group.by = 'singleR_labels', reduction = 'umap.integrated')
@@ -245,14 +252,22 @@ markers13 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
 markers14 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 14,
                          only.pos = TRUE)
 
-#Custom annotation based on singleR, for use in paper probably
+#Glance at granulocyte cluster. Looks like neutrophil markers popping up
+markers30 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 30,
+                         only.pos = TRUE)
+
+markers36 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 36,
+                         only.pos = TRUE)
+
+
+#Custom annotation 
 #Created on singlet data
 ParseSeuratObj_int$manualAnnotation <- 
   case_when(ParseSeuratObj_int$seurat_clusters %in% c('27', '24',
                                                       '37','44') &
               ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons',
             ParseSeuratObj_int$seurat_clusters %in% c('4', '5', '12', '15', '18', '21', '35', '40',
-                                                      '25', '34', '38', '39', '33', '14')&
+                                                      '25', '34', '38', '39', '33', '14', '43')&
               ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
             ParseSeuratObj_int$seurat_clusters == '31'~ 'Pericytes',
             ParseSeuratObj_int$seurat_clusters == '32'~ 'Muscle cells',
@@ -263,7 +278,8 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c(8, 19, 25)~ 'Oligodendrocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(14,33)~ 'Ependymal',
             ParseSeuratObj_int$seurat_clusters %in% c(20) ~ 'T cells',
-            ParseSeuratObj_int$seurat_clusters %in% c(29) ~ 'Nk cells')
+            ParseSeuratObj_int$seurat_clusters %in% c(29) ~ 'Nk cells',
+            ParseSeuratObj_int$seurat_clusters %in% c(30) ~ 'Granulocytes')
 
 
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
