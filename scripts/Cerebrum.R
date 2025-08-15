@@ -2,6 +2,7 @@
 
 #Load packages
 library(Seurat)
+library(RColorBrewer)
 
 #Load in data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
@@ -32,12 +33,19 @@ DimPlot(cerebrumObj, reduction = 'umap', group.by = 'cerebellum_clusters', label
 #Timepoint differences
 cerebrumObj[[]] <- cerebrumObj[[]] %>%  mutate(virusPresence = ifelse(virusCountPAdj > 2, 'yes', 'no'))
 
+#Viral infection over time
 cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Genotype) %>% 
   dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
   ggplot(aes(x = Genotype, y = virusPresenceProp, fill = Timepoint))+
   geom_bar(stat = 'identity', position = 'dodge')+
   ggtitle('rChLGTV')
 
+#Cell type proportions by timepoint
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6')
+cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Genotype) %>% 
+  dplyr::count(manualAnnotation) %>%  ggplot(aes(x = Timepoint, y = n, fill = manualAnnotation))+
+  geom_bar(stat = 'identity', position = 'stack')+
+  scale_fill_manual(values=newCols)
 
 #Plot proportion infected per cell type
 cerebrumObj[[]] %>% group_by(manualAnnotation) %>% dplyr::count(virusPresence) %>% 
