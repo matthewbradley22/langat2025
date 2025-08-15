@@ -264,7 +264,7 @@ ggplot(ParseSeuratObj_int[[]], aes(x = orig.ident, y = virusCountPAdj, col = Tre
   scale_x_discrete(labels= wellMap$well)+
   theme(axis.text.x = element_text(angle = 90))
 
-ggplot(highVirus[[]], aes(x = orig.ident, y = virusCountPAdj, col = singleR_labels))+
+ggplot(highVirus[[]], aes(x = orig.ident, y = virusCountPAdj, col = manualAnnotation))+
   geom_point() +
   scale_x_discrete(labels= wellMap[table(highVirus$orig.ident) %>% names() %>% as.numeric(),])+
   theme(axis.text.x = element_text(angle = 90))

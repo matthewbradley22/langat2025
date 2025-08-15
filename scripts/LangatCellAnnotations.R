@@ -71,7 +71,7 @@ pbsWithVirus <- subset(ParseSeuratObj_int, Treatment == 'PBS' & virusCountPAdj >
 summary(pbsWithVirus$virusCountPAdj)
 hist(pbsWithVirus$virusCountPAdj)
 
-#### Manual annotatTimepoint#### Manual annotation ####
+#### Manual annotiation#### 
 
 #Paper has some canonical markers for cell types
 #https://umu.diva-portal.org/smash/get/diva2:1897514/FULLTEXT01.pdf
@@ -120,6 +120,7 @@ FeaturePlot(ParseSeuratObj_int, 'C1qa', reduction = 'umap.integrated')
 #Oligo
 FeaturePlot(ParseSeuratObj_int, 'Mag',reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Mog', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Mbp', reduction = 'umap.integrated')
 
 #OPC
 FeaturePlot(ParseSeuratObj_int, 'Pdgfra', reduction = 'umap.integrated')
@@ -140,12 +141,30 @@ FeaturePlot(ParseSeuratObj_int, 'Pdgfrb', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Vtn', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Acta2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Atp13a5', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Mcam', reduction = 'umap.integrated')
 
-#Epithelial cells
+#Smooth muscle cells paper here for markers: https://www.sciencedirect.com/science/article/pii/S1534580722006852
+#Should express these, and not fibroblast markers (Pdgfra), or endothelial markers (Pecam1)
+FeaturePlot(ParseSeuratObj_int, 'Acta2', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Tagln', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cnn1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Myh11', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Myl9', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Rgs5', reduction = 'umap.integrated')
+
+#Epithelial cells - not helpful
 FeaturePlot(ParseSeuratObj_int, 'Krt14', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Epcam', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Cdh1', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Sytl2', reduction = 'umap.integrated')
+
+#Ependymal cells
+#Markers from here https://www.frontiersin.org/journals/cellular-neuroscience/articles/10.3389/fncel.2021.703951/full
+#And panglao and from here https://ars.els-cdn.com/content/image/1-s2.0-S1534580723000035-gr1.jpg
+FeaturePlot(ParseSeuratObj_int, 'Foxj1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Dynlrb2', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Rabl2', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cfap54', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Nnat', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Mia', reduction = 'umap.integrated')
 
 #Cardiomocytes markers
 FeaturePlot(ParseSeuratObj_int, 'Fgf2', reduction = 'umap.integrated')
@@ -163,6 +182,7 @@ FeaturePlot(ParseSeuratObj_int, 'Tpm3', reduction = 'umap.integrated')
 #Says some of these markers cannot differentiate between fibro and muscle cells
 FeaturePlot(ParseSeuratObj_int, 'Vim', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Pdgfrb', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Pdgfra', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Fbln1', reduction = 'umap.integrated')
 
 #Choroid plexus cells
@@ -178,7 +198,9 @@ FeaturePlot(ParseSeuratObj_int, 'Prlr', reduction = 'umap.integrated')
 DimPlot(ParseSeuratObj_int, label = TRUE, reduction = 'umap.integrated')
 DimPlot(ParseSeuratObj_int, label = TRUE, group.by = 'singleR_labels', reduction = 'umap.integrated')
 
-#Look at DEGs
+#Unsure about cluster 23, has both endothelial and pericyte/smooth muscle markers expressed
+
+#### Look at DEGs of select groups ####
 #think 31 is pericytes based on degs and top markers matching up w pericytes in panglaodb
 markers31 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 31,
                        only.pos = TRUE)
@@ -206,6 +228,10 @@ markers2 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.
 markers13 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 13,
                         only.pos = TRUE)
 
+#Check 14 and 33 clusters
+markers14 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 14,
+                         only.pos = TRUE)
+
 #Custom annotation based on singleR, for use in paper probably
 ParseSeuratObj_int$manualAnnotation <- 
   case_when(ParseSeuratObj_int$seurat_clusters %in% c('27', '24',
@@ -219,7 +245,10 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c(16,26,17)~ 'Choroid Plexus',
             ParseSeuratObj_int$seurat_clusters %in% c(2, 11, 0, 28, 10)~ 'Microglia',
             ParseSeuratObj_int$seurat_clusters %in% c(1, 9, 13)~ 'Macrophage/Monocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c(3, 7, 22, 23)~ 'EC')
+            ParseSeuratObj_int$seurat_clusters %in% c(3, 7, 22)~ 'EC',
+            ParseSeuratObj_int$seurat_clusters %in% c(8, 19, 25)~ 'Oligodendrocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(14,33)~ 'Ependymal')
+
 
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated')
 
