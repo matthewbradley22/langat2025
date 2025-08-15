@@ -10,7 +10,7 @@ ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
 
 #Subset to cerebellum data
 cerebellumObj <- subset(ParseSeuratObj_int, Organ == 'Cerebellum' & scDblFinderLabel == 'singlet')
-cerebellumObj$isInfected = ifelse(cerebellumObj$virusCountPAdj>0, 'yes', 'no')
+cerebellumObj$virusPresence = ifelse(cerebellumObj$virusCountPAdj>0, 'yes', 'no')
 
 #Rerun through data processing and visualization
 cerebellumObj <- NormalizeData(cerebellumObj)
@@ -22,7 +22,7 @@ cerebellumObj <- FindNeighbors(cerebellumObj, dims = 1:30, reduction = "pca")
 cerebellumObj <- FindClusters(cerebellumObj, resolution = 2, cluster.name = "cerebellum_clusters")  
 cerebellumObj <- RunUMAP(cerebellumObj, dims = 1:30, reduction = "pca", reduction.name = "umap")
 
-#Look at doublets
+#Look at data
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'manualAnnotation', label = TRUE) + NoLegend()
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'Timepoint')
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'Genotype')
@@ -36,13 +36,9 @@ cerebellumObj[[]]  %>% group_by(Timepoint, Genotype) %>%
   ggplot(aes(x = Genotype, y = virusPresenceProp, fill = Timepoint))+
   geom_bar(stat = 'identity', position = 'dodge')
 
-
-table(cerebellumObj$manualAnnotation, cerebellumObj$virusPresence) %>% as.data.frame() %>% 
-  ggplot(aes(x = Var1, y = Freq, fill = Var2))+
-  geom_bar(stat='identity', position = 'dodge')+
-  theme(axis.text.x = element_text(angle = 90))
-
+#Plot proportion infected per cell type
 cerebellumObj[[]] %>% group_by(manualAnnotation) %>% dplyr::count(virusPresence) %>% 
  ggplot(aes(x = manualAnnotation, y = n, fill = virusPresence))+
   geom_bar(position = 'fill', stat = 'identity')+
   theme(axis.text.x = element_text(angle = 90))
+
