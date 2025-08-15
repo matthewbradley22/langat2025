@@ -137,11 +137,12 @@ FeaturePlot(ParseSeuratObj_int, 'Cd3g', reduction = 'umap.integrated')
 #Pericytes
 #Along with PangloaDB, this paper has pericyte markers: 
 #https://www.sciencedirect.com/science/article/pii/S1537189124001605
-FeaturePlot(ParseSeuratObj_int, 'Pdgfrb', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Vtn', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Acta2', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Abcc9', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Kcnj8', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Atp13a5', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Mcam', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Anpep', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Ace2', reduction = 'umap.integrated')
 
 #Smooth muscle cells paper here for markers: https://www.sciencedirect.com/science/article/pii/S1534580722006852
 #Should express these, and not fibroblast markers (Pdgfra), or endothelial markers (Pecam1)
@@ -247,7 +248,8 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c(1, 9, 13)~ 'Macrophage/Monocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(3, 7, 22)~ 'EC',
             ParseSeuratObj_int$seurat_clusters %in% c(8, 19, 25)~ 'Oligodendrocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c(14,33)~ 'Ependymal')
+            ParseSeuratObj_int$seurat_clusters %in% c(14,33)~ 'Ependymal',
+            .default = 'Unsure')
 
 
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated')
