@@ -132,7 +132,19 @@ FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Lyz2', reduction = 'umap.integrated')
 
 #T cells
+#Panglao and this paper https://www.nature.com/articles/s41467-022-32627-z/figures/1
+FeaturePlot(ParseSeuratObj_int, 'Trbc2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Cd3g', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cd3d', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cd3e', reduction = 'umap.integrated')
+
+#NK cells same sources as above
+#This paper supp table 2 also has some https://academic.oup.com/bioinformatics/article/38/3/785/6390798
+FeaturePlot(ParseSeuratObj_int, 'Nkg7', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Klrd1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Ncr1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Klrb1b', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Clnk', reduction = 'umap.integrated')
 
 #Pericytes
 #Along with PangloaDB, this paper has pericyte markers: 
@@ -249,8 +261,10 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c(3, 7, 22)~ 'EC',
             ParseSeuratObj_int$seurat_clusters %in% c(8, 19, 25)~ 'Oligodendrocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(14,33)~ 'Ependymal',
-            .default = 'Unsure')
+            ParseSeuratObj_int$seurat_clusters %in% c(20) ~ 'T cells',
+            ParseSeuratObj_int$seurat_clusters %in% c(29) ~ 'Nk cells')
 
 
-DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated')
+DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
+        cols = c())
 
