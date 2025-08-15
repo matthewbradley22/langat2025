@@ -8,7 +8,7 @@ library(dplyr)
 
 #Load in data
 #ParseSeuratObj_int <- LoadSeuratRds('./ccaIntegratedDat.rds')
-ParseSeuratObj_int <- LoadSeuratRds("./FilteredRpcaIntegratedDat.rds")
+ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
 ####Annotate cell types ####
 #Will try automatic annotation
 #Mouse rna seq reference
@@ -88,7 +88,15 @@ FeaturePlot(ParseSeuratObj_int, 'Syt1', reduction = 'umap.integrated')
 
 
 #Endothelial cells
+#brain endo marker Pglyrp1 from https://www.sciencedirect.com/science/article/pii/S0092867420300623
+#Pretty much all markers showing up in 3, 7, 22, 23.
 FeaturePlot(ParseSeuratObj_int, 'Flt1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cd93', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Vwf', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cldn5', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Pglyrp1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Emcn', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Pecam1', reduction = 'umap.integrated')
 
 #Astrocytes
 FeaturePlot(ParseSeuratObj_int, 'Gfap', reduction = 'umap.integrated')
@@ -102,10 +110,12 @@ FeaturePlot(ParseSeuratObj_int, 'Slc39a12', reduction = 'umap.integrated')
 #Microglia
 FeaturePlot(ParseSeuratObj_int, 'Ctss', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Csf1r', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Cx3cr1', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'C1qa', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Tmem119', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'P2ry12', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cx3cr1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Itgam', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'C1qa', reduction = 'umap.integrated')
+
 
 #Oligo
 FeaturePlot(ParseSeuratObj_int, 'Mag',reduction = 'umap.integrated')
@@ -118,7 +128,7 @@ FeaturePlot(ParseSeuratObj_int, 'Cspg4', reduction = 'umap.integrated')
 #Macrophage markers
 FeaturePlot(ParseSeuratObj_int, 'Ptprc', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
-
+FeaturePlot(ParseSeuratObj_int, 'Lyz2', reduction = 'umap.integrated')
 
 #T cells
 FeaturePlot(ParseSeuratObj_int, 'Cd3g', reduction = 'umap.integrated')
@@ -127,6 +137,7 @@ FeaturePlot(ParseSeuratObj_int, 'Cd3g', reduction = 'umap.integrated')
 #Along with PangloaDB, this paper has pericyte markers: 
 #https://www.sciencedirect.com/science/article/pii/S1537189124001605
 FeaturePlot(ParseSeuratObj_int, 'Pdgfrb', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Vtn', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Acta2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Atp13a5', reduction = 'umap.integrated')
 
@@ -176,8 +187,24 @@ markers31 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
 markers32 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 32,
                        only.pos = TRUE)
 
+#16, as well as 26 and 17 may be Choroid plexus cells based on Ttr, Kl, and Folr1 expression
 markers16 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 16,
                          only.pos = TRUE)
+markers26 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 26,
+                         only.pos = TRUE)
+markers17 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 26,
+                         only.pos = TRUE)
+
+#Check that cluster 6 expresses microglial degs
+#Cluster 6 seems to express a lot of macrophage markers compared to other microglia clusters, not sure what to label
+markers6 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 6,
+                         only.pos = TRUE)
+markers2 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 2,
+                        only.pos = TRUE)
+
+#Check macrophage/monocyte clusters, 1, 9, 13  look like macrophages/monocytes
+markers13 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 13,
+                        only.pos = TRUE)
 
 #Custom annotation based on singleR, for use in paper probably
 ParseSeuratObj_int$manualAnnotation <- 
@@ -188,7 +215,11 @@ ParseSeuratObj_int$manualAnnotation <-
                                                       '25', '34', '38', '39', '33', '14')&
               ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
             ParseSeuratObj_int$seurat_clusters == '31'~ 'Pericytes',
-            ParseSeuratObj_int$seurat_clusters == '32'~ 'Muscle cells')
+            ParseSeuratObj_int$seurat_clusters == '32'~ 'Muscle cells',
+            ParseSeuratObj_int$seurat_clusters %in% c(16,26,17)~ 'Choroid Plexus',
+            ParseSeuratObj_int$seurat_clusters %in% c(2, 11, 0, 28, 10)~ 'Microglia',
+            ParseSeuratObj_int$seurat_clusters %in% c(1, 9, 13)~ 'Macrophage/Monocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(3, 7, 22, 23)~ 'EC')
 
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated')
 
