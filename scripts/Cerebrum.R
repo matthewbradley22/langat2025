@@ -65,10 +65,34 @@ cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Geno
   scale_x_continuous(breaks=c(3, 4, 5))
 
 #Plot proportion infected per cell type
-cerebrumObj[[]] %>% group_by(manualAnnotation) %>% dplyr::count(virusPresence) %>% 
+
+cerebrumObj[[]] %>% filter(Treatment == 'rChLGTV') %>%  group_by(manualAnnotation) %>% dplyr::count(virusPresence) %>% 
   ggplot(aes(x = manualAnnotation, y = n, fill = virusPresence))+
   geom_bar(position = 'fill', stat = 'identity')+
   theme(axis.text.x = element_text(angle = 90))
 
+cerebrumObj[[]] %>% filter(Treatment == 'rChLGTV') %>%  group_by(manualAnnotation, Timepoint) %>% dplyr::count(virusPresence) %>% 
+  mutate(ratio = n / sum(n)) %>% filter(virusPresence == 'yes') %>% 
+  mutate(day = as.numeric(substr(Timepoint, 5, 5))) %>% 
+  ggplot(aes(x = day, y = ratio, color = manualAnnotation))+
+  geom_line(size = 1)+
+  scale_color_manual(values=newCols)
+
+#NA group looks high, but this could make sense if doublets (higher chance of having virus present
+#in one of the two cells?)
+cerebrumObj[[]] %>% filter(Treatment == 'rLGTV') %>%  group_by(manualAnnotation) %>% 
+  dplyr::count(virusPresence) %>% 
+  ggplot(aes(x = manualAnnotation, y = n, fill = virusPresence))+
+  geom_bar(position = 'fill', stat = 'identity')+
+  theme(axis.text.x = element_text(angle = 90))
+
+cerebrumObj[[]] %>% filter(Treatment == 'rLGTV') %>%  group_by(manualAnnotation, Timepoint) %>% 
+  dplyr::count(virusPresence) %>% 
+  mutate(ratio = n / sum(n)) %>% filter(virusPresence == 'yes') %>% 
+  mutate(day = as.numeric(substr(Timepoint, 5, 5))) %>% 
+  ggplot(aes(x = day, y = ratio, color = manualAnnotation))+
+  geom_line(se = FALSE)+
+  scale_color_manual(values=newCols)+
+  ylab('Proportion of infected cells')
 
 
