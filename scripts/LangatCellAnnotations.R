@@ -9,6 +9,10 @@ library(dplyr)
 #Load in data
 #ParseSeuratObj_int <- LoadSeuratRds('./ccaIntegratedDat.rds')
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
+
+#Load parse well label map
+wellMap <- data.frame(well = c(paste0('A', seq(1,12)), paste0('B', seq(1,12)),
+                               paste0('C', seq(1,12)),   paste0('D', seq(1,12))))
 ####Annotate cell types ####
 #Will try automatic annotation
 #Mouse rna seq reference
@@ -35,13 +39,6 @@ ggplot(ParseSeuratObj_int[[]], aes(x = orig.ident, y = virusCount, col = Treatme
   scale_x_discrete(labels= wellMap$well)+
   theme(axis.text.x = element_text(angle = 90))
 
-#Look at neo1 across genotypes
-ParseSeuratObj_int$neo_exp <- ParseSeuratObj_int[['RNA']]$data['Neo1',]
-ggplot(ParseSeuratObj_int[[]], aes(x = Well, y = neo_exp))+
-  geom_point() +
-  theme(axis.text.x = element_text(angle = 90))
-
-
 #Count of virus presence
 ParseSeuratObj_int[[]] %>% mutate(virusPresent = ifelse(virusCount>0, 'yes', 'no')) %>% 
   group_by(Treatment, virusPresent) %>% dplyr::summarise(count = n()) %>% 
@@ -56,7 +53,7 @@ ParseSeuratObj_int[[]] %>% mutate(virusHight = ifelse(virusCount>3, 'yes', 'no')
 
 #Look at virus presence across celltypes
 ParseSeuratObj_int[[]] <- ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCount > 0, 'yes', 'no')) 
-  DimPlot(ParseSeuratObj_int, group.by = 'virusPresence')
+DimPlot(ParseSeuratObj_int, group.by = 'virusPresence')
 
 ParseSeuratObj_int[[]] %>% group_by(singleR_labels, virusPresence) %>% dplyr::summarise(count = n()) %>% 
   ggplot(aes(x = singleR_labels, y = count, fill = virusPresence))+
@@ -272,7 +269,7 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters == '31'~ 'Pericytes',
             ParseSeuratObj_int$seurat_clusters == '32'~ 'Muscle cells',
             ParseSeuratObj_int$seurat_clusters %in% c(16,26,17)~ 'Choroid Plexus',
-            ParseSeuratObj_int$seurat_clusters %in% c(2, 11, 0, 28, 10)~ 'Microglia',
+            ParseSeuratObj_int$seurat_clusters %in% c(2, 11, 0, 28, 10, 6)~ 'Microglia',
             ParseSeuratObj_int$seurat_clusters %in% c(1, 9, 13)~ 'Macrophage/Monocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(3, 7, 22)~ 'EC',
             ParseSeuratObj_int$seurat_clusters %in% c(8, 19, 25)~ 'Oligodendrocytes',
