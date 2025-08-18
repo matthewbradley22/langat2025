@@ -176,7 +176,7 @@ neurons[[]] %>% mutate(virusPresent = ifelse(neurons$virusCountPAdj > 3, 1, 0)) 
   summarise(virusProp = mean(virusPresent)) 
 
 #Subset to just excitatory neuron clusters based on marker genes
-exNeurons <- subset(neurons, neuron_clusters %in% c(1,0,4,16,9,6,17,7,8))
+exNeurons <- subset(neurons, subtype == 'excitatory')
 FeaturePlot(exNeurons, 'Sv2b', reduction = 'umap')
 
 Nup98ExpEx <- exNeurons[['RNA']]$data['Nup98',]
@@ -245,4 +245,17 @@ cerebrum[[]] %>% subset(Treatment == 'rChLGTV' | Treatment == 'PBS') %>% group_b
   geom_bar(stat = 'identity')+
   theme(legend.position = 'None')
 
+#Plot NUP vs viral load in excitatory neurons
+Nup98Exp <- exNeurons[['RNA']]$data['Nup98',]
+Nup153Exp <- exNeurons[['RNA']]$data['Nup153',]
 
+nupDat <- data.frame(virus = exNeurons$virusCountPAdj,
+                     nup98 = Nup98Exp, nup153 = Nup153Exp, organ = exNeurons$Organ)
+
+ggplot(nupDat, aes(x = log10(virus+1), y = nup98, col = organ))+
+  geom_point()+
+  ggtitle('NUP98 expression vs virus level (excitatory neurons)')
+
+ggplot(nupDat, aes(x = log10(virus+1), y = nup153, col = organ))+
+  geom_point()+
+  ggtitle('NUP153 expression vs virus level (excitatory neurons)')

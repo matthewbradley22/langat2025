@@ -29,7 +29,7 @@ pheatmap(log2(clusterAssignments+10), color=colorRampPalette(c("white", "blue"))
 
 ####Data is loaded in with doublets, so can start here ####
 #Look at doublets in integrated data
-DimPlot(ParseSeuratObj_int, group.by = 'scDblFinderLabel')
+DimPlot(ParseSeuratObj_int, group.by = 'scDblFinderLabel', reduction = "umap.integrated")
 ParseSeuratObj_int <- subset(ParseSeuratObj_int, scDblFinderLabel == 'singlet')
 
 #Plot viral counts vs well/treatment. 
@@ -199,6 +199,7 @@ FeaturePlot(ParseSeuratObj_int, 'Fbln1', reduction = 'umap.integrated')
 #TTR only really expressed in choroid plexus looks like https://www.proteinatlas.org/ENSG00000118271-TTR/brain
 #More markers here https://www.nature.com/articles/s41380-021-01416-3 and from Pangao
 FeaturePlot(ParseSeuratObj_int, 'Ttr', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Aqp1', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Kl', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Clic6', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Folr1', reduction = 'umap.integrated')

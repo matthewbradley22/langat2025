@@ -6,7 +6,7 @@ library(RColorBrewer)
 
 #Load in data
 ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")
-DimPlot(ParseSeuratObj_int, group.by = 'scDblFinderLabel')
+DimPlot(ParseSeuratObj_int, group.by = 'scDblFinderLabel', reduction = "umap.integrated")
 #Good to load in manual annotations from LangatCellAnnotations.R as well
 
 #Subset to cerebellum data
@@ -34,19 +34,35 @@ DimPlot(cerebrumObj, reduction = 'umap', group.by = 'cerebellum_clusters', label
 cerebrumObj[[]] <- cerebrumObj[[]] %>%  mutate(virusPresence = ifelse(virusCountPAdj > 2, 'yes', 'no'))
 
 #Viral infection over time
-cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Genotype) %>% 
+cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint) %>% 
   dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
-  ggplot(aes(x = Genotype, y = virusPresenceProp, fill = Timepoint))+
+  ggplot(aes(x = Timepoint, y = virusPresenceProp, fill = Timepoint))+
   geom_bar(stat = 'identity', position = 'dodge')+
-  ggtitle('rChLGTV')
+  ggtitle('rChLGTV over time - cerebrum')+
+  ylab('Proportion infected cells')
+
+cerebrumObj[[]]  %>% filter(Treatment == 'rLGTV') %>% group_by(Timepoint) %>% 
+  dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
+  ggplot(aes(x = Timepoint, y = virusPresenceProp, fill = Timepoint))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  ggtitle('rLGTV over time - cerebrum')+
+  ylab('Proportion infected cells')
 
 #Cell type proportions by timepoint
-newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6')
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF')
 cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Genotype) %>% 
   dplyr::count(manualAnnotation) %>%  ggplot(aes(x = Timepoint, y = n, fill = manualAnnotation))+
   geom_bar(stat = 'identity', position = 'fill')+
   scale_fill_manual(values=newCols)+
   ggtitle('Cell type proportions in cerebrum')
+
+#Line chart of celltype change over time
+cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Genotype) %>% 
+  dplyr::count(manualAnnotation) %>% mutate(day = as.numeric(substr(Timepoint, 5, 5))) %>% 
+  ggplot(aes(x = day, y = n, color = manualAnnotation))+
+  geom_smooth(se = FALSE)+
+  scale_color_manual(values=newCols)+
+  scale_x_continuous(breaks=c(3, 4, 5))
 
 #Plot proportion infected per cell type
 cerebrumObj[[]] %>% group_by(manualAnnotation) %>% dplyr::count(virusPresence) %>% 
