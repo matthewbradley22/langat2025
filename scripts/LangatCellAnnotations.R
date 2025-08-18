@@ -211,6 +211,13 @@ FeaturePlot(ParseSeuratObj_int, 'S100a8', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Il1r2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'S100a9', reduction = 'umap.integrated')
 
+#B cells. some markers in supplement of https://www.sciencedirect.com/science/article/pii/S0304383524000582#appsec1
+FeaturePlot(ParseSeuratObj_int, 'Ms4a1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cd19', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Ms4a1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cd79a', reduction = 'umap.integrated')
+
+
 #Dimplots for convenience
 DimPlot(ParseSeuratObj_int, label = TRUE, reduction = 'umap.integrated')
 DimPlot(ParseSeuratObj_int, label = TRUE, group.by = 'singleR_labels', reduction = 'umap.integrated')
@@ -253,6 +260,7 @@ markers14 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
 markers30 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 30,
                          only.pos = TRUE)
 
+#Sort of looks like macrophage (Lyz2, Adgre1)
 markers36 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 36,
                          only.pos = TRUE)
 
@@ -264,7 +272,8 @@ ParseSeuratObj_int$manualAnnotation <-
                                                       '37','44') &
               ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons',
             ParseSeuratObj_int$seurat_clusters %in% c('4', '5', '12', '15', '18', '21', '35', '40',
-                                                      '25', '34', '38', '39', '33', '14', '43')&
+                                                      '25', '34', '38', '39', '33', '14', '43',
+                                                      '27', '24')&
               ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
             ParseSeuratObj_int$seurat_clusters == '31'~ 'Pericytes',
             ParseSeuratObj_int$seurat_clusters == '32'~ 'Muscle cells',
@@ -276,9 +285,14 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c(14,33)~ 'Ependymal',
             ParseSeuratObj_int$seurat_clusters %in% c(20) ~ 'T cells',
             ParseSeuratObj_int$seurat_clusters %in% c(29) ~ 'Nk cells',
-            ParseSeuratObj_int$seurat_clusters %in% c(30) ~ 'Granulocytes')
+            ParseSeuratObj_int$seurat_clusters %in% c(30) ~ 'Granulocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(42) ~ 'B Cells')
 
 
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = c())
+
+#There is an odd group under macrophages that is labelled microglia, need to look more
+
+#SaveSeuratRds(ParseSeuratObj_int, "./data/seuratSingletsAnnotated.rds")
 

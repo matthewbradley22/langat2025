@@ -8,10 +8,7 @@ library(dplyr)
 source('./scripts/langatFunctions.R')
 
 #Load in data
-ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
-
-#filter to singlets. went through analysis and filtering made sense, doublets mostly clustered together 
-ParseSeuratObj_int <- subset(ParseSeuratObj_int, scDblFinderLabel == 'singlet')
+ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")
 
 DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', label = TRUE) +
   NoLegend()
@@ -234,3 +231,18 @@ cerebrum[[]] %>% group_by(Timepoint) %>% mutate(virusPresent = ifelse(virusCount
   geom_bar(stat = 'identity')+
   theme(legend.position = 'None')+
   ylab('Proportion cells with virus')
+
+#Look at virus spread by treatment type
+cerebrum[[]] %>% subset(Treatment == 'rLGTV') %>% group_by(Timepoint) %>% mutate(virusPresent = ifelse(virusCountPAdj>4, 1, 0)) %>% 
+  summarise(virusProp = mean(virusPresent)) %>% ggplot(aes(x = Timepoint, y = virusProp,
+                                                           fill = Timepoint))+
+  geom_bar(stat = 'identity')+
+  theme(legend.position = 'None')
+
+cerebrum[[]] %>% subset(Treatment == 'rChLGTV' | Treatment == 'PBS') %>% group_by(Timepoint) %>% mutate(virusPresent = ifelse(virusCountPAdj>2, 1, 0)) %>% 
+  summarise(virusProp = mean(virusPresent)) %>% ggplot(aes(x = Timepoint, y = virusProp,
+                                                           fill = Timepoint))+
+  geom_bar(stat = 'identity')+
+  theme(legend.position = 'None')
+
+

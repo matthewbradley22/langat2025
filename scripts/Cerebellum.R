@@ -4,7 +4,7 @@
 library(Seurat)
 
 #Load in data
-ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
+ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")
 
 #Good to load in manual annotations from LangatCellAnnotations.R as well
 

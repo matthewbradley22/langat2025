@@ -5,8 +5,8 @@ library(Seurat)
 library(RColorBrewer)
 
 #Load in data
-ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
-ParseSeuratObj_int <- subset(ParseSeuratObj_int, scDblFinderLabel == 'singlet')
+ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")
+DimPlot(ParseSeuratObj_int, group.by = 'scDblFinderLabel')
 #Good to load in manual annotations from LangatCellAnnotations.R as well
 
 #Subset to cerebellum data
@@ -44,8 +44,9 @@ cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Geno
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6')
 cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Genotype) %>% 
   dplyr::count(manualAnnotation) %>%  ggplot(aes(x = Timepoint, y = n, fill = manualAnnotation))+
-  geom_bar(stat = 'identity', position = 'stack')+
-  scale_fill_manual(values=newCols)
+  geom_bar(stat = 'identity', position = 'fill')+
+  scale_fill_manual(values=newCols)+
+  ggtitle('Cell type proportions in cerebrum')
 
 #Plot proportion infected per cell type
 cerebrumObj[[]] %>% group_by(manualAnnotation) %>% dplyr::count(virusPresence) %>% 
