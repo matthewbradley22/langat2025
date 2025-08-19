@@ -41,12 +41,22 @@ cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint) %>%
   ggtitle('rChLGTV over time - cerebrum')+
   ylab('Proportion infected cells')
 
+cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint) %>% 
+  dplyr::count() %>% ggplot(aes(x = Timepoint, y = n, fill= Timepoint))+ 
+  geom_bar(stat = 'identity') + theme(legend.position = 'none')+
+  ylab('Total number of cells')+ ggtitle('rChLGTV cell counts')
+
 cerebrumObj[[]]  %>% filter(Treatment == 'rLGTV') %>% group_by(Timepoint) %>% 
   dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
   ggplot(aes(x = Timepoint, y = virusPresenceProp, fill = Timepoint))+
   geom_bar(stat = 'identity', position = 'dodge')+
   ggtitle('rLGTV over time - cerebrum')+
   ylab('Proportion infected cells')
+
+cerebrumObj[[]]  %>% filter(Treatment == 'rLGTV')  %>% group_by(Timepoint) %>% 
+  dplyr::count() %>% ggplot(aes(x = Timepoint, y = n, fill= Timepoint))+ 
+  geom_bar(stat = 'identity') + theme(legend.position = 'none')+
+  ylab('Total number of cells')+ ggtitle('rLGTV cell counts')
 
 #Cell type proportions by timepoint
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF')
@@ -57,10 +67,10 @@ cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Geno
   ggtitle('Cell type proportions in cerebrum')
 
 #Line chart of celltype change over time
-cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Genotype) %>% 
+cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint) %>% 
   dplyr::count(manualAnnotation) %>% mutate(day = as.numeric(substr(Timepoint, 5, 5))) %>% 
-  ggplot(aes(x = day, y = n, color = manualAnnotation))+
-  geom_smooth(se = FALSE)+
+  ggplot(aes(x = day, y = n, color = manualAnnotation, group = manualAnnotation))+
+  geom_line()+
   scale_color_manual(values=newCols)+
   scale_x_continuous(breaks=c(3, 4, 5))
 
@@ -69,14 +79,24 @@ cerebrumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Geno
 cerebrumObj[[]] %>% filter(Treatment == 'rChLGTV') %>%  group_by(manualAnnotation) %>% dplyr::count(virusPresence) %>% 
   ggplot(aes(x = manualAnnotation, y = n, fill = virusPresence))+
   geom_bar(position = 'fill', stat = 'identity')+
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90))+
+  ggtitle('rChLGTV cerebrum cells by viral presence')+
+  ylab('Proportion of cells')
 
-cerebrumObj[[]] %>% filter(Treatment == 'rChLGTV') %>%  group_by(manualAnnotation, Timepoint) %>% dplyr::count(virusPresence) %>% 
+cerebrumObj[[]] %>% filter(Treatment == 'rChLGTV') %>%  group_by(manualAnnotation, Timepoint) %>% 
+  dplyr::count(virusPresence) %>% 
   mutate(ratio = n / sum(n)) %>% filter(virusPresence == 'yes') %>% 
   mutate(day = as.numeric(substr(Timepoint, 5, 5))) %>% 
   ggplot(aes(x = day, y = ratio, color = manualAnnotation))+
   geom_line(size = 1)+
   scale_color_manual(values=newCols)
+
+cerebrumObj[[]] %>% filter(Treatment == 'rChLGTV') %>%  group_by(manualAnnotation, Timepoint) %>% 
+  dplyr::count() %>% 
+  mutate(day = as.numeric(substr(Timepoint, 5, 5))) %>% 
+  ggplot(aes(x = day, y = manualAnnotation, fill= n))+
+  geom_tile()+
+  geom_text(aes(label = n), color = 'white')
 
 #NA group looks high, but this could make sense if doublets (higher chance of having virus present
 #in one of the two cells?)
@@ -84,15 +104,24 @@ cerebrumObj[[]] %>% filter(Treatment == 'rLGTV') %>%  group_by(manualAnnotation)
   dplyr::count(virusPresence) %>% 
   ggplot(aes(x = manualAnnotation, y = n, fill = virusPresence))+
   geom_bar(position = 'fill', stat = 'identity')+
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90))+
+  ggtitle('rLGTV cerebrum cells by viral presence')+
+  ylab('Proportion of cells')
 
 cerebrumObj[[]] %>% filter(Treatment == 'rLGTV') %>%  group_by(manualAnnotation, Timepoint) %>% 
   dplyr::count(virusPresence) %>% 
   mutate(ratio = n / sum(n)) %>% filter(virusPresence == 'yes') %>% 
   mutate(day = as.numeric(substr(Timepoint, 5, 5))) %>% 
   ggplot(aes(x = day, y = ratio, color = manualAnnotation))+
-  geom_line(se = FALSE)+
+  geom_line()+
   scale_color_manual(values=newCols)+
-  ylab('Proportion of infected cells')
+  ylab('Proportion of infected cells')+
+  scale_x_continuous(breaks=c(3, 4, 5))
 
+cerebrumObj[[]] %>% filter(Treatment == 'rLGTV') %>%  group_by(manualAnnotation, Timepoint) %>% 
+  dplyr::count() %>% 
+  mutate(day = as.numeric(substr(Timepoint, 5, 5))) %>% 
+  ggplot(aes(x = day, y = manualAnnotation, fill= n))+
+  geom_tile()+
+  geom_text(aes(label = n), color = 'white')
 
