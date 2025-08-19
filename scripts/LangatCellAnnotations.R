@@ -13,6 +13,7 @@ ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
 #Load parse well label map
 wellMap <- data.frame(well = c(paste0('A', seq(1,12)), paste0('B', seq(1,12)),
                                paste0('C', seq(1,12)),   paste0('D', seq(1,12))))
+
 ####Annotate cell types ####
 #Will try automatic annotation
 #Mouse rna seq reference
@@ -53,7 +54,7 @@ ParseSeuratObj_int[[]] %>% mutate(virusHight = ifelse(virusCount>3, 'yes', 'no')
 
 #Look at virus presence across celltypes
 ParseSeuratObj_int[[]] <- ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCount > 0, 'yes', 'no')) 
-DimPlot(ParseSeuratObj_int, group.by = 'virusPresence')
+DimPlot(ParseSeuratObj_int, group.by = 'virusPresence', reduction = 'umap.integrated')
 
 ParseSeuratObj_int[[]] %>% group_by(singleR_labels, virusPresence) %>% dplyr::summarise(count = n()) %>% 
   ggplot(aes(x = singleR_labels, y = count, fill = virusPresence))+
@@ -264,6 +265,23 @@ markers30 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
 #Sort of looks like macrophage (Lyz2, Adgre1)
 markers36 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 36,
                          only.pos = TRUE)
+#34, is it astrocytes? S100b high up, indicates astrocytes
+#but also some oligodendrocyte genes (Mobp)
+markers34 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 34,
+                         only.pos = TRUE)
+
+#Look at lower half of cluster 28 which is split across macrophages
+umapCoords <- ParseSeuratObj_int@reductions$umap.integrated@cell.embeddings %>% as.data.frame()
+umapCoords[umapCoords$umapintegrated_1]
+
+#Opened cell selector and chose lower part of cluster 28, below macrophages, which is labelled Microglia
+#Only 52 cells which shouldn't matter much, but going to check their markers
+intUMAP <- DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated')
+cells.located <- CellSelector(plot = intUMAP)
+susMicroglia <- ParseSeuratObj_int[[]][cells.located,] %>% filter(singleR_labels == 'Microglia'&
+                                                    manualAnnotation == 'Microglia')
+ParseSeuratObj_int$susMicroglia <- ifelse(rownames(ParseSeuratObj_int[[]]) %in% rownames(susMicroglia), 'yes', 'no') 
+DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', group.by = 'susMicroglia')
 
 
 #Custom annotation 
@@ -279,19 +297,25 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters == '31'~ 'Pericytes',
             ParseSeuratObj_int$seurat_clusters == '32'~ 'Muscle cells',
             ParseSeuratObj_int$seurat_clusters %in% c(16,26,17)~ 'Choroid Plexus',
-            ParseSeuratObj_int$seurat_clusters %in% c(2, 11, 0, 28, 10, 6)~ 'Microglia',
-            ParseSeuratObj_int$seurat_clusters %in% c(1, 9, 13)~ 'Macrophage/Monocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(2, 11, 0, 10, 6)~ 'Microglia',
+            ParseSeuratObj_int$seurat_clusters %in% c(28) &
+              ParseSeuratObj_int$singleR_labels == 'Microglia' ~ 'Microglia',
+            ParseSeuratObj_int$seurat_clusters %in% c(28) &
+              ParseSeuratObj_int$singleR_labels == 'Macrophages' ~ 'Macrophage/Monocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(1, 9, 13, 36)~ 'Macrophage/Monocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(3, 7, 22)~ 'EC',
             ParseSeuratObj_int$seurat_clusters %in% c(8, 19, 25)~ 'Oligodendrocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(14,33)~ 'Ependymal',
             ParseSeuratObj_int$seurat_clusters %in% c(20) ~ 'T cells',
             ParseSeuratObj_int$seurat_clusters %in% c(29) ~ 'Nk cells',
             ParseSeuratObj_int$seurat_clusters %in% c(30) ~ 'Granulocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c(42) ~ 'B Cells')
+            ParseSeuratObj_int$seurat_clusters %in% c(42) ~ 'B Cells',
+            .default = 'unkown')
 
 
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#737272')
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
-        cols = c())
+        cols = newCols)
 
 #There is an odd group under macrophages that is labelled microglia, need to look more
 
