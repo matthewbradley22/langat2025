@@ -35,10 +35,6 @@ astrocytes <- subset(ParseSeuratObj_int, singleR_labels == 'Astrocytes' &
                                               '25', '34', '38', '39', '33', '14'))
 
 
-
-
-
-
 #Rerun through data processing and visualization
 astrocytes <- NormalizeData(astrocytes)
 astrocytes <- FindVariableFeatures(astrocytes)

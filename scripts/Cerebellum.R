@@ -2,6 +2,8 @@
 
 #Load packages
 library(Seurat)
+library(RColorBrewer)
+library(tidyr)
 
 #Load in data
 ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")
@@ -42,3 +44,14 @@ cerebellumObj[[]] %>% group_by(manualAnnotation) %>% dplyr::count(virusPresence)
   geom_bar(position = 'fill', stat = 'identity')+
   theme(axis.text.x = element_text(angle = 90))
 
+
+#Cell type proportions by timepoint
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E', '#737272')
+newCols[2] = "#CAB2D6"
+newCols[9] = "#1F78B4"
+
+cerebellumObj[[]]  %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Genotype) %>% 
+  dplyr::count(manualAnnotation) %>%  ggplot(aes(x = Timepoint, y = n, fill = manualAnnotation))+
+  geom_bar(stat = 'identity', position = 'fill')+
+  scale_fill_manual(values=newCols)+
+  ggtitle('Cell type proportions in cerebellum')

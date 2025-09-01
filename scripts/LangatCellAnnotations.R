@@ -193,6 +193,7 @@ FeaturePlot(ParseSeuratObj_int, 'Tpm3', reduction = 'umap.integrated')
 #Says some of these markers cannot differentiate between fibro and muscle cells
 FeaturePlot(ParseSeuratObj_int, 'Vim', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Pdgfrb', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Smoc2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Pdgfra', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Fbln1', reduction = 'umap.integrated')
 
@@ -270,6 +271,11 @@ markers36 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
 markers34 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 34,
                          only.pos = TRUE)
 
+#41, could be fibroblasts? Top markers all map to fibroblasts on pangao, and expresses
+#fibroblast markers
+markers41 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 41,
+                         only.pos = TRUE)
+
 #Look at lower half of cluster 28 which is split across macrophages
 umapCoords <- ParseSeuratObj_int@reductions$umap.integrated@cell.embeddings %>% as.data.frame()
 umapCoords[umapCoords$umapintegrated_1]
@@ -310,10 +316,11 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c(29) ~ 'Nk cells',
             ParseSeuratObj_int$seurat_clusters %in% c(30) ~ 'Granulocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(42) ~ 'B Cells',
-            .default = 'unkown')
+            ParseSeuratObj_int$seurat_clusters %in% c(41) ~ 'Fibroblasts',
+            .default = 'unknown')
 
 
-newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#737272')
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E', '#737272')
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
 

@@ -38,4 +38,22 @@ createPseudoBulk <- function(data, variables){
                                 design = designForm)
 }
 
+#Reprocess a subset seurat object (rerun normalizing, scaling etc...)
+prepSeuratObj <- function(obj){
+  #Rerun through data processing and visualization
+  obj <- NormalizeData(obj)
+  obj <- FindVariableFeatures(obj)
+  obj <- ScaleData(obj)
+  obj <- RunPCA(obj)
+  obj
+}
+
+prepUmapSeuratObj <- function(obj, nDims, reductionName){
+  obj <- FindNeighbors(obj, dims = 1:ndims, reduction = "pca")
+  obj <- FindClusters(obj, resolution = 2, cluster.name = reductionName)  
+  obj <- RunUMAP(obj, dims = 1:ndims, reduction = "pca", reduction.name = "umap")
+  obj
+}
+
+
 

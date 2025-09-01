@@ -6,6 +6,7 @@ library(scDblFinder)
 library(readr)
 library(ggplot2)
 library(gridExtra)
+library(Matrix)
 
 #List out our data files, and read them into R
 parseOutput <- list.files("./data/FilteredParseOutput/")
@@ -231,7 +232,7 @@ ParseSeuratObj_int[[]] %>% group_by(orig.ident) %>% dplyr::summarise(neoProp = m
   theme(axis.text.x = element_text(angle = 90))
 
 #Plot total cells as well
-table(ParseSeuratObj_int$Genotype ,ParseSeuratObj_int$orig.ident) %>% as.data.frame() %>% 
+table(ParseSeuratObj_int$Organ ,ParseSeuratObj_int$orig.ident) %>% as.data.frame() %>% 
   ggplot(aes(x = Var2, y = Freq, fill = Var1))+
   geom_bar(stat = 'identity')+
   scale_x_discrete(labels= wellMap$well)+
@@ -274,3 +275,51 @@ DotPlot(ParseSeuratObj_int, features = 'virusCountPAdj', group.by = 'singleR_lab
 
 ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 2, 1, 0)) %>% 
   group_by(Organ) %>% summarise(virusProp = mean(virusPresence))
+
+#Create gene counts table with virus
+#This is not perfect as virus counts have not been corrected for fragmentation 
+geneCounts <- ParseSeuratObj_int[['RNA']]$counts
+sparseVirus = sparseMatrix(i = which(ParseSeuratObj_int$virusCountPAdj > 0), j = rep(1, 46741), 
+             x = ParseSeuratObj_int$virusCountPAdj[which(ParseSeuratObj_int$virusCountPAdj > 0)], 
+             dims = c(130483, 1))
+sparseVirus <- t(sparseVirus)
+dimnames(sparseVirus)[[1]] = 'LGTV'
+datWithVirus <- rbind(geneCounts, sparseVirus)
+datWithVirusNorm <- NormalizeData(datWithVirus)
+varFeatures <- FindVariableFeatures(datWithVirusNorm)
+variableGenes <- arrange(varFeatures, desc(vst.variance.standardized)) %>% head(n = 2000) %>% rownames()
+datWithVirusScaled <- ScaleData(datWithVirusNorm, features = variableGenes)
+
+twoVarDotPlot <- function(){
+  exp_mat<- datWithVirusScaled['LGTV',]
+  meta<- ParseSeuratObj_int[[]]
+  as.matrix(exp_mat) %>% 
+    as.data.frame() %>% 
+    tibble::rownames_to_column(var="cell") %>% 
+    mutate('cell1' = substr(cell, start = 9, stop = 16)) %>% 
+    mutate('sublib' = substr(cell, start = 1, stop = 7)) 
+}
+
+
+#Viral load over time singlets
+ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")
+ParseSeuratObj_int$virusPresence = ifelse(ParseSeuratObj_int$virusCountPAdj>4, 'yes', 'no')
+
+#WT vs IPS
+#Could make this a function, used in other scripts too
+ParseSeuratObj_int[[]] %>% filter(Treatment == 'rLGTV') %>% group_by(Genotype, Timepoint) %>% 
+  dplyr::count(virusPresence) %>% 
+  mutate(virusRatio = n/sum(n)) %>% filter(virusPresence == 'yes') %>% ungroup() %>% 
+  add_row(Genotype = 'IPS1', Timepoint = 'Day 5', virusPresence = 'yes', n = 0, virusRatio = 0) %>% 
+  ggplot(aes(x = Timepoint, y = virusRatio, fill = Genotype))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  ylab('Proportion infected cells')+
+  ggtitle('Proportion infected rLGTV cells by genotype')
+
+ParseSeuratObj_int[[]] %>% filter(Treatment == 'rChLGTV') %>% group_by(Genotype, Timepoint) %>% 
+  dplyr::count(virusPresence) %>% 
+  mutate(virusRatio = n/sum(n)) %>% filter(virusPresence == 'yes') %>% 
+  ggplot(aes(x = Timepoint, y = virusRatio, fill = Genotype))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  ylab('Proportion infected cells')+
+  ggtitle('Proportion infected rChLGTV cells by genotype')
