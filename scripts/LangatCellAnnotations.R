@@ -31,14 +31,7 @@ pheatmap(log2(clusterAssignments+10), color=colorRampPalette(c("white", "blue"))
 ####Data is loaded in with doublets, so can start here ####
 #Look at doublets in integrated data
 DimPlot(ParseSeuratObj_int, group.by = 'scDblFinderLabel', reduction = "umap.integrated")
-ParseSeuratObj_int <- subset(ParseSeuratObj_int, scDblFinderLabel == 'singlet')
-
-#Plot viral counts vs well/treatment. 
-#removing doublets doesn't get rid of viral contamination in PBS samples
-ggplot(ParseSeuratObj_int[[]], aes(x = orig.ident, y = virusCount, col = Treatment))+
-  geom_point() +
-  scale_x_discrete(labels= wellMap$well)+
-  theme(axis.text.x = element_text(angle = 90))
+#ParseSeuratObj_int <- subset(ParseSeuratObj_int, scDblFinderLabel == 'singlet')
 
 #Count of virus presence
 ParseSeuratObj_int[[]] %>% mutate(virusPresent = ifelse(virusCount>0, 'yes', 'no')) %>% 
@@ -290,33 +283,29 @@ ParseSeuratObj_int$susMicroglia <- ifelse(rownames(ParseSeuratObj_int[[]]) %in% 
 DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', group.by = 'susMicroglia')
 
 
+#REDOING THIS CURRENTLY
 #Custom annotation 
 #Created on singlet data
 ParseSeuratObj_int$manualAnnotation <- 
-  case_when(ParseSeuratObj_int$seurat_clusters %in% c('27', '24',
-                                                      '37','44') &
+  case_when(ParseSeuratObj_int$seurat_clusters %in% c('26', '44',
+                                                      '47') &
               ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons',
-            ParseSeuratObj_int$seurat_clusters %in% c('4', '5', '12', '15', '18', '21', '35', '40',
-                                                      '25', '34', '38', '39', '33', '14', '43',
-                                                      '27', '24')&
+            ParseSeuratObj_int$seurat_clusters %in% c('5', '16', '17', '48', '14', '3')&
               ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
-            ParseSeuratObj_int$seurat_clusters == '31'~ 'Pericytes',
-            ParseSeuratObj_int$seurat_clusters == '32'~ 'Muscle cells',
-            ParseSeuratObj_int$seurat_clusters %in% c(16,26,17)~ 'Choroid Plexus',
-            ParseSeuratObj_int$seurat_clusters %in% c(2, 11, 0, 10, 6)~ 'Microglia',
-            ParseSeuratObj_int$seurat_clusters %in% c(28) &
+            ParseSeuratObj_int$seurat_clusters == ''~ 'Pericytes',
+            ParseSeuratObj_int$seurat_clusters == ''~ 'Muscle cells',
+            ParseSeuratObj_int$seurat_clusters %in% c('')~ 'Choroid Plexus',
+            ParseSeuratObj_int$seurat_clusters %in% c(0,2,8,21,22,9,12,40) &
               ParseSeuratObj_int$singleR_labels == 'Microglia' ~ 'Microglia',
-            ParseSeuratObj_int$seurat_clusters %in% c(28) &
-              ParseSeuratObj_int$singleR_labels == 'Macrophages' ~ 'Macrophage/Monocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c(1, 9, 13, 36)~ 'Macrophage/Monocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c(3, 7, 22)~ 'EC',
-            ParseSeuratObj_int$seurat_clusters %in% c(8, 19, 25)~ 'Oligodendrocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c(14,33)~ 'Ependymal',
-            ParseSeuratObj_int$seurat_clusters %in% c(20) ~ 'T cells',
-            ParseSeuratObj_int$seurat_clusters %in% c(29) ~ 'Nk cells',
-            ParseSeuratObj_int$seurat_clusters %in% c(30) ~ 'Granulocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c(42) ~ 'B Cells',
-            ParseSeuratObj_int$seurat_clusters %in% c(41) ~ 'Fibroblasts',
+            ParseSeuratObj_int$seurat_clusters %in% c(1)~ 'Macrophage/Monocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(4,27,11,28)~ 'EC',
+            ParseSeuratObj_int$seurat_clusters %in% c(19,7)~ 'Oligodendrocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c('')~ 'Ependymal',
+            ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'T cells',
+            ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'Nk cells',
+            ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'Granulocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'B Cells',
+            ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'Fibroblasts',
             .default = 'unknown')
 
 
@@ -324,7 +313,11 @@ newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E', '#73727
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
 
-#There is an odd group under macrophages that is labelled microglia, need to look more
+#Going to now filter out cells w high rna features. Only removing < 1000 cells
+FeaturePlot(ParseSeuratObj_int, 'nFeature_RNA', reduction = 'umap.integrated')
 
-#SaveSeuratRds(ParseSeuratObj_int, "./data/seuratSingletsAnnotated.rds")
+
+
+#There is an odd group under macrophages that is labelled microglia, need to look more
+SaveSeuratRds(ParseSeuratObj_int, "./data/seuratSingletsAnnotated.rds")
 

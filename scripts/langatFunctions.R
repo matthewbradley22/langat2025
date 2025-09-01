@@ -50,8 +50,8 @@ prepSeuratObj <- function(obj){
 
 prepUmapSeuratObj <- function(obj, nDims, reductionName){
   obj <- FindNeighbors(obj, dims = 1:nDims, reduction = "pca")
-  obj <- FindClusters(obj, resolution = 2, cluster.name = reductionName)  
-  obj <- RunUMAP(obj, dims = 1:nDims, reduction = "pca", reduction.name = "umap")
+  obj <- FindClusters(obj, resolution = 2)  
+  obj <- RunUMAP(obj, dims = 1:nDims, reduction = "pca", reduction.name = reductionName)
   obj
 }
 

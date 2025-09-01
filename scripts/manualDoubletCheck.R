@@ -19,7 +19,10 @@ micro_mac <- subset(ParseSeuratObj_int, manualAnnotation == 'Macrophage/Monocyte
 table(micro_mac$Organ, micro_mac$scDblFinderLabel)
 micro_mac <- prepSeuratObj(micro_mac)
 ElbowPlot(micro_mac, ndims = 30)
-micro_mac <- prepUmapSeuratObj(micro_mac, 20, reductionName = 'subsetUMAP')
+micro_mac <- prepUmapSeuratObj(micro_mac, 20, reductionName = 'subsetUMAP_20')
 
+DimPlot(micro_mac, reduction = 'subsetUMAP_20', group.by = 'scDblFinderLabel')
+DimPlot(micro_mac, reduction = 'subsetUMAP_20')
+DimPlot(micro_mac, reduction = 'subsetUMAP_20', group.by = 'manualAnnotation')
 
 

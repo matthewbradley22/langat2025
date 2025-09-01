@@ -123,11 +123,13 @@ ParseSeuratObj[[]] %>% mutate(virusPresent = ifelse(virusCount>0, 'yes', 'no')) 
 #Label mitochondrial gene expression
 ParseSeuratObj[["percent.mt"]] <- PercentageFeatureSet(ParseSeuratObj, pattern = "^mt-")
 
-
 #Look at data features
 Idents(ParseSeuratObj) <- "all"  #Stops violin plot from grouping by seurat cluster
 VlnPlot(ParseSeuratObj, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
         ncol = 3, pt.size = 0)
+
+#Filter out cells with suspiciously high rna feature counts and mitochondrial gene counts
+ParseSeuratObj <- subset(ParseSeuratObj, nFeature_RNA < 7500 & percent.mt < 5)
 
 #Run through data processing and visualization before integration
 ParseSeuratObj <- NormalizeData(ParseSeuratObj)
