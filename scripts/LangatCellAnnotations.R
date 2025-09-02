@@ -80,7 +80,6 @@ FeaturePlot(ParseSeuratObj_int, 'Syt1', reduction = 'umap.integrated')
 
 #Endothelial cells
 #brain endo marker Pglyrp1 from https://www.sciencedirect.com/science/article/pii/S0092867420300623
-#Pretty much all markers showing up in 3, 7, 22, 23.
 FeaturePlot(ParseSeuratObj_int, 'Flt1', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Cd93', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Vwf', reduction = 'umap.integrated')
@@ -231,6 +230,12 @@ head(markers36, n = 20)
 markers13 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 13,
                          only.pos = TRUE)
 head(markers13, n = 20)
+
+#Look at cluster 30, possible pericytes
+markers30 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 30,
+                         only.pos = TRUE)
+head(markers30, n = 20)
+
 #Look at lower half of cluster 28 which is split across macrophages
 umapCoords <- ParseSeuratObj_int@reductions$umap.integrated@cell.embeddings %>% as.data.frame()
 umapCoords[umapCoords$umapintegrated_1]
@@ -255,8 +260,8 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c('5', '16', '17', '48', '14', '3',
                                                       '15', '37', '41')&
               ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
-            ParseSeuratObj_int$seurat_clusters == ''~ 'Pericytes',
-            ParseSeuratObj_int$seurat_clusters == ''~ 'Muscle cells',
+            ParseSeuratObj_int$seurat_clusters == '29'~ 'Pericytes',
+            ParseSeuratObj_int$seurat_clusters == '35'~ 'Muscle cells',
             ParseSeuratObj_int$seurat_clusters %in% c(20, 24, 18)~ 'Choroid Plexus',
             ParseSeuratObj_int$seurat_clusters %in% c(0,2,8,21,22,9,12,40) &
               ParseSeuratObj_int$singleR_labels == 'Microglia' ~ 'Microglia',
