@@ -117,10 +117,11 @@ FeaturePlot(ParseSeuratObj_int, 'Mbp', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Pdgfra', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Cspg4', reduction = 'umap.integrated')
 
-#Macrophage markers
+#Macrophage/monocyte markers
 FeaturePlot(ParseSeuratObj_int, 'Ptprc', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Lyz2', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
 
 #T cells
 #Panglao and this paper https://www.nature.com/articles/s41467-022-32627-z/figures/1
@@ -218,57 +219,18 @@ FeaturePlot(ParseSeuratObj_int, 'Cd79a', reduction = 'umap.integrated')
 DimPlot(ParseSeuratObj_int, label = TRUE, reduction = 'umap.integrated')
 DimPlot(ParseSeuratObj_int, label = TRUE, group.by = 'singleR_labels', reduction = 'umap.integrated')
 
-#Unsure about cluster 23, has both endothelial and pericyte/smooth muscle markers expressed
 
 #### Look at DEGs of select groups ####
-#think 31 is pericytes based on degs and top markers matching up w pericytes in panglaodb
-markers31 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 31,
-                       only.pos = TRUE)
-
-#Looks like could be smooth muscle cells based on plugging markers in pangaodb and marker expression above
-markers32 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 32,
-                       only.pos = TRUE)
-
-#16, as well as 26 and 17 may be Choroid plexus cells based on Ttr, Kl, and Folr1 expression
-markers16 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 16,
-                         only.pos = TRUE)
-markers26 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 26,
-                         only.pos = TRUE)
-markers17 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 26,
-                         only.pos = TRUE)
-
-#Check that cluster 6 expresses microglial degs
-#Cluster 6 seems to express a lot of macrophage markers compared to other microglia clusters, not sure what to label
-markers6 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 6,
-                         only.pos = TRUE)
-markers2 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 2,
-                        only.pos = TRUE)
-
-#Check macrophage/monocyte clusters, 1, 9, 13  look like macrophages/monocytes
-markers13 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 13,
-                        only.pos = TRUE)
-
-#Check 14 and 33 clusters
-markers14 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 14,
-                         only.pos = TRUE)
-
-#Glance at granulocyte cluster. Looks like neutrophil markers popping up
-markers30 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 30,
-                         only.pos = TRUE)
-
-#Sort of looks like macrophage (Lyz2, Adgre1)
+#36, could be ependymal, but some astrocyte markers?
+#Looks like ependymal cells, check for doublets near astrocytes though
 markers36 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 36,
                          only.pos = TRUE)
-#34, is it astrocytes? S100b high up, indicates astrocytes
-#but also some oligodendrocyte genes (Mobp)
-markers34 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 34,
-                         only.pos = TRUE)
+head(markers36, n = 20)
 
-#41, could be fibroblasts? Top markers all map to fibroblasts on pangao, and expresses
-#fibroblast markers
-markers41 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 41,
+#Same as above, looks like ependymal, should be double checked
+markers13 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 13,
                          only.pos = TRUE)
-
+head(markers13, n = 20)
 #Look at lower half of cluster 28 which is split across macrophages
 umapCoords <- ParseSeuratObj_int@reductions$umap.integrated@cell.embeddings %>% as.data.frame()
 umapCoords[umapCoords$umapintegrated_1]
@@ -290,20 +252,21 @@ ParseSeuratObj_int$manualAnnotation <-
   case_when(ParseSeuratObj_int$seurat_clusters %in% c('26', '44',
                                                       '47') &
               ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons',
-            ParseSeuratObj_int$seurat_clusters %in% c('5', '16', '17', '48', '14', '3')&
+            ParseSeuratObj_int$seurat_clusters %in% c('5', '16', '17', '48', '14', '3',
+                                                      '15', '37', '41')&
               ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
             ParseSeuratObj_int$seurat_clusters == ''~ 'Pericytes',
             ParseSeuratObj_int$seurat_clusters == ''~ 'Muscle cells',
-            ParseSeuratObj_int$seurat_clusters %in% c('')~ 'Choroid Plexus',
+            ParseSeuratObj_int$seurat_clusters %in% c(20, 24, 18)~ 'Choroid Plexus',
             ParseSeuratObj_int$seurat_clusters %in% c(0,2,8,21,22,9,12,40) &
               ParseSeuratObj_int$singleR_labels == 'Microglia' ~ 'Microglia',
             ParseSeuratObj_int$seurat_clusters %in% c(1)~ 'Macrophage/Monocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c(4,27,11,28)~ 'EC',
+            ParseSeuratObj_int$seurat_clusters %in% c(4,27,11,28)~ 'Endothelial',
             ParseSeuratObj_int$seurat_clusters %in% c(19,7)~ 'Oligodendrocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c('')~ 'Ependymal',
-            ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'T cells',
-            ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'Nk cells',
-            ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'Granulocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(36, 13)~ 'Ependymal',
+            ParseSeuratObj_int$seurat_clusters %in% c('23') ~ 'T cells',
+            ParseSeuratObj_int$seurat_clusters %in% c('32') ~ 'Nk cells',
+            ParseSeuratObj_int$seurat_clusters %in% c('31') ~ 'Granulocytes',
             ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'B Cells',
             ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'Fibroblasts',
             .default = 'unknown')

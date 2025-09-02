@@ -243,19 +243,14 @@ table(ParseSeuratObj_int$Organ ,ParseSeuratObj_int$orig.ident) %>% as.data.frame
   xlab('Sample Well')
 
 #Proportion of infection by genotype
-ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 0, 'yes', 'no')) %>% 
-  group_by(Genotype) %>% 
-  dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
-  ggplot(aes(x = Genotype, y = virusPresenceProp, fill = Genotype)) +
-  geom_bar(stat = 'identity')+
-  ylab('Virus presence (threshold 1 viral read)')
-
 ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 4, 'yes', 'no')) %>% 
-  group_by(Genotype) %>% 
+  group_by(Organ, Treatment) %>% 
   dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
-  ggplot(aes(x = Genotype, y = virusPresenceProp, fill = Genotype)) +
-  geom_bar(stat = 'identity')+
-  ylab('Virus presence (threshold 5 viral reads)')
+  ggplot(aes(x = Organ, y = virusPresenceProp, fill = Treatment)) +
+  geom_bar(stat = 'identity', position = 'dodge')+
+  ylab('Virus presence (threshold 5 viral reads)')+
+  ylab('Proportion of cells with viral reads')+
+  ggtitle('Proportion of Cells with Virus by Organ (Threshold 5 reads)')
 
 #Which cells have a lot of virus reads
 highVirus <- subset(ParseSeuratObj_int, virusCountPAdj > 400)
@@ -265,7 +260,10 @@ table(highVirus$singleR_labels)
 ggplot(ParseSeuratObj_int[[]], aes(x = orig.ident, y = virusCountPAdj, col = Treatment))+
   geom_point() +
   scale_x_discrete(labels= wellMap$well)+
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90)) + 
+  ylab('Viral Reads')+ 
+  ggtitle('Viral Reads per Cell')+
+  xlab('Well')
 
 ggplot(highVirus[[]], aes(x = orig.ident, y = virusCountPAdj, col = manualAnnotation))+
   geom_point() +
