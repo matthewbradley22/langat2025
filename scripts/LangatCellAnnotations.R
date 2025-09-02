@@ -236,6 +236,16 @@ markers30 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
                          only.pos = TRUE)
 head(markers30, n = 20)
 
+#Look at cluster 25, no idea what it is
+markers25 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 25,
+                         only.pos = TRUE)
+head(markers25, n = 20)
+
+#Look at cluster 6, macrophages or microglia?
+markers6 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 6,
+                         only.pos = TRUE)
+head(markers6, n = 20)
+
 #Look at lower half of cluster 28 which is split across macrophages
 umapCoords <- ParseSeuratObj_int@reductions$umap.integrated@cell.embeddings %>% as.data.frame()
 umapCoords[umapCoords$umapintegrated_1]
@@ -265,7 +275,7 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c(20, 24, 18)~ 'Choroid Plexus',
             ParseSeuratObj_int$seurat_clusters %in% c(0,2,8,21,22,9,12,40) &
               ParseSeuratObj_int$singleR_labels == 'Microglia' ~ 'Microglia',
-            ParseSeuratObj_int$seurat_clusters %in% c(1)~ 'Macrophage/Monocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(1, 6)~ 'Macrophage/Monocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(4,27,11,28)~ 'Endothelial',
             ParseSeuratObj_int$seurat_clusters %in% c(19,7)~ 'Oligodendrocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(36, 13)~ 'Ependymal',

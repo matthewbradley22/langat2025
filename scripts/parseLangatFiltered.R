@@ -24,6 +24,7 @@ ParseMatricies <- lapply(parseOutput, FUN = function(x){
 })
 
 #Convert data to Seurat objects  
+#All data has feature counts > 200 so not filtering based on min features here
 ParseSeuratObj <- lapply(ParseMatricies, FUN = function(x){
   CreateSeuratObject(counts = x, project = "Langat")
 })
@@ -32,6 +33,7 @@ ParseSeuratObj <- lapply(ParseMatricies, FUN = function(x){
 toMerge <- c(ParseSeuratObj[[2]], ParseSeuratObj[[3]], ParseSeuratObj[[4]],
              ParseSeuratObj[[5]], ParseSeuratObj[[6]], ParseSeuratObj[[7]],
              ParseSeuratObj[[8]])
+
 
 #Merge data before integration
 ParseSeuratObj <- merge(ParseSeuratObj[[1]], y = toMerge, 
