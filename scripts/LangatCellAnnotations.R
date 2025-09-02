@@ -282,7 +282,7 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c('23') ~ 'T cells',
             ParseSeuratObj_int$seurat_clusters %in% c('32') ~ 'Nk cells',
             ParseSeuratObj_int$seurat_clusters %in% c('31') ~ 'Granulocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'B Cells',
+            ParseSeuratObj_int$seurat_clusters %in% c('45') ~ 'B Cells',
             ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'Fibroblasts',
             .default = 'unknown')
 

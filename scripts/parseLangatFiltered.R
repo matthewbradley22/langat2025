@@ -281,16 +281,18 @@ ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 2, 1, 
 #Create gene counts table with virus
 #This is not perfect as virus counts have not been corrected for fragmentation 
 geneCounts <- ParseSeuratObj_int[['RNA']]$counts
-sparseVirus = sparseMatrix(i = which(ParseSeuratObj_int$virusCountPAdj > 0), j = rep(1, 46741), 
+sparseVirus = sparseMatrix(i = which(ParseSeuratObj_int$virusCountPAdj > 0), j = rep(1, 45746), 
              x = ParseSeuratObj_int$virusCountPAdj[which(ParseSeuratObj_int$virusCountPAdj > 0)], 
-             dims = c(130483, 1))
+             dims = c(129414, 1))
 sparseVirus <- t(sparseVirus)
 dimnames(sparseVirus)[[1]] = 'LGTV'
 datWithVirus <- rbind(geneCounts, sparseVirus)
-datWithVirusNorm <- NormalizeData(datWithVirus)
-varFeatures <- FindVariableFeatures(datWithVirusNorm)
-variableGenes <- arrange(varFeatures, desc(vst.variance.standardized)) %>% head(n = 2000) %>% rownames()
-datWithVirusScaled <- ScaleData(datWithVirusNorm, features = variableGenes)
+
+seuObjWithVirus <- CreateSeuratObject(datWithVirus, project = 'datWithVirus', assay = 'RNA')
+seuObjWithVirus <- NormalizeData(seuObjWithVirus)
+seuObjWithVirus <- FindVariableFeatures(seuObjWithVirus)
+seuObjWithVirus <- ScaleData(seuObjWithVirus)
+
 
 twoVarDotPlot <- function(){
   exp_mat<- datWithVirusScaled['LGTV',]
@@ -325,3 +327,14 @@ ParseSeuratObj_int[[]] %>% filter(Treatment == 'rChLGTV') %>% group_by(Genotype,
   geom_bar(stat = 'identity', position = 'dodge')+
   ylab('Proportion infected cells')+
   ggtitle('Proportion infected rChLGTV cells by genotype')
+
+#Look at pbs samples with virus
+PBS_with_virus <- subset(ParseSeuratObj_int, Treatment == 'PBS' & virusCountPAdj > 4)
+colnames(PBS_with_virus) %>% substr(9, 16)
+
+#Look at cells with high viral load
+ggplot(ParseSeuratObj_int[[]], aes(y = log10(virusCountPAdj), x = ''))+
+  geom_violin()+
+  geom_hline(yintercept=0.15)
+subset(ParseSeuratObj_int, virusCountPAdj > 100)
+
