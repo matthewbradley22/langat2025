@@ -26,14 +26,19 @@ table(subset(ParseSeuratObj_int, sexGenePresence == 'Two')$seurat_clusters) %>% 
 
 #Start with microglia, macrophages
 micro_mac <- subset(ParseSeuratObj_int, manualAnnotation == 'Macrophage/Monocytes' |
-                      manualAnnotation == 'Microglia')
+                      manualAnnotation == 'Microglia' | seurat_clusters == 34)
 table(micro_mac$Organ, micro_mac$scDblFinderLabel)
 micro_mac <- prepSeuratObj(micro_mac)
 ElbowPlot(micro_mac, ndims = 30)
-micro_mac <- prepUmapSeuratObj(micro_mac, 20, reductionName = 'subsetUMAP_20')
+micro_mac <- prepUmapSeuratObj(micro_mac, 25, reductionName = 'subsetUMAP_25')
 
-DimPlot(micro_mac, reduction = 'subsetUMAP_20', group.by = 'scDblFinderLabel')
-DimPlot(micro_mac, reduction = 'subsetUMAP_20')
-DimPlot(micro_mac, reduction = 'subsetUMAP_20', group.by = 'manualAnnotation')
+DimPlot(micro_mac, reduction = 'subsetUMAP_25', group.by = 'scDblFinderLabel')
+DimPlot(micro_mac, reduction = 'subsetUMAP_25')
+DimPlot(micro_mac, reduction = 'subsetUMAP_25', group.by = 'manualAnnotation')
 
-
+FeaturePlot(micro_mac, 'Hexb', reduction = 'subsetUMAP_25')
+FeaturePlot(micro_mac, 'Inpp5d', reduction = 'subsetUMAP_25')
+FeaturePlot(micro_mac, 'Ms4a4a', reduction = 'subsetUMAP_25')
+FeaturePlot(micro_mac, 'Cd74', reduction = 'subsetUMAP_25')
+FeaturePlot(micro_mac, 'Cd209a', reduction = 'subsetUMAP_25')
+FeaturePlot(micro_mac, 'Tmem119', reduction = 'subsetUMAP_25')

@@ -104,7 +104,13 @@ FeaturePlot(ParseSeuratObj_int, 'Tmem119', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'P2ry12', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Cx3cr1', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Itgam', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'C1qa', reduction = 'umap.integrated')
+
+#Micro/macrophage markers from Allen atlas https://knowledge.brain-map.org/celltypes/CCN202002013
+FeaturePlot(ParseSeuratObj_int, 'Hexb', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Inpp5d', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Ms4a4a', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cd74', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cd209a', reduction = 'umap.integrated')
 
 
 #Oligo
@@ -256,6 +262,11 @@ markers10 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
                          only.pos = TRUE)
 head(markers10, n = 20)
 
+#Look at cluster 43
+markers43 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 43,
+                         only.pos = TRUE)
+head(markers43, n = 20)
+
 #Look at lower half of cluster 28 which is split across macrophages
 umapCoords <- ParseSeuratObj_int@reductions$umap.integrated@cell.embeddings %>% as.data.frame()
 umapCoords[umapCoords$umapintegrated_1]
@@ -285,7 +296,7 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c(20, 24, 18)~ 'Choroid Plexus',
             ParseSeuratObj_int$seurat_clusters %in% c(0,2,8,21,22,9,12,40) &
               ParseSeuratObj_int$singleR_labels == 'Microglia' ~ 'Microglia',
-            ParseSeuratObj_int$seurat_clusters %in% c(1, 6, 10)~ 'Macrophage/Monocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(1, 6, 10, 34)~ 'Macrophage/Monocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(4,27,11,28)~ 'Endothelial',
             ParseSeuratObj_int$seurat_clusters %in% c(19,7)~ 'Oligodendrocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(36, 13)~ 'Ependymal',
@@ -293,8 +304,8 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c('32') ~ 'Nk cells',
             ParseSeuratObj_int$seurat_clusters %in% c('31') ~ 'Granulocytes',
             ParseSeuratObj_int$seurat_clusters %in% c('45') ~ 'B Cells',
-            ParseSeuratObj_int$seurat_clusters %in% c('') ~ 'Fibroblasts',
-            .default = 'unknown')
+            ParseSeuratObj_int$seurat_clusters %in% c(43) ~ 'Fibroblasts',
+            .default = 'unknown') 
 
 
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E', '#737272')
