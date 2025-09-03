@@ -12,6 +12,17 @@ DimPlot(ParseSeuratObj_int, group.by = 'singleR_labels', reduction = "umap.integ
         label = TRUE)
 
 #Add manual annotations from end of LangatCellAnnotations script
+#Check for any cells expressing male and female genes
+sexGenes <- ParseSeuratObj_int[['RNA']]$data[c('Xist', 'Eif2s3y'),]
+sexGenePresence <- colSums(sexGenes > 0)
+ParseSeuratObj_int$sexGenePresence <- case_when(sexGenePresence == 0 ~ 'None',
+                                                sexGenePresence == 1 ~ 'One',
+                                                sexGenePresence == 2 ~ 'Two')
+
+table(subset(ParseSeuratObj_int, sexGenePresence == 'Two')$seurat_clusters) %>% sort()
+
+#Think cluster 14 is doublets, identified by scdblfindr and many cells with both sex chromosomes
+
 
 #Start with microglia, macrophages
 micro_mac <- subset(ParseSeuratObj_int, manualAnnotation == 'Macrophage/Monocytes' |

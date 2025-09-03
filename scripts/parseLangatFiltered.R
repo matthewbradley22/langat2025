@@ -187,6 +187,18 @@ unIntUmap <- DimPlot(ParseSeuratObj_int, reduction = "umap.unintegrated", group.
 
 grid.arrange(intUMAP, unIntUmap, ncol=2)
 
+#remove cells with both sex genes
+sexGenes <- ParseSeuratObj_int[['RNA']]$data[c('Xist', 'Eif2s3y'),]
+sexGenePresence <- colSums(sexGenes > 0)
+ParseSeuratObj_int$sexGenePresence <- case_when(sexGenePresence == 0 ~ 'None',
+                                                sexGenePresence == 1 ~ 'One',
+                                                sexGenePresence == 2 ~ 'Two')
+
+subset(ParseSeuratObj_int, sexGenePresence == 'None')[['RNA']]$data[c('Xist', 'Eif2s3y'),]
+ParseSeuratObj_int <- subset(ParseSeuratObj_int, sexGenePresence != 'Two')
+
+#Saved object to "./data/FilteredRpcaIntegratedDat.rds"
+
 #### Can start here with integrated data ####
 #Add neo reads in same way viral reads were added 
 
@@ -246,9 +258,9 @@ table(ParseSeuratObj_int$Organ ,ParseSeuratObj_int$orig.ident) %>% as.data.frame
 
 #Proportion of infection by genotype
 ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 4, 'yes', 'no')) %>% 
-  group_by(Organ, Treatment) %>% 
+  group_by(Treatment, Organ) %>% 
   dplyr::summarise(virusPresenceProp = mean(virusPresence == 'yes')) %>% 
-  ggplot(aes(x = Organ, y = virusPresenceProp, fill = Treatment)) +
+  ggplot(aes(x = Treatment, y = virusPresenceProp, fill = Organ)) +
   geom_bar(stat = 'identity', position = 'dodge')+
   ylab('Virus presence (threshold 5 viral reads)')+
   ylab('Proportion of cells with viral reads')+
