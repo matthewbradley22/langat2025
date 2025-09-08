@@ -5,31 +5,46 @@ library(Seurat)
 library(RColorBrewer)
 library(tidyr)
 
-#Load in data
-ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")
+source('./scripts/langatFunctions.R')
 
-#Good to load in manual annotations from LangatCellAnnotations.R as well
+#Load in data
+ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
+
+#Load in manual annotations from the end of LangatCellAnnotations.R (will save manual labels with data once finalized)
 
 #Subset to cerebellum data
-cerebellumObj <- subset(ParseSeuratObj_int, Organ == 'Cerebellum' & scDblFinderLabel == 'singlet')
-cerebellumObj$virusPresence = ifelse(cerebellumObj$virusCountPAdj>0, 'yes', 'no')
+cerebellumObj <- subset(ParseSeuratObj_int, Organ == 'Cerebellum')
+cerebellumObj$virusPresence = ifelse(cerebellumObj$virusCountPAdj>4, 'yes', 'no')
 
 #Rerun through data processing and visualization
-cerebellumObj <- NormalizeData(cerebellumObj)
-cerebellumObj <- FindVariableFeatures(cerebellumObj)
-cerebellumObj <- ScaleData(cerebellumObj)
-cerebellumObj <- RunPCA(cerebellumObj)
+cerebellumObj <- prepSeuratObj(cerebellumObj)
 ElbowPlot(cerebellumObj, ndims = 40)
-cerebellumObj <- FindNeighbors(cerebellumObj, dims = 1:30, reduction = "pca")
-cerebellumObj <- FindClusters(cerebellumObj, resolution = 2, cluster.name = "cerebellum_clusters")  
-cerebellumObj <- RunUMAP(cerebellumObj, dims = 1:30, reduction = "pca", reduction.name = "umap")
+cerebellumObj <- prepUmapSeuratObj(cerebellumObj, nDims = 30, reductionName = 'umap')
 
 #Look at data
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'manualAnnotation', label = TRUE) + NoLegend()
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'Timepoint')
 DimPlot(cerebellumObj, reduction = 'umap', group.by = 'Genotype')
-DimPlot(cerebellumObj, reduction = 'umap', group.by = 'cerebellum_clusters', label = TRUE)
+DimPlot(cerebellumObj, reduction = 'umap', label = TRUE)
 
+#Look at opc and astrocyte markers
+#Astrocytes
+FeaturePlot(cerebellumObj, 'Gfap', reduction = 'umap')
+FeaturePlot(cerebellumObj, 'Aqp4', reduction = 'umap')
+FeaturePlot(cerebellumObj, 'Fgfr3', reduction = 'umap')
+FeaturePlot(cerebellumObj, 'Aldh1l1', reduction = 'umap')
+FeaturePlot(cerebellumObj, 'Slc1a3', reduction = 'umap')
+FeaturePlot(cerebellumObj, 'Gli3', reduction = 'umap')
+FeaturePlot(cerebellumObj, 'Slc39a12', reduction = 'umap')
+
+#Oligo
+FeaturePlot(cerebellumObj, 'Mag',reduction = 'umap')
+FeaturePlot(cerebellumObj, 'Mog', reduction = 'umap')
+FeaturePlot(cerebellumObj, 'Gjc3',reduction = 'umap')
+FeaturePlot(cerebellumObj, 'Mbp', reduction = 'umap')
+
+#OPC
+FeaturePlot(cerebellumObj, 'Stk32a', reduction = 'umap')
 
 #Timepoint differences
 cerebellumObj[[]] <- cerebellumObj[[]] %>%  mutate(virusPresence = ifelse(virusCountPAdj > 2, 'yes', 'no'))

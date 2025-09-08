@@ -23,10 +23,10 @@ ParseMatricies <- lapply(parseOutput, FUN = function(x){
   ReadParseBio(paste0("./data/FilteredParseOutput/", x))
 })
 
-#Convert data to Seurat objects  
-#All data has feature counts > 200 so not filtering based on min features here
+#Convert data to Seurat objects 
+#All data has feature counts > 600 so not filtering based on min features here
 ParseSeuratObj <- lapply(ParseMatricies, FUN = function(x){
-  CreateSeuratObject(counts = x, project = "Langat")
+  CreateSeuratObject(counts = x, project = "Langat", min.cells = 3)
 })
 
 #Can also combine this data using split-pipe combined, instead of doing it here
@@ -39,6 +39,21 @@ toMerge <- c(ParseSeuratObj[[2]], ParseSeuratObj[[3]], ParseSeuratObj[[4]],
 ParseSeuratObj <- merge(ParseSeuratObj[[1]], y = toMerge, 
                         add.cell.ids = paste0('seuObj', seq(1,8)), project = "ParseLangat")
 
+
+#Label mitochondrial gene expression
+ParseSeuratObj[["percent.mt"]] <- PercentageFeatureSet(ParseSeuratObj, pattern = "^mt-")
+
+#Look at data features
+Idents(ParseSeuratObj) <- "all"  #Stops violin plot from grouping by seurat cluster
+VlnPlot(ParseSeuratObj, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+        ncol = 3, pt.size = 0) 
+
+ggplot(ParseSeuratObj[[]], aes(x = 1, y = nFeature_RNA))+
+  geom_violin() +
+  geom_hline(yintercept = 200)
+
+#Filter out cells with suspiciously high rna feature counts and mitochondrial gene counts
+ParseSeuratObj <- subset(ParseSeuratObj, nFeature_RNA > 200 & nFeature_RNA < 7500 & percent.mt < 5)
 
 #Use Parse barcoding plate to label cells
 #Going to try just left joining and seeing if virus expression matches up
@@ -122,23 +137,13 @@ ParseSeuratObj[[]] %>% mutate(virusPresent = ifelse(virusCount>0, 'yes', 'no')) 
   ggplot(aes(x = Treatment, y = count, fill = virusPresent))+
   geom_bar(stat = 'identity', position = 'dodge')
 
-#Label mitochondrial gene expression
-ParseSeuratObj[["percent.mt"]] <- PercentageFeatureSet(ParseSeuratObj, pattern = "^mt-")
-
-#Look at data features
-Idents(ParseSeuratObj) <- "all"  #Stops violin plot from grouping by seurat cluster
-VlnPlot(ParseSeuratObj, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
-        ncol = 3, pt.size = 0)
-
-#Filter out cells with suspiciously high rna feature counts and mitochondrial gene counts
-ParseSeuratObj <- subset(ParseSeuratObj, nFeature_RNA < 7500 & percent.mt < 5)
 
 #Run through data processing and visualization before integration
 ParseSeuratObj <- NormalizeData(ParseSeuratObj)
 ParseSeuratObj <- FindVariableFeatures(ParseSeuratObj)
 ParseSeuratObj <- ScaleData(ParseSeuratObj)
 ParseSeuratObj <- RunPCA(ParseSeuratObj)
-ElbowPlot(ParseSeuratObj, ndims = 40)
+ElbowPlot(ParseSeuratObj, ndims = 50)
 ParseSeuratObj <- FindNeighbors(ParseSeuratObj, dims = 1:30, reduction = "pca")
 ParseSeuratObj <- FindClusters(ParseSeuratObj, resolution = 2, cluster.name = "unintegrated_clusters")  
 ParseSeuratObj <- RunUMAP(ParseSeuratObj, dims = 1:30, reduction = "pca", reduction.name = "umap.unintegrated")
@@ -174,7 +179,6 @@ ParseSeuratObj_int[["RNA"]] <- JoinLayers(ParseSeuratObj_int[["RNA"]])
 
 ParseSeuratObj_int <- FindNeighbors(ParseSeuratObj_int, reduction = "integrated.rpca", dims = 1:30)
 ParseSeuratObj_int <- FindClusters(ParseSeuratObj_int, resolution = 1)
-
 ParseSeuratObj_int <- RunUMAP(ParseSeuratObj_int, dims = 1:30, reduction = "integrated.rpca", 
                               reduction.name = "umap.integrated")
 
@@ -197,7 +201,7 @@ ParseSeuratObj_int$sexGenePresence <- case_when(sexGenePresence == 0 ~ 'None',
 subset(ParseSeuratObj_int, sexGenePresence == 'None')[['RNA']]$data[c('Xist', 'Eif2s3y'),]
 ParseSeuratObj_int <- subset(ParseSeuratObj_int, sexGenePresence != 'Two')
 
-#Saved object to "./data/FilteredRpcaIntegratedDat.rds"
+#SaveSeuratRds(ParseSeuratObj_int, "./data/FilteredRpcaIntegratedDat.rds")
 
 #### Can start here with integrated data ####
 #Add neo reads in same way viral reads were added 

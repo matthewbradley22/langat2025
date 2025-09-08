@@ -15,4 +15,7 @@ for(i in 1:length(coverageList)){
   print(totalPosWithReads)
 }
 
-plot(coverageList[[4]][,2],coverageList[[4]][,3])
+plot(coverageList[[4]][,2],coverageList[[4]][,3],
+     xlab="Chromosome position",
+     ylab = 'Number of reads',
+     main = 'Sublibrary 3')

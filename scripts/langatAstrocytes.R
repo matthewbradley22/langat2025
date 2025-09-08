@@ -20,26 +20,13 @@ DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', label = TRUE) +
 DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', group.by = 'singleR_labels',
         cols = c('gray', 'red', rep('gray', 16))) 
 
-#Astrocytes appear to make up clusters 4, 5, 12, 15, 18, 21, 35, 40
-#25, 34, 38 , and 39 also look good to me based on marker gene expression
-#33 and 14 also both look to be partially astrocytes based on markers
-#Don' think 31 or 32, , or 37 right now
-
 # are labelled epithelial cells by singleR, but don't express the canonical markers, need to check
 #if they are astrocytes
 table(subset(ParseSeuratObj_int, singleR_labels == 'Astrocytes')$seurat_clusters)
 
-#Conservative approach to labelling astrocytes
-astrocytes <- subset(ParseSeuratObj_int, singleR_labels == 'Astrocytes' & 
-                       seurat_clusters %in% c('4', '5', '12', '15', '18', '21', '35', '40',
-                                              '25', '34', '38', '39', '33', '14'))
-
 
 #Rerun through data processing and visualization
-astrocytes <- NormalizeData(astrocytes)
-astrocytes <- FindVariableFeatures(astrocytes)
-astrocytes <- ScaleData(astrocytes)
-astrocytes <- RunPCA(astrocytes)
+astrocytes <- prepSeuratObj(astrocytes)
 ElbowPlot(astrocytes, ndims = 40)
 astrocytes <- FindNeighbors(astrocytes, dims = 1:30, reduction = "pca")
 astrocytes <- FindClusters(astrocytes, resolution = 2, cluster.name = "astrocyte_clusters")  

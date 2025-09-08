@@ -112,21 +112,23 @@ FeaturePlot(ParseSeuratObj_int, 'Ms4a4a', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Cd74', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Cd209a', reduction = 'umap.integrated')
 
-
-#Oligo
-FeaturePlot(ParseSeuratObj_int, 'Mag',reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Mog', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Mbp', reduction = 'umap.integrated')
-
-#OPC
-FeaturePlot(ParseSeuratObj_int, 'Pdgfra', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Cspg4', reduction = 'umap.integrated')
-
 #Macrophage/monocyte markers
 FeaturePlot(ParseSeuratObj_int, 'Ptprc', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Lyz2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
+
+#Oligo
+FeaturePlot(ParseSeuratObj_int, 'Mag',reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Mog', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Gjc3',reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Mbp', reduction = 'umap.integrated')
+
+#OPC
+FeaturePlot(ParseSeuratObj_int, 'Pdgfra', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cspg4', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Stk32a', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Pdgfra', reduction = 'umap.integrated')
 
 #T cells
 #Panglao and this paper https://www.nature.com/articles/s41467-022-32627-z/figures/1
@@ -226,46 +228,11 @@ DimPlot(ParseSeuratObj_int, label = TRUE, group.by = 'singleR_labels', reduction
 
 
 #### Look at DEGs of select groups ####
-#36, could be ependymal, but some astrocyte markers?
-#Looks like ependymal cells, check for doublets near astrocytes though
-markers36 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 36,
-                         only.pos = TRUE)
-head(markers36, n = 20)
 
-#Same as above, looks like ependymal, should be double checked
-markers13 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 13,
+#39, fibroblasts?
+markers39 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 39,
                          only.pos = TRUE)
-head(markers13, n = 20)
-
-#Look at cluster 30, possible pericytes
-markers30 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 30,
-                         only.pos = TRUE)
-head(markers30, n = 20)
-
-#Look at cluster 25, no idea what it is
-markers25 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 25,
-                         only.pos = TRUE)
-head(markers25, n = 20)
-
-#Look at cluster 6, macrophages or microglia?
-markers6 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 6,
-                         only.pos = TRUE)
-head(markers6, n = 20)
-
-#Look at cluster 34, macrophages or microglia?
-markers34 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 34,
-                        only.pos = TRUE)
-head(markers34, n = 20)
-
-#Look at cluster 10, macrophages or microglia?
-markers10 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 10,
-                         only.pos = TRUE)
-head(markers10, n = 20)
-
-#Look at cluster 43
-markers43 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 43,
-                         only.pos = TRUE)
-head(markers43, n = 20)
+head(markers39, n = 20)
 
 #Look at lower half of cluster 28 which is split across macrophages
 umapCoords <- ParseSeuratObj_int@reductions$umap.integrated@cell.embeddings %>% as.data.frame()
@@ -285,30 +252,29 @@ DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', group.by = 'susMicrog
 #Custom annotation 
 #Created on singlet data
 ParseSeuratObj_int$manualAnnotation <- 
-  case_when(ParseSeuratObj_int$seurat_clusters %in% c('26', '44',
-                                                      '47') &
+  case_when(ParseSeuratObj_int$seurat_clusters %in% c(26, 40, 44) &
               ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons',
-            ParseSeuratObj_int$seurat_clusters %in% c('5', '16', '17', '48', '14', '3',
-                                                      '15', '37', '41')&
+            ParseSeuratObj_int$seurat_clusters %in% c(3, 4) & 
               ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
-            ParseSeuratObj_int$seurat_clusters == '29'~ 'Pericytes',
-            ParseSeuratObj_int$seurat_clusters == '35'~ 'Muscle cells',
-            ParseSeuratObj_int$seurat_clusters %in% c(20, 24, 18)~ 'Choroid Plexus',
-            ParseSeuratObj_int$seurat_clusters %in% c(0,2,8,21,22,9,12,40) &
+            ParseSeuratObj_int$seurat_clusters == 31 ~ 'Pericytes',
+            ParseSeuratObj_int$seurat_clusters == 30 ~ 'Muscle cells',
+            ParseSeuratObj_int$seurat_clusters %in% c(18, 24, 20)~ 'Choroid Plexus',
+            ParseSeuratObj_int$seurat_clusters %in% c(2, 1, 8) &
               ParseSeuratObj_int$singleR_labels == 'Microglia' ~ 'Microglia',
-            ParseSeuratObj_int$seurat_clusters %in% c(1, 6, 10, 34)~ 'Macrophage/Monocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c(4,27,11,28)~ 'Endothelial',
-            ParseSeuratObj_int$seurat_clusters %in% c(19,7)~ 'Oligodendrocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c(36, 13)~ 'Ependymal',
-            ParseSeuratObj_int$seurat_clusters %in% c('23') ~ 'T cells',
-            ParseSeuratObj_int$seurat_clusters %in% c('32') ~ 'Nk cells',
-            ParseSeuratObj_int$seurat_clusters %in% c('31') ~ 'Granulocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c('45') ~ 'B Cells',
-            ParseSeuratObj_int$seurat_clusters %in% c(43) ~ 'Fibroblasts',
+            ParseSeuratObj_int$seurat_clusters %in% c(0)~ 'Macrophage/Monocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(5, 14, 10)~ 'Endothelial',
+            ParseSeuratObj_int$seurat_clusters %in% c(13)~ 'Oligodendrocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(9)~ 'Ependymal',
+            ParseSeuratObj_int$seurat_clusters %in% c(22) ~ 'T cells',
+            ParseSeuratObj_int$seurat_clusters %in% c(29) ~ 'Nk cells',
+            ParseSeuratObj_int$seurat_clusters %in% c() ~ 'Granulocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c() ~ 'B Cells',
+            ParseSeuratObj_int$seurat_clusters %in% c() ~ 'Fibroblasts',
+            ParseSeuratObj_int$seurat_clusters %in% c() ~ 'OPCs (?)',
             .default = 'unknown') 
 
 
-newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E', '#737272')
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E',  '#FF8AEF','#737272')
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
 
