@@ -25,23 +25,12 @@ ParseSeuratObj_int[[]] %>% group_by(seurat_clusters, scDblFinderLabel) %>% summa
 DimPlot(ParseSeuratObj_int, reduction = "umap.integrated",
         label = TRUE)
 
-#14 and 48 have high proportion of doublets and shows both astrocyte + microglia markers. Removing
-ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 14 & seurat_clusters != 48)
+#16 have high proportion of doublets and shows both astrocyte + microglia markers. Removing
+ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 16)
 
-#38 high proportion of doublets and shows astrocyte + endothelial markers
-ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 38)
+#32 high proportion of doublets and shows astrocyte + endothelial markers
+ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 32)
 
-#49 shows endothelial + microglia
-ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 49)
-
-#33 shows oligo, astrocyte, and microglia/macrophage
-ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 33)
-
-#40 looks like microlglia + macrophages 
-ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 40)
-
-#25 shows microglia, astrocyte, and neuron markers
-ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 25)
 
 #Evaluate microglia, macrophages
 micro_mac <- subset(ParseSeuratObj_int, manualAnnotation == 'Macrophage/Monocytes' |

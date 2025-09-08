@@ -259,7 +259,7 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters == 31 ~ 'Pericytes',
             ParseSeuratObj_int$seurat_clusters == 30 ~ 'Muscle cells',
             ParseSeuratObj_int$seurat_clusters %in% c(18, 24, 20)~ 'Choroid Plexus',
-            ParseSeuratObj_int$seurat_clusters %in% c(2, 1, 8) &
+            ParseSeuratObj_int$seurat_clusters %in% c(2, 1, 8, 6, 21, 11) &
               ParseSeuratObj_int$singleR_labels == 'Microglia' ~ 'Microglia',
             ParseSeuratObj_int$seurat_clusters %in% c(0)~ 'Macrophage/Monocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(5, 14, 10)~ 'Endothelial',
@@ -267,8 +267,8 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c(9)~ 'Ependymal',
             ParseSeuratObj_int$seurat_clusters %in% c(22) ~ 'T cells',
             ParseSeuratObj_int$seurat_clusters %in% c(29) ~ 'Nk cells',
-            ParseSeuratObj_int$seurat_clusters %in% c() ~ 'Granulocytes',
-            ParseSeuratObj_int$seurat_clusters %in% c() ~ 'B Cells',
+            ParseSeuratObj_int$seurat_clusters %in% c(28) ~ 'Granulocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(42) ~ 'B Cells',
             ParseSeuratObj_int$seurat_clusters %in% c() ~ 'Fibroblasts',
             ParseSeuratObj_int$seurat_clusters %in% c() ~ 'OPCs (?)',
             .default = 'unknown') 
