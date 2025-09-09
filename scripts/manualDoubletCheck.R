@@ -31,22 +31,16 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 16)
 #32 high proportion of doublets and shows astrocyte + endothelial markers
 ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 32)
 
+#19 high proportion of doublets and shows astrocyte + oligo + microglia markers
+ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 19)
 
-#Evaluate microglia, macrophages
-micro_mac <- subset(ParseSeuratObj_int, manualAnnotation == 'Macrophage/Monocytes' |
-                      manualAnnotation == 'Microglia' | seurat_clusters == 34)
-table(micro_mac$Organ, micro_mac$scDblFinderLabel)
-micro_mac <- prepSeuratObj(micro_mac)
-ElbowPlot(micro_mac, ndims = 30)
-micro_mac <- prepUmapSeuratObj(micro_mac, 25, reductionName = 'subsetUMAP_25')
+#Getting rid of 27 for having both endothelial and pericyte markers
+ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 27)
 
-DimPlot(micro_mac, reduction = 'subsetUMAP_25', group.by = 'scDblFinderLabel')
-DimPlot(micro_mac, reduction = 'subsetUMAP_25')
-DimPlot(micro_mac, reduction = 'subsetUMAP_25', group.by = 'manualAnnotation')
+#Remove cluster 38 - includes genes that Allen cell atlas says should only be expressed
+#in either microglia or macrophages, not both
+ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 38)
 
-FeaturePlot(micro_mac, 'Hexb', reduction = 'subsetUMAP_25')
-FeaturePlot(micro_mac, 'Inpp5d', reduction = 'subsetUMAP_25')
-FeaturePlot(micro_mac, 'Ms4a4a', reduction = 'subsetUMAP_25')
-FeaturePlot(micro_mac, 'Cd74', reduction = 'subsetUMAP_25')
-FeaturePlot(micro_mac, 'Cd209a', reduction = 'subsetUMAP_25')
-FeaturePlot(micro_mac, 'Tmem119', reduction = 'subsetUMAP_25')
+#Check feature counts across data
+FeaturePlot(ParseSeuratObj_int, 'nFeature_RNA', reduction = 'umap.integrated')
+

@@ -87,6 +87,8 @@ FeaturePlot(ParseSeuratObj_int, 'Cldn5', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Pglyrp1', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Emcn', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Pecam1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Adgrl4', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Slco1a4', reduction = 'umap.integrated')
 
 #Astrocytes
 FeaturePlot(ParseSeuratObj_int, 'Gfap', reduction = 'umap.integrated')
@@ -110,6 +112,7 @@ FeaturePlot(ParseSeuratObj_int, 'Hexb', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Inpp5d', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Ms4a4a', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Cd74', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Klra2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Cd209a', reduction = 'umap.integrated')
 
 #Macrophage/monocyte markers
@@ -121,14 +124,14 @@ FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
 #Oligo
 FeaturePlot(ParseSeuratObj_int, 'Mag',reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Mog', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Gjc3',reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Plp1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Gjc3',reduction = 'umap.integrated') #Also high in OPCs
 FeaturePlot(ParseSeuratObj_int, 'Mbp', reduction = 'umap.integrated')
 
 #OPC
 FeaturePlot(ParseSeuratObj_int, 'Pdgfra', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Cspg4', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Stk32a', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Pdgfra', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cspg4', reduction = 'umap.integrated')
 
 #T cells
 #Panglao and this paper https://www.nature.com/articles/s41467-022-32627-z/figures/1
@@ -234,19 +237,39 @@ markers39 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
                          only.pos = TRUE)
 head(markers39, n = 20)
 
+#27 showing signs of endothelial + pericyte and smooth muscle
+#Rgs5 pericyte marker, Adgrf5 endothelial
+markers27 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 27,
+                         only.pos = TRUE)
+head(markers27, n = 20)
+
+#17 - astrocyte and oligo markers
+markers17 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 17,
+                         only.pos = TRUE)
+head(markers17, n = 20)
+
+#35 - doublets? Some oligodendrocyte markers but also some astrocyte etc...
+markers35 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 35,
+                         only.pos = TRUE)
+head(markers35, n = 20)
+
+#34, macro or micro
+markers34 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 34,
+                         only.pos = TRUE)
+head(markers34, n = 20)
+
+#25, not sure what these are
+markers25 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 25,
+                         only.pos = TRUE)
+head(markers25, n = 20)
+
 #Look at lower half of cluster 28 which is split across macrophages
 umapCoords <- ParseSeuratObj_int@reductions$umap.integrated@cell.embeddings %>% as.data.frame()
 umapCoords[umapCoords$umapintegrated_1]
 
-#Opened cell selector and chose lower part of cluster 28, below macrophages, which is labelled Microglia
-#Only 52 cells which shouldn't matter much, but going to check their markers
+#Opened cell selector and chose lower part of cluster 34, with macrophages, which is labelled Microglia
 intUMAP <- DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated')
 cells.located <- CellSelector(plot = intUMAP)
-susMicroglia <- ParseSeuratObj_int[[]][cells.located,] %>% filter(singleR_labels == 'Microglia'&
-                                                    manualAnnotation == 'Microglia')
-ParseSeuratObj_int$susMicroglia <- ifelse(rownames(ParseSeuratObj_int[[]]) %in% rownames(susMicroglia), 'yes', 'no') 
-DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', group.by = 'susMicroglia')
-
 
 #REDOING THIS CURRENTLY
 #Custom annotation 
@@ -254,16 +277,16 @@ DimPlot(ParseSeuratObj_int, reduction = 'umap.integrated', group.by = 'susMicrog
 ParseSeuratObj_int$manualAnnotation <- 
   case_when(ParseSeuratObj_int$seurat_clusters %in% c(26, 40, 44) &
               ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons',
-            ParseSeuratObj_int$seurat_clusters %in% c(3, 4) & 
+            ParseSeuratObj_int$seurat_clusters %in% c(3, 4, 45, 15) & 
               ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
             ParseSeuratObj_int$seurat_clusters == 31 ~ 'Pericytes',
             ParseSeuratObj_int$seurat_clusters == 30 ~ 'Muscle cells',
             ParseSeuratObj_int$seurat_clusters %in% c(18, 24, 20)~ 'Choroid Plexus',
             ParseSeuratObj_int$seurat_clusters %in% c(2, 1, 8, 6, 21, 11) &
               ParseSeuratObj_int$singleR_labels == 'Microglia' ~ 'Microglia',
-            ParseSeuratObj_int$seurat_clusters %in% c(0)~ 'Macrophage/Monocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(0, 12, 7, 37)~ 'Macrophage/Monocytes', #Particularly convinced about the macrophages by the allan atlas markers above
             ParseSeuratObj_int$seurat_clusters %in% c(5, 14, 10)~ 'Endothelial',
-            ParseSeuratObj_int$seurat_clusters %in% c(13)~ 'Oligodendrocytes',
+            ParseSeuratObj_int$seurat_clusters %in% c(13, 23)~ 'Oligodendrocytes',
             ParseSeuratObj_int$seurat_clusters %in% c(9)~ 'Ependymal',
             ParseSeuratObj_int$seurat_clusters %in% c(22) ~ 'T cells',
             ParseSeuratObj_int$seurat_clusters %in% c(29) ~ 'Nk cells',
@@ -271,8 +294,12 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c(42) ~ 'B Cells',
             ParseSeuratObj_int$seurat_clusters %in% c() ~ 'Fibroblasts',
             ParseSeuratObj_int$seurat_clusters %in% c() ~ 'OPCs (?)',
+            ParseSeuratObj_int$seurat_clusters %in% c(16, 32, 19, 27, 38) ~ 'Doublets',
+            #ParseSeuratObj_int$seurat_clusters == 26 & 
+           # ParseSeuratObj_int$scDblFinderLabel == '',
             .default = 'unknown') 
 
+#ParseSeuratObj_int[[]][cells.located,]$manualAnnotation = 'Macrophage/Monocytes'
 
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E',  '#FF8AEF','#737272')
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',

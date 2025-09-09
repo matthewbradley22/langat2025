@@ -145,7 +145,8 @@ ParseSeuratObj <- ScaleData(ParseSeuratObj)
 ParseSeuratObj <- RunPCA(ParseSeuratObj)
 ElbowPlot(ParseSeuratObj, ndims = 50)
 ParseSeuratObj <- FindNeighbors(ParseSeuratObj, dims = 1:30, reduction = "pca")
-ParseSeuratObj <- FindClusters(ParseSeuratObj, resolution = 2, cluster.name = "unintegrated_clusters")  
+#Don't think resolution here matters since we rerun findclusters post integration. Tried with multiple
+ParseSeuratObj <- FindClusters(ParseSeuratObj, resolution = 2, cluster.name = "unintegrated_clusters") 
 ParseSeuratObj <- RunUMAP(ParseSeuratObj, dims = 1:30, reduction = "pca", reduction.name = "umap.unintegrated")
 DimPlot(ParseSeuratObj)
 
@@ -176,7 +177,6 @@ ParseSeuratObj_int <- IntegrateLayers(object = ParseSeuratObj, method = RPCAInte
 
 #re-join layers after integration
 ParseSeuratObj_int[["RNA"]] <- JoinLayers(ParseSeuratObj_int[["RNA"]])
-
 ParseSeuratObj_int <- FindNeighbors(ParseSeuratObj_int, reduction = "integrated.rpca", dims = 1:30)
 ParseSeuratObj_int <- FindClusters(ParseSeuratObj_int, resolution = 1)
 ParseSeuratObj_int <- RunUMAP(ParseSeuratObj_int, dims = 1:30, reduction = "integrated.rpca", 
@@ -351,6 +351,26 @@ colnames(PBS_with_virus) %>% substr(9, 16)
 #Look at cells with high viral load
 ggplot(ParseSeuratObj_int[[]], aes(y = log10(virusCountPAdj), x = ''))+
   geom_violin()+
-  geom_hline(yintercept=0.15)
-subset(ParseSeuratObj_int, virusCountPAdj > 100)
+  geom_hline(yintercept=0, color = 'red')+
+  geom_hline(yintercept=0.3, color = 'red')+
+  geom_hline(yintercept=0.48, color = 'red')+
+  geom_hline(yintercept=0.6, color = 'red')
+
+table(subset(ParseSeuratObj_int, virusCountPAdj > 5)$Treatment)
+#Try to see if there's a sensible cutoff for viral loads by plotting # of each treatment left
+#at various cutoffs
+viralLevelPlotDat <- data.frame()
+for(i in 0:50){
+  dat = subset(ParseSeuratObj_int, virusCountPAdj >= i)
+  treatmentCounts <- as.data.frame(table(dat$Treatment))
+  treatmentCounts$cutoff = i
+  viralLevelPlotDat <- rbind(viralLevelPlotDat, treatmentCounts)
+}
+
+ggplot(viralLevelPlotDat, aes(x = cutoff, y = Freq, color = Var1))+
+  geom_line()
+
+#Look at PBS sample viral loads
+table(subset(ParseSeuratObj_int, Treatment == 'PBS')$virusCountPAdj) %>% 
+  plot(main = 'PBS sample viral loads')
 
