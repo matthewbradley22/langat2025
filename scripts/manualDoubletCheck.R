@@ -44,4 +44,4 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 38)
 #Check feature counts across data
 FeaturePlot(ParseSeuratObj_int, 'nFeature_RNA', reduction = 'umap.integrated')
 
-SaveSeuratRds(ParseSeuratObj_int, "./data/FilteredRpcaIntegratedDatNoDoublets.rds")
+#SaveSeuratRds(ParseSeuratObj_int, "./data/FilteredRpcaIntegratedDatNoDoublets.rds")

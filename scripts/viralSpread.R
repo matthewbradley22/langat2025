@@ -172,6 +172,7 @@ summary(nbGLM)
 #Look at what determines viral levels for samples with >= 10 reads
 #For both models, Treatment and timepoint seem to be biggest predictors
 highVirusSamples <- subset(ParseSeuratObj_int, virusCountPAdj >= 10 & Treatment != 'PBS')
+table(highVirusSamples$timeGenotype)
 hist(log(highVirusSamples$virusCountPAdj))
 
 linearModel <- lm(log(virusCountPAdj)~ Genotype + Treatment + Timepoint + Organ, #+ manualAnnotation,
@@ -182,3 +183,6 @@ summary(linearModel)
 nbGLM <- glm.nb(log(virusCountPAdj)~ Genotype + Treatment + Timepoint + Organ, #+ manualAnnotation,
                 data = highVirusSamples[[]])
 summary(nbGLM)
+
+
+
