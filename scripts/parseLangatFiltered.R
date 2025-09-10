@@ -294,32 +294,6 @@ DotPlot(ParseSeuratObj_int, features = 'virusCountPAdj', group.by = 'singleR_lab
 ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 2, 1, 0)) %>% 
   group_by(Organ) %>% summarise(virusProp = mean(virusPresence))
 
-#Create gene counts table with virus
-#This is not perfect as virus counts have not been corrected for fragmentation 
-geneCounts <- ParseSeuratObj_int[['RNA']]$counts
-sparseVirus = sparseMatrix(i = which(ParseSeuratObj_int$virusCountPAdj > 0), j = rep(1, 45746), 
-             x = ParseSeuratObj_int$virusCountPAdj[which(ParseSeuratObj_int$virusCountPAdj > 0)], 
-             dims = c(129414, 1))
-sparseVirus <- t(sparseVirus)
-dimnames(sparseVirus)[[1]] = 'LGTV'
-datWithVirus <- rbind(geneCounts, sparseVirus)
-
-seuObjWithVirus <- CreateSeuratObject(datWithVirus, project = 'datWithVirus', assay = 'RNA')
-seuObjWithVirus <- NormalizeData(seuObjWithVirus)
-seuObjWithVirus <- FindVariableFeatures(seuObjWithVirus)
-seuObjWithVirus <- ScaleData(seuObjWithVirus)
-
-
-twoVarDotPlot <- function(){
-  exp_mat<- datWithVirusScaled['LGTV',]
-  meta<- ParseSeuratObj_int[[]]
-  as.matrix(exp_mat) %>% 
-    as.data.frame() %>% 
-    tibble::rownames_to_column(var="cell") %>% 
-    mutate('cell1' = substr(cell, start = 9, stop = 16)) %>% 
-    mutate('sublib' = substr(cell, start = 1, stop = 7)) 
-}
-
 
 #Viral load over time singlets
 ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")

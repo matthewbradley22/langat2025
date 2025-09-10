@@ -17,10 +17,10 @@ DimPlot(ParseSeuratObj_int, group.by = 'singleR_labels', reduction = "umap.integ
 #Think cluster 14 is doublets, identified by scdblfindr and many cells with both sex chromosomes
 
 #Look at clusters with highest scDblFinder percentage
-ParseSeuratObj_int[[]] %>% group_by(seurat_clusters, scDblFinderLabel) %>% summarise(n = n()) %>%
-  mutate(freq = n / sum(n)) %>% 
-  filter(scDblFinderLabel == 'doublet') %>% 
-  arrange(desc(freq))
+ParseSeuratObj_int[[]] %>% group_by(seurat_clusters, scDblFinderLabel) %>% dplyr::summarise(n = n()) %>%
+  dplyr::mutate(freq = n / sum(n)) %>% 
+  dplyr::filter(scDblFinderLabel == 'doublet') %>% 
+  dplyr::arrange(desc(freq))
 
 DimPlot(ParseSeuratObj_int, reduction = "umap.integrated",
         label = TRUE)
@@ -44,3 +44,4 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, seurat_clusters != 38)
 #Check feature counts across data
 FeaturePlot(ParseSeuratObj_int, 'nFeature_RNA', reduction = 'umap.integrated')
 
+SaveSeuratRds(ParseSeuratObj_int, "./data/FilteredRpcaIntegratedDatNoDoublets.rds")

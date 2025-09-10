@@ -305,11 +305,26 @@ newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E',  '#FF8A
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
 
-#Going to now filter out cells w high rna features. Only removing < 1000 cells
-FeaturePlot(ParseSeuratObj_int, 'nFeature_RNA', reduction = 'umap.integrated')
+#Load in doublet removed data to plot
+ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds")
 
 
+ParseSeuratObj_int$manualAnnotation = factor(ParseSeuratObj_int$manualAnnotation, levels = 
+                                               rev(c('Neurons', 'Microglia', 'Astrocytes',
+                                                 'Macrophage/Monocytes', 'Choroid Plexus',
+                                                 'Endothelial', 'Oligodendrocytes',
+                                                 'Ependymal', 'B Cells', 'Pericytes',
+                                                 'Muscle cells', 'T cells', 'Granulocytes',
+                                                 'Nk cells', 'unknown')))
+ 
+DotPlot(ParseSeuratObj_int, features = c('Snap25', 'Syt1', 'Csf1r', 'Cx3cr1', 'Tmem119',
+                                         'Aqp4', 'Fgfr3','Gfap', 'Ccr2' , 'Ttr',
+                                         'Kl', 'Mag', 'Mog', 'Nnat', 'Cfap54' ,'Mia' ,
+                                         'Cd19', 'Ms4a1', 'Vtn', 'Abcc9', 'Acta2', 'Tagln',
+                                         'Cd3e', 'Cd3d', 'S100a9', 'Il1r2', 'Clnk', 'Nkg7'
+                                         ),
+        group.by = 'manualAnnotation', assay = 'RNA')+
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.5))
 
-#There is an odd group under macrophages that is labelled microglia, need to look more
-SaveSeuratRds(ParseSeuratObj_int, "./data/seuratSingletsAnnotated.rds")
+#SaveSeuratRds(ParseSeuratObj_int, "./data/seuratSingletsAnnotated.rds")
 
