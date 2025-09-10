@@ -2,7 +2,7 @@
 
 #Load packages
 library(Seurat)
-library(ComplexHeatmap)
+library(MASS)
 
 #Load in data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
@@ -59,16 +59,19 @@ createCountsWithVirus <- function(countDataObj, viralCounts){
 }
 
 lgtvSamples <- subset(ParseSeuratObj_int, Treatment == 'rLGTV')
+lgtvWithVirus <- createCountsWithVirus(lgtvSamples)
 
-
+chLgtvSamples <- subset(ParseSeuratObj_int, Treatment == 'rChLGTV')
+chLgtvWithVirus <- createCountsWithVirus(chLgtvSamples)
 #### Function to prep data for two variable dot plot ####
 #Taken from article here https://divingintogeneticsandgenomics.com/post/how-to-make-a-multi-group-dotplot-for-single-cell-rnaseq-data/
 
-ParseSeuratObj_int$timeGenotype <- factor(paste(ParseSeuratObj_int$Timepoint, ParseSeuratObj_int$Genotype))
+lgtvSamples$timeGenotype <- factor(paste(lgtvSamples$Timepoint, lgtvSamples$Genotype))
+chLgtvSamples$timeGenotype <- factor(paste(chLgtvSamples$Timepoint, chLgtvSamples$Genotype))
 
 #Not even sure this should be a function, keep running through it line by line, we'll see
-twoVarDotPlot <- function(datObj, metaDatObj, feature, virus = 'rLGTV'){
-  exp_mat<- datObj[['RNA']]$data[feature,, drop = FALSE]
+twoVarDotPlot <- function(datObj, metaDatObj, feature){
+  exp_mat<- datObj[['RNA']]$scale.data[feature,, drop = FALSE]
   count_mat<- datObj[['RNA']]$counts[feature,,drop=FALSE ]
   meta<- metaDatObj[[]] 
   
@@ -110,36 +113,40 @@ twoVarDotPlot <- function(datObj, metaDatObj, feature, virus = 'rLGTV'){
   percent_mat<- count_df[, -c(1,2)] %>% as.matrix()
   rownames(percent_mat)<- count_df %>% pull(timeGenotype)
   
-  identical(dim(exp_mat), dim(percent_mat))
-  all.equal(colnames(exp_mat), colnames(percent_mat))
-  all.equal(rownames(exp_mat), rownames(percent_mat))
+  print(identical(dim(exp_mat), dim(percent_mat)))
+  print(all.equal(colnames(exp_mat), colnames(percent_mat)))
+  print(all.equal(rownames(exp_mat), rownames(percent_mat)))
   
   dat <- data.frame(timeGenotype = rep(rownames(percent_mat), each = ncol(percent_mat)), 
-             cellType = rep(colnames(percent_mat),6),
+            #For each unique timepoint + genotype combo we want to repeat the celltypes,
+            #hence why we repeat the length of the rownames number of times
+             cellType = rep(colnames(percent_mat), length(rownames(percent_mat))),
              exp = as.vector(t(exp_mat)),
              percent = as.vector(t(percent_mat)))
   return(dat)
 }
 
-LGTV_dat <- twoVarDotPlot(seuObjWithVirus, ParseSeuratObj_int, feature = 'LGTV')
-
+LGTV_dat <- twoVarDotPlot(lgtvWithVirus, lgtvSamples, feature = 'LGTV')
+chLGTV_dat <- twoVarDotPlot(chLgtvWithVirus, chLgtvSamples, feature = 'LGTV')
 #Percent is % of cells with over 10 reads
 
 #Need to split this by treatment, right now day 4 dominating because no PBS samples
-ggplot(LGTV_dat, aes(x = timeGenotype, y = cellType, col = exp, size = percent))+
+ggplot(chLGTV_dat, aes(x = timeGenotype, y = cellType, col = exp, size = percent))+
   geom_point()+
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank()) +
-  scale_colour_gradient2 (low = "#2389A8" ,mid = "white", high = "#A82323", midpoint = 0.6,
+  scale_colour_gradient2 (low = "#2389A8" ,mid = "white", high = "#A82323", midpoint = 0,
                           name = "Average scaled expression")+
   theme(legend.title = element_text(size = 12, angle = 90))+
   guides( colour = guide_colourbar(theme = theme(
            legend.key.width  = unit(1, "lines"),
            legend.key.height = unit(10, "lines")),
-           title.position = "left"))
+           title.position = "left"))+
+  ggtitle('chLGTV Virus')
+  
 
 ParseSeuratObj_int[[]] %>% mutate(virusHigh = ifelse(virusCountPAdj >= 10, 1, 0)) %>% 
   group_by(manualAnnotation, Genotype) %>% dplyr::summarise(virusHighProp = mean(virusHigh))
@@ -159,5 +166,19 @@ linearModel <- lm(virusCountPAdj~ Genotype + Treatment + Timepoint + Organ, #+ m
 
 summary(linearModel)
 
+nbGLM <- glm.nb(virusCountPAdj~ Genotype + Treatment + Timepoint + Organ, ParseSeuratObj_int[[]])
+summary(nbGLM)
 
+#Look at what determines viral levels for samples with >= 10 reads
+#For both models, Treatment and timepoint seem to be biggest predictors
+highVirusSamples <- subset(ParseSeuratObj_int, virusCountPAdj >= 10 & Treatment != 'PBS')
+hist(log(highVirusSamples$virusCountPAdj))
 
+linearModel <- lm(log(virusCountPAdj)~ Genotype + Treatment + Timepoint + Organ, #+ manualAnnotation,
+                  data = highVirusSamples[[]])
+
+summary(linearModel)
+
+nbGLM <- glm.nb(log(virusCountPAdj)~ Genotype + Treatment + Timepoint + Organ, #+ manualAnnotation,
+                data = highVirusSamples[[]])
+summary(nbGLM)
