@@ -51,3 +51,4 @@ ggplot(depthListDf, aes(x = readDepth, y = fraction, color = name))+
   xlab('Read depth')+
   ylab('Fraction of bases >= depth')+
   ggtitle('LGTV Virus Coverage')
+
