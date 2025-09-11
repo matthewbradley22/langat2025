@@ -58,7 +58,7 @@ ependymal[[]] %>% group_by(Treatment, Genotype) %>%
   ylab('proportion infected cells')
 
 #Not a ton of Day 4 IPS cells, still enough that I think it's meaningful
-ependymal[[]] %>% filter(Treatment == 'rChLGTV') %>% group_by(Timepoint, Genotype) %>% 
+ependymal[[]] %>% filter(Treatment == 'rLGTV') %>% group_by(Timepoint, Genotype) %>% 
   dplyr::summarise(virusProp = mean(virusPresence), cellCount = n()) %>% 
   ggplot(aes(x = Timepoint, y = virusProp, fill = Genotype))+
   geom_bar(stat = 'identity', position = 'dodge')+

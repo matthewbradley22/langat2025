@@ -4,6 +4,7 @@ library(Seurat)
 library(SingleR)
 library(celldex)
 library(pheatmap)
+library(RColorBrewer)
 library(dplyr)
 
 #Load in data
@@ -258,10 +259,25 @@ markers34 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
                          only.pos = TRUE)
 head(markers34, n = 20)
 
-#25, not sure what these are
+#25, not sure what these are. Neurons + a few astrocytes?
+#Several top genes involved in neural development, immature neurons? Most genes also align w neurons in panglao
+#Dscaml1, Meis2, Sox11, Nol4
+#Sox11 are critical for neural precursor survival https://www.science.org/doi/full/10.1126/sciadv.abc6093
+#Celf4: critical role of CELF in neurodevelopment https://www.sciencedirect.com/science/article/pii/S0969996124001244
+#Bclla: https://www.mdpi.com/2079-7737/13/2/126
 markers25 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 25,
                          only.pos = TRUE)
-head(markers25, n = 20)
+head(markers25, n = 30)
+
+#Paper https://www.nature.com/articles/s41467-019-08453-1 has midbrain neuronal markers
+FeaturePlot(ParseSeuratObj_int, 'Sbk1', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Dcx', reduction = 'umap.integrated')
+
+#Allen brain atlas paper also has immature markers https://www.nature.com/articles/s41586-023-06812-z
+FeaturePlot(ParseSeuratObj_int, 'Mex3a', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Draxin', reduction = 'umap.integrated')
+
+
 
 #Look at lower half of cluster 28 which is split across macrophages
 umapCoords <- ParseSeuratObj_int@reductions$umap.integrated@cell.embeddings %>% as.data.frame()
@@ -277,6 +293,8 @@ cells.located <- CellSelector(plot = intUMAP)
 ParseSeuratObj_int$manualAnnotation <- 
   case_when(ParseSeuratObj_int$seurat_clusters %in% c(26, 40, 44) &
               ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons',
+            ParseSeuratObj_int$seurat_clusters %in% c(25) &
+              ParseSeuratObj_int$singleR_labels != 'Astrocytes' ~ 'Immature Neurons',
             ParseSeuratObj_int$seurat_clusters %in% c(3, 4, 45, 15) & 
               ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
             ParseSeuratObj_int$seurat_clusters == 31 ~ 'Pericytes',
@@ -295,6 +313,7 @@ ParseSeuratObj_int$manualAnnotation <-
             ParseSeuratObj_int$seurat_clusters %in% c() ~ 'Fibroblasts',
             ParseSeuratObj_int$seurat_clusters %in% c() ~ 'OPCs (?)',
             ParseSeuratObj_int$seurat_clusters %in% c(16, 32, 19, 27, 38) ~ 'Doublets',
+            
             #ParseSeuratObj_int$seurat_clusters == 26 & 
            # ParseSeuratObj_int$scDblFinderLabel == '',
             .default = 'unknown') 
@@ -311,7 +330,7 @@ ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.
 
 
 ParseSeuratObj_int$manualAnnotation = factor(ParseSeuratObj_int$manualAnnotation, levels = 
-                                               rev(c('Neurons', 'Microglia', 'Astrocytes',
+                                               rev(c('Neurons', 'Immature Neurons', 'Microglia', 'Astrocytes',
                                                  'Macrophage/Monocytes', 'Choroid Plexus',
                                                  'Endothelial', 'Oligodendrocytes',
                                                  'Ependymal', 'B Cells', 'Pericytes',
@@ -326,6 +345,14 @@ DotPlot(ParseSeuratObj_int, features = c('Snap25', 'Syt1', 'Csf1r', 'Cx3cr1', 'T
                                          ),
         group.by = 'manualAnnotation', assay = 'RNA')+
   theme(axis.text.x = element_text(angle = 75, vjust = 0.5))
+
+#Look at rna features across clusters
+ParseSeuratObj_int[[]] %>% dplyr::group_by(seurat_clusters) %>% 
+  dplyr::summarise(meanFeatures = mean(nFeature_RNA)) %>% arrange(desc(meanFeatures)) %>% 
+  ggplot(aes(x = seurat_clusters, y = meanFeatures))+
+  geom_bar(stat = 'identity')+
+  theme(axis.text.x = element_text(angle = 90))
+
 
 #SaveSeuratRds(ParseSeuratObj_int, "./data/seuratSingletsAnnotated.rds")
 

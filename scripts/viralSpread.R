@@ -5,7 +5,7 @@ library(Seurat)
 library(MASS)
 
 #Load in data
-ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
+ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds")
 
 #For now, manual labels assigned in LangatCellAnnotations.R and doublets removed in manualDoubletCheck.R
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', 
@@ -151,7 +151,7 @@ ggplot(chLGTV_dat, aes(x = timeGenotype, y = cellType, col = exp, size = percent
 ParseSeuratObj_int[[]] %>% mutate(virusHigh = ifelse(virusCountPAdj >= 10, 1, 0)) %>% 
   group_by(manualAnnotation, Genotype) %>% dplyr::summarise(virusHighProp = mean(virusHigh))
 
-table(ParseSeuratObj_int$timeGenotype, ParseSeuratObj_int$Treatment)
+table(ParseSeuratObj_int$Genotype, ParseSeuratObj_int$Treatment)
 
 #Which virus spreads more
 #caveat here is that both viruses have higher expression in cerebrum
@@ -183,6 +183,34 @@ summary(linearModel)
 nbGLM <- glm.nb(log(virusCountPAdj)~ Genotype + Treatment + Timepoint + Organ, #+ manualAnnotation,
                 data = highVirusSamples[[]])
 summary(nbGLM)
+
+#Spread of virus to which cell types over time
+lgtvSamples[[]] %>% dplyr::count(Timepoint, manualAnnotation, hasVirus) %>%
+  dplyr::group_by(Timepoint, manualAnnotation) %>% 
+  dplyr::mutate(freq = n / sum(n)) %>% 
+  filter(hasVirus == 1) %>% 
+  ggplot(aes(x = Timepoint, y = freq, color = manualAnnotation, group = manualAnnotation))+
+  geom_line()+
+  scale_color_manual(values = newCols)+
+  ylab('Proportion infected cells')+
+  ggtitle('LGTV')
+
+table(lgtvSamples$timeGenotype)
+
+chLgtvSamples[[]] %>% dplyr::count(Timepoint, manualAnnotation, hasVirus) %>%
+  dplyr::group_by(Timepoint, manualAnnotation) %>% 
+  dplyr::mutate(freq = n / sum(n)) %>% 
+  filter(hasVirus == 1) %>% 
+  ggplot(aes(x = Timepoint, y = freq, color = manualAnnotation, group = manualAnnotation))+
+  geom_line()+
+  scale_color_manual(values = newCols)+
+  ylab('Proportion infected cells')+
+  ggtitle('chLGTV')
+
+table(chLgtvSamples$timeGenotype)
+
+
+
 
 
 
