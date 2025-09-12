@@ -1,6 +1,7 @@
 #CELL ANNOTATION 
 #Load in libraries
 library(Seurat)
+library(ggplot2)
 library(SingleR)
 library(celldex)
 library(pheatmap)
@@ -244,11 +245,16 @@ markers27 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
                          only.pos = TRUE)
 head(markers27, n = 20)
 
-#17 - astrocyte and oligo markers
+#17 - astrocyte and oligo markers.
+#Coexpressing several neuronal genes with neurons in top degs.. Confusing
+#Gria4, Kcnj3
+#Not sure that A2m is expressed in neurons though
+#Pax3 discussed in allen brain paper, expressed in astro and neurons
 markers17 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 17,
                          only.pos = TRUE)
-head(markers17, n = 20)
-
+head(markers17, n = 30)
+clust17 <- subset(ParseSeuratObj_int, seurat_clusters == 17)
+clust17[['RNA']]$counts %>% t() %>% write.csv(file = './data/cluster17Counts.csv', row.names = TRUE)
 #35 - doublets? Some oligodendrocyte markers but also some astrocyte etc...
 markers35 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 35,
                          only.pos = TRUE)
@@ -268,7 +274,13 @@ head(markers34, n = 20)
 markers25 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 25,
                          only.pos = TRUE)
 head(markers25, n = 30)
+clust25 <- subset(ParseSeuratObj_int, seurat_clusters == 25)
+clust25[['RNA']]$counts %>% t() %>% write.csv(file = './data/cluster25Counts.csv', row.names = TRUE)
 
+#Read in data from allen mapMyCells
+cluster25Map <- read_csv("data/cluster25Countscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1757663135149/cluster25Countscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1757663135149.csv", 
+                                                                                   skip = 4)
+cluster25Map
 #Paper https://www.nature.com/articles/s41467-019-08453-1 has midbrain neuronal markers
 FeaturePlot(ParseSeuratObj_int, 'Sbk1', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Dcx', reduction = 'umap.integrated')

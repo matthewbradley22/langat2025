@@ -138,6 +138,7 @@ ParseSeuratObj[[]] %>% mutate(virusPresent = ifelse(virusCount>0, 'yes', 'no')) 
   geom_bar(stat = 'identity', position = 'dodge')
 
 
+
 #Run through data processing and visualization before integration
 ParseSeuratObj <- NormalizeData(ParseSeuratObj)
 ParseSeuratObj <- FindVariableFeatures(ParseSeuratObj)
@@ -295,32 +296,13 @@ ParseSeuratObj_int[[]] %>% mutate(virusPresence = ifelse(virusCountPAdj > 2, 1, 
   group_by(Organ) %>% summarise(virusProp = mean(virusPresence))
 
 
-#Viral load over time singlets
+#Load in singlets
 ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")
-ParseSeuratObj_int$virusPresence = ifelse(ParseSeuratObj_int$virusCountPAdj>4, 'yes', 'no')
-
-#WT vs IPS
-#Could make this a function, used in other scripts too
-ParseSeuratObj_int[[]] %>% filter(Treatment == 'rLGTV') %>% group_by(Genotype, Timepoint) %>% 
-  dplyr::count(virusPresence) %>% 
-  mutate(virusRatio = n/sum(n)) %>% filter(virusPresence == 'yes') %>% ungroup() %>% 
-  add_row(Genotype = 'IPS1', Timepoint = 'Day 5', virusPresence = 'yes', n = 0, virusRatio = 0) %>% 
-  ggplot(aes(x = Timepoint, y = virusRatio, fill = Genotype))+
-  geom_bar(stat = 'identity', position = 'dodge')+
-  ylab('Proportion infected cells')+
-  ggtitle('Proportion infected rLGTV cells by genotype')
-
-ParseSeuratObj_int[[]] %>% filter(Treatment == 'rChLGTV') %>% group_by(Genotype, Timepoint) %>% 
-  dplyr::count(virusPresence) %>% 
-  mutate(virusRatio = n/sum(n)) %>% filter(virusPresence == 'yes') %>% 
-  ggplot(aes(x = Timepoint, y = virusRatio, fill = Genotype))+
-  geom_bar(stat = 'identity', position = 'dodge')+
-  ylab('Proportion infected cells')+
-  ggtitle('Proportion infected rChLGTV cells by genotype')
 
 #Look at pbs samples with virus
-PBS_with_virus <- subset(ParseSeuratObj_int, Treatment == 'PBS' & virusCountPAdj > 4)
-colnames(PBS_with_virus) %>% substr(9, 16)
+PBS_with_virus <- subset(ParseSeuratObj_int, Treatment == 'PBS' & virusCountPAdj > 9)
+PBS_with_virus[[]]
+colnames(PBS_with_virus) %>% substr(9, 16) 
 
 #Look at cells with high viral load
 ggplot(ParseSeuratObj_int[[]], aes(y = log10(virusCountPAdj), x = ''))+

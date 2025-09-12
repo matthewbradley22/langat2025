@@ -3,6 +3,8 @@
 #Load packages
 library(Seurat)
 library(MASS)
+library(ggplot2)
+library(Matrix)
 
 #Load in data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds")
@@ -18,6 +20,17 @@ ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1,
 FeaturePlot(ParseSeuratObj_int, 'hasVirus',
             reduction = 'umap.integrated')+
   theme(legend.position = 'NONE')
+
+#Overall viral spread over time
+chLgtv <- subset(ParseSeuratObj_int, Treatment == 'rChLGTV')
+LGTV <- subset(ParseSeuratObj_int, Treatment == 'rLGTV')
+LGTV[[]] %>% dplyr::group_by(Timepoint, Genotype, hasVirus) %>% 
+  dplyr::summarise(virusCounts = n()) %>% mutate(virusFreq = virusCounts/sum(virusCounts)) %>% 
+  filter(hasVirus == 1) %>% 
+  ggplot(aes(x = Timepoint, y = virusFreq, fill = Genotype))+
+  geom_bar(stat='identity', position = 'dodge')+
+  ggtitle('Proportion infected rLGTV cells by genotype')
+
 
 #How many infected cells per cell type
 ParseSeuratObj_int[[]] %>% subset(hasVirus == 1) %>% group_by(manualAnnotation) %>% 
@@ -131,21 +144,35 @@ chLGTV_dat <- twoVarDotPlot(chLgtvWithVirus, chLgtvSamples, feature = 'LGTV')
 #Percent is % of cells with over 10 reads
 
 #Need to split this by treatment, right now day 4 dominating because no PBS samples
-ggplot(chLGTV_dat, aes(x = timeGenotype, y = cellType, col = exp, size = percent))+
+groupsWithEnoughCells <- lgtvSamples[[]] %>% dplyr::group_by(manualAnnotation, timeGenotype) %>% 
+  dplyr::summarise(count = n()) %>% filter(count > 10) %>% 
+  dplyr::select(c(manualAnnotation, timeGenotype)) %>% 
+  mutate('cellType' = manualAnnotation) #Just to make left join easier
+
+groupsWithEnoughCellsCh <- chLgtvSamples[[]] %>% dplyr::group_by(manualAnnotation, timeGenotype) %>% 
+  dplyr::summarise(count = n()) %>% filter(count > 10) %>% 
+  dplyr::select(c(manualAnnotation, timeGenotype)) %>% 
+  mutate('cellType' = manualAnnotation) #Just to make left join easier
+
+LGTV_dat_subset <- left_join(x = groupsWithEnoughCells, y = LGTV_dat, by = c('timeGenotype', 'cellType'))
+
+chLGTV_dat_subset <- left_join(x = groupsWithEnoughCells, y = chLGTV_dat, by = c('timeGenotype', 'cellType'))
+
+ggplot(LGTV_dat_subset, aes(x = timeGenotype, y = cellType, col = exp, size = percent))+
   geom_point()+
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank()) +
-  scale_colour_gradient2 (low = "#2389A8" ,mid = "white", high = "#A82323", midpoint = 0,
+  scale_colour_gradient2 (low = "#2389A8" ,mid = "#D8E9F0", high = "#A82323", midpoint = 0,
                           name = "Average scaled expression")+
   theme(legend.title = element_text(size = 12, angle = 90))+
   guides( colour = guide_colourbar(theme = theme(
            legend.key.width  = unit(1, "lines"),
            legend.key.height = unit(10, "lines")),
            title.position = "left"))+
-  ggtitle('chLGTV Virus')
+  ggtitle('LGTV Virus')
   
 
 ParseSeuratObj_int[[]] %>% mutate(virusHigh = ifelse(virusCountPAdj >= 10, 1, 0)) %>% 
@@ -184,11 +211,14 @@ nbGLM <- glm.nb(log(virusCountPAdj)~ Genotype + Treatment + Timepoint + Organ, #
                 data = highVirusSamples[[]])
 summary(nbGLM)
 
+#Need to subset this by groups having at lest 50 or so cells, same for plots above
 #Spread of virus to which cell types over time
+
 lgtvSamples[[]] %>% dplyr::count(Timepoint, manualAnnotation, hasVirus) %>%
   dplyr::group_by(Timepoint, manualAnnotation) %>% 
   dplyr::mutate(freq = n / sum(n)) %>% 
-  filter(hasVirus == 1) %>% 
+  #Total cells (infected and uninfected) at least 30. Divide infected by proportion to get total
+  filter(hasVirus == 1 & n/freq > 30) %>% 
   ggplot(aes(x = Timepoint, y = freq, color = manualAnnotation, group = manualAnnotation))+
   geom_line()+
   scale_color_manual(values = newCols)+
@@ -196,11 +226,14 @@ lgtvSamples[[]] %>% dplyr::count(Timepoint, manualAnnotation, hasVirus) %>%
   ggtitle('LGTV')
 
 table(lgtvSamples$timeGenotype)
+table(lgtvSamples$Timepoint, lgtvSamples$manualAnnotation)
+
+
 
 chLgtvSamples[[]] %>% dplyr::count(Timepoint, manualAnnotation, hasVirus) %>%
   dplyr::group_by(Timepoint, manualAnnotation) %>% 
   dplyr::mutate(freq = n / sum(n)) %>% 
-  filter(hasVirus == 1) %>% 
+  filter(hasVirus == 1 & n/freq > 30) %>% 
   ggplot(aes(x = Timepoint, y = freq, color = manualAnnotation, group = manualAnnotation))+
   geom_line()+
   scale_color_manual(values = newCols)+
@@ -208,6 +241,8 @@ chLgtvSamples[[]] %>% dplyr::count(Timepoint, manualAnnotation, hasVirus) %>%
   ggtitle('chLGTV')
 
 table(chLgtvSamples$timeGenotype)
+table(chLgtvSamples$Timepoint, chLgtvSamples$manualAnnotation)
+
 
 
 
