@@ -250,16 +250,39 @@ head(markers27, n = 20)
 #Gria4, Kcnj3
 #Not sure that A2m is expressed in neurons though
 #Pax3 discussed in allen brain paper, expressed in astro and neurons
+
+#Maps really well to Bergmann glial cells in Allen, type of cerebellum Astrocytes
+#Also makes sense with gjc3 expression seen above (I mapped this on Allen ABC atlas) and Pax3 etc...
 markers17 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 17,
                          only.pos = TRUE)
 head(markers17, n = 30)
 clust17 <- subset(ParseSeuratObj_int, seurat_clusters == 17)
+
 clust17[['RNA']]$counts %>% t() %>% write.csv(file = './data/cluster17Counts.csv', row.names = TRUE)
-#35 - doublets? Some oligodendrocyte markers but also some astrocyte etc...
+
+#Read in data from allen mapMyCells
+cluster17MapMy <- read_csv("data/cluster17Countscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1757599685232/cluster17Countscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1757599685232.csv", 
+                           skip = 4)
+#Dominated by Bergmann glial cells
+table(cluster17MapMy$supertype_name)
+
+#35 - doublets? Some oligodendrocyte markers, some astrocyte, some microglia...
+
+#Kif5a neuron specific https://www.cell.com/neuron/fulltext/S0896-6273(12)00932-4
+#Mobp and Bcas1 oligodendrocyte markers
 markers35 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 35,
                          only.pos = TRUE)
 head(markers35, n = 20)
 
+clust35 <- subset(ParseSeuratObj_int, seurat_clusters == 35)
+clust35[['RNA']]$counts %>% t() %>% write.csv(file = './data/cluster35Counts.csv', row.names = TRUE)
+
+cluster35Map <- read_csv("data/cluster35Countscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1757928986340/cluster35Countscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1757928986340.csv", 
+                         skip = 4)
+table(cluster35Map$class_name)
+clust35$mapLabel = cluster35Map$class_name
+DimPlot(clust35, reduction = 'umap.integrated', group.by = 'mapLabel')
+FeaturePlot(clust35, features = 'hasVirus',  reduction = 'umap.integrated', split.by = 'hasVirus')
 #34, macro or micro
 markers34 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 34,
                          only.pos = TRUE)
@@ -307,7 +330,7 @@ ParseSeuratObj_int$manualAnnotation <-
               ParseSeuratObj_int$singleR_labels == 'Neurons' ~ 'Neurons',
             ParseSeuratObj_int$seurat_clusters %in% c(25) &
               ParseSeuratObj_int$singleR_labels != 'Astrocytes' ~ 'Immature Neurons',
-            ParseSeuratObj_int$seurat_clusters %in% c(3, 4, 45, 15) & 
+            ParseSeuratObj_int$seurat_clusters %in% c(3, 4, 45, 15, 17) & 
               ParseSeuratObj_int$singleR_labels == 'Astrocytes' ~ 'Astrocytes',
             ParseSeuratObj_int$seurat_clusters == 31 ~ 'Pericytes',
             ParseSeuratObj_int$seurat_clusters == 30 ~ 'Muscle cells',

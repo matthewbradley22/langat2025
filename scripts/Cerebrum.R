@@ -6,7 +6,7 @@ library(RColorBrewer)
 library(tidyr)
 
 #Load in data
-ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")
+ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 DimPlot(ParseSeuratObj_int, group.by = 'scDblFinderLabel', reduction = "umap.integrated")
 
 #Good to load in manual annotations from LangatCellAnnotations.R as well

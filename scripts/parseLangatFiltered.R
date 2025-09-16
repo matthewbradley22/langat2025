@@ -315,16 +315,27 @@ ggplot(ParseSeuratObj_int[[]], aes(y = log10(virusCountPAdj), x = ''))+
 table(subset(ParseSeuratObj_int, virusCountPAdj > 5)$Treatment)
 #Try to see if there's a sensible cutoff for viral loads by plotting # of each treatment left
 #at various cutoffs
-viralLevelPlotDat <- data.frame()
-for(i in 0:50){
-  dat = subset(ParseSeuratObj_int, virusCountPAdj >= i)
-  treatmentCounts <- as.data.frame(table(dat$Treatment))
-  treatmentCounts$cutoff = i
-  viralLevelPlotDat <- rbind(viralLevelPlotDat, treatmentCounts)
+
+getVirusDepthCounts <- function(cellDat, xLimit){
+  viralLevelPlotDat <- data.frame()
+  for(i in 0:xLimit){
+    dat = subset(cellDat, virusCountPAdj >= i)
+    treatmentCounts <- as.data.frame(table(dat$Treatment))
+    treatmentCounts$cutoff = i
+    treatmentCounts$logFreq = log10(treatmentCounts$Freq)
+    viralLevelPlotDat <- rbind(viralLevelPlotDat, treatmentCounts)
+  }
+  viralLevelPlotDat
 }
 
-ggplot(viralLevelPlotDat, aes(x = cutoff, y = Freq, color = Var1))+
-  geom_line()
+cellTypes <- unique(ParseSeuratObj_int$manualAnnotation)
+viralLevelDat <- getVirusDepthCounts(subset(ParseSeuratObj_int, manualAnnotation == cellTypes[7]),
+                                     xLimit = 75)
+
+ggplot(viralLevelDat, aes(x = cutoff, y = logFreq, color = Var1))+
+  geom_line()+
+  ggtitle('Macrophage/Monocytes')+
+  ylab('Log10 Cell Count')
 
 #Look at PBS sample viral loads
 table(subset(ParseSeuratObj_int, Treatment == 'PBS')$virusCountPAdj) %>% 

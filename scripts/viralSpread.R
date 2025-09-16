@@ -9,6 +9,9 @@ library(Matrix)
 #Load in data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds")
 
+#color palette for plotting 
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E',  '#FF8AEF','#737272')
+
 #For now, manual labels assigned in LangatCellAnnotations.R and doublets removed in manualDoubletCheck.R
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', 
         reduction = 'umap.integrated',
@@ -24,12 +27,14 @@ FeaturePlot(ParseSeuratObj_int, 'hasVirus',
 #Overall viral spread over time
 chLgtv <- subset(ParseSeuratObj_int, Treatment == 'rChLGTV')
 LGTV <- subset(ParseSeuratObj_int, Treatment == 'rLGTV')
-LGTV[[]] %>% dplyr::group_by(Timepoint, Genotype, hasVirus) %>% 
+chLgtv[[]] %>% dplyr::group_by(Timepoint, Genotype, hasVirus) %>% 
   dplyr::summarise(virusCounts = n()) %>% mutate(virusFreq = virusCounts/sum(virusCounts)) %>% 
   filter(hasVirus == 1) %>% 
   ggplot(aes(x = Timepoint, y = virusFreq, fill = Genotype))+
   geom_bar(stat='identity', position = 'dodge')+
-  ggtitle('Proportion infected rLGTV cells by genotype')
+  ggtitle('Proportion infected rChLGTV cells by genotype')+
+  geom_text(aes(label=virusCounts), vjust=0,
+            position = position_dodge(width = .9))
 
 
 #How many infected cells per cell type
@@ -158,7 +163,7 @@ LGTV_dat_subset <- left_join(x = groupsWithEnoughCells, y = LGTV_dat, by = c('ti
 
 chLGTV_dat_subset <- left_join(x = groupsWithEnoughCells, y = chLGTV_dat, by = c('timeGenotype', 'cellType'))
 
-ggplot(LGTV_dat_subset, aes(x = timeGenotype, y = cellType, col = exp, size = percent))+
+ggplot(chLGTV_dat_subset, aes(x = timeGenotype, y = cellType, col = exp, size = percent))+
   geom_point()+
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
@@ -172,7 +177,7 @@ ggplot(LGTV_dat_subset, aes(x = timeGenotype, y = cellType, col = exp, size = pe
            legend.key.width  = unit(1, "lines"),
            legend.key.height = unit(10, "lines")),
            title.position = "left"))+
-  ggtitle('LGTV Virus')
+  ggtitle('chLGTV Virus')
   
 
 ParseSeuratObj_int[[]] %>% mutate(virusHigh = ifelse(virusCountPAdj >= 10, 1, 0)) %>% 

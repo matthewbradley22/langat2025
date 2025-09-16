@@ -50,5 +50,15 @@ ggplot(depthListDf, aes(x = readDepth, y = fraction, color = name))+
   geom_smooth(se = FALSE)+
   xlab('Read depth')+
   ylab('Fraction of bases >= depth')+
-  ggtitle('LGTV Virus Coverage')
+  ggtitle('LGTV Virus Coverage')+
+  guides(color=guide_legend(title="SubLibrary"))
+
+#Does sublib 8 stand out in total features/counts? No.
+VlnPlot(ParseSeuratObj_int, features = c('nFeature_RNA', 'nCount_RNA'), 
+        group.by = 'subLib', assay = 'RNA', pt.size = 0)
+
+#Infected PBS samples across sublibs
+infectedPBS <- subset(ParseSeuratObj_int, Treatment == 'PBS' & virusCountPAdj > 0)
+infectedPBSHigh <- subset(infectedPBS, virusCountPAdj > 10)
+table(infectedPBSHigh$subLib)
 
