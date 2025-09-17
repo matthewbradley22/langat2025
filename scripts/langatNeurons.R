@@ -259,3 +259,4 @@ ggplot(nupDat, aes(x = log10(virus+1), y = nup98, col = organ))+
 ggplot(nupDat, aes(x = log10(virus+1), y = nup153, col = organ))+
   geom_point()+
   ggtitle('NUP153 expression vs virus level (excitatory neurons)')
+

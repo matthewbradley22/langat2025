@@ -124,3 +124,4 @@ bottomMarkers$pct_dif <- bottomMarkers$pct.1 - bottomMarkers$pct.2
 head(bottomMarkers, n = 20)
 bottomMarkers %>% arrange(desc(pct_dif)) %>% head(n = 20)
 FeaturePlot(ependymal, reduction = 'ependymalUMAP', features = 'Dnah3')
+
