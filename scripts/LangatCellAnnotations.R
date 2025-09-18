@@ -275,6 +275,7 @@ markers35 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident
 head(markers35, n = 20)
 
 clust35 <- subset(ParseSeuratObj_int, seurat_clusters == 35)
+table(clust35$Treatment)
 clust35[['RNA']]$counts %>% t() %>% write.csv(file = './data/cluster35Counts.csv', row.names = TRUE)
 
 cluster35Map <- read_csv("data/cluster35Countscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1757928986340/cluster35Countscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1757928986340.csv", 
