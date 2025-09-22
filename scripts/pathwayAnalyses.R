@@ -110,6 +110,7 @@ for(i in 1:length(uniqueGenoCell)){
                        maxSize = 500) 
     interferonRowWt <- WtGSEAres[grep('REACTOME_INTERFERON_SIGNALING', WtGSEAres$pathway),]
     interferonRowWt$groupLab <- unique(paste0(wt$manualAnnotation, wt$Genotype))
+    interferonDatInfected <- rbind(interferonDatInfected, interferonRowWt)
   }
   
   if(exists('IPSInfectComp')){
@@ -125,6 +126,7 @@ for(i in 1:length(uniqueGenoCell)){
                        maxSize = 500) 
     interferonRowIps <- IpGSEAres[grep('REACTOME_INTERFERON_SIGNALING', IpGSEAres$pathway),]
     interferonRowIps$groupLab <- unique(paste0(IPS$manualAnnotation, IPS$Genotype))
+    interferonDatInfected <- rbind(interferonDatInfected, interferonRowIps)
   }
   
   
@@ -141,8 +143,7 @@ for(i in 1:length(uniqueGenoCell)){
   
   
   print(paste("Done with", cellTypes[i]))
-  interferonDatInfected <- rbind(interferonDatInfected, interferonRowWt)
-  interferonDatInfected <- rbind(interferonDatInfected, interferonRowIps)
+  
 } 
 
 
