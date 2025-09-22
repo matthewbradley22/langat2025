@@ -36,6 +36,9 @@ interferonDat <- data.frame(matrix(ncol = 9, nrow = 0))
 colnames(interferonDat) = c("pathway", "pval", "padj", "log2err",  "ES" ,  "NES" ,"size" ,     
                             "leadingEdge", 'groupLab')
 
+#Also should do this a different way to check
+#Compare infected vs uninfected in both groups and see differences between groups
+
 for(i in 1:length(uniqueGenoCell)){
   ident1_label = uniqueGenoCell[i]
   
@@ -70,6 +73,80 @@ for(i in 1:length(uniqueGenoCell)){
   
 } 
 
+#Compare infected vs uninfected in each cell type split by genotype
+
+cellTypes <- unique(ParseSeuratObj_int$manualAnnotation)
+interferonDatInfected <- data.frame(matrix(ncol = 9, nrow = 0))
+colnames(interferonDatInfected) = c("pathway", "pval", "padj", "log2err",  "ES" ,  "NES" ,"size" ,     
+                            "leadingEdge", 'groupLab')
+
+for(i in 1:length(uniqueGenoCell)){
+  cellTypeObj <- subset(ParseSeuratObj_int, manualAnnotation ==  cellTypes[i])
+  wt <- subset(cellTypeObj, Genotype == 'WT')
+  IPS <- subset(cellTypeObj, Genotype == 'IPS1')
+  
+  #Need a ranked gene list for this, so create DEG list then rank by
+  #most upregulated to most downregulated
+  if(all(table(wt$hasVirus) > 30)){
+    wtInfectComp <- Seurat::FoldChange(wt, ident.1 = 1, 
+                                       group.by = 'hasVirus')
+  }
+  
+  if(all(table(IPS$hasVirus) > 30)){
+    IPSInfectComp <- Seurat::FoldChange(IPS, ident.1 = 1, 
+                                        group.by = 'hasVirus')
+  }
+ 
+  if(exists('wtInfectComp')){
+    wtInfectComp <- wtInfectComp[wtInfectComp$pct.1 > 0 | wtInfectComp$pct.2 > 0,]
+    wtInfectComp <- wtInfectComp[order(dplyr::desc(wtInfectComp$avg_log2FC)),]
+    wtRankings <- wtInfectComp$avg_log2FC
+    names(wtRankings) <- rownames(wtInfectComp)
+    
+    WtGSEAres <- fgsea(pathways = gene_sets, # List of gene sets to check
+                       stats = wtRankings,
+                       scoreType = 'pos', # in this case we have both pos and neg rankings. if only pos or neg, set to 'pos', 'neg'
+                       minSize = 15,
+                       maxSize = 500) 
+    interferonRowWt <- WtGSEAres[grep('REACTOME_INTERFERON_SIGNALING', WtGSEAres$pathway),]
+    interferonRowWt$groupLab <- unique(paste0(wt$manualAnnotation, wt$Genotype))
+  }
+  
+  if(exists('IPSInfectComp')){
+    IPSInfectComp <- IPSInfectComp[IPSInfectComp$pct.1 > 0 | IPSInfectComp$pct.2 > 0,]
+    IPSInfectComp <- IPSInfectComp[order(dplyr::desc(IPSInfectComp$avg_log2FC)),]
+    IpsRankings <- IPSInfectComp$avg_log2FC
+    names(IpsRankings) <- rownames(IPSInfectComp)
+    
+    IpGSEAres <- fgsea(pathways = gene_sets, # List of gene sets to check
+                       stats = IpsRankings,
+                       scoreType = 'pos', # in this case we have both pos and neg rankings. if only pos or neg, set to 'pos', 'neg'
+                       minSize = 15,
+                       maxSize = 500) 
+    interferonRowIps <- IpGSEAres[grep('REACTOME_INTERFERON_SIGNALING', IpGSEAres$pathway),]
+    interferonRowIps$groupLab <- unique(paste0(IPS$manualAnnotation, IPS$Genotype))
+  }
+  
+  
+  # genoCellComp <- FindMarkers(ParseSeuratObj_int, 
+  #                             group.by = 'genotypeCellType', 
+  #                             ident.1 = ident1_label,
+  #                             min.pct = 0.1,
+  #                             test.use = 'MAST')
+  
+  #Trying with only sig genes
+  #Can also try with different ranking
+  #genoCellComp = genoCellComp[genoCellComp$p_val_adj < 0.05,]
+  #Run gsea
+  
+  
+  print(paste("Done with", cellTypes[i]))
+  interferonDatInfected <- rbind(interferonDatInfected, interferonRowWt)
+  interferonDatInfected <- rbind(interferonDatInfected, interferonRowIps)
+} 
+
+
+
 interferonDat %>% head()
 ggplot(interferonDat, aes(x = groupLab, y = pathway, size = -log10(padj),
                           color = NES))+
@@ -99,6 +176,7 @@ VlnPlot(ParseSeuratObj_int, features = 'interferonReactomeScore1', group.by = 'g
 VlnPlot(infected, features = 'interferonReactomeScore1', group.by = 'Genotype',
         pt.size = 0) +
   theme(legend.position = 'None')
+
 
 #Look for IFN genes and explore
 IfnGenes <- rownames(ParseSeuratObj_int[['RNA']]$data)[grep('Ifn', rownames(ParseSeuratObj_int[['RNA']]$data))]
