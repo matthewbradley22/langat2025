@@ -8,6 +8,8 @@ library(RColorBrewer)
 library(MAST)
 library(ggplot2)
 library(readr)
+library(ReactomePA)
+library(clusterProfiler)
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds") 
@@ -26,6 +28,10 @@ gene_sets <- all_gene_sets %>%
   split(x = .$gene_symbol, f = .$gs_name)
 
 cat(paste("Loaded", length(gene_sets), "gene sets\n"))
+
+
+plotEnrichment(gene_sets[["REACTOME_INTERFERON_SIGNALING"]],
+               rankings) + labs(title="REACTOME_INTERFERON_SIGNALING")
 
 #Maybe also try with subset to just significant genes and see if there's a bif difference
 ParseSeuratObj_int$genotypeCellType <- paste0(ParseSeuratObj_int$Genotype, ParseSeuratObj_int$manualAnnotation)
@@ -73,6 +79,11 @@ for(i in 1:length(uniqueGenoCell)){
   
 } 
 
+ggplot(interferonDat, aes(x = groupLab, y = pathway, size = -log10(padj),
+                          color = NES))+
+  geom_point()+
+  theme(axis.text.x = element_text(angle = 90))
+
 #Compare infected vs uninfected in each cell type split by genotype
 
 cellTypes <- unique(ParseSeuratObj_int$manualAnnotation)
@@ -87,12 +98,12 @@ for(i in 1:length(uniqueGenoCell)){
   
   #Need a ranked gene list for this, so create DEG list then rank by
   #most upregulated to most downregulated
-  if(all(table(wt$hasVirus) > 30)){
+  if(length(table(wt$hasVirus)) == 2 & all(table(wt$hasVirus) > 30)){
     wtInfectComp <- Seurat::FoldChange(wt, ident.1 = 1, 
                                        group.by = 'hasVirus')
   }
   
-  if(all(table(IPS$hasVirus) > 30)){
+  if(length(table(IPS$hasVirus)) == 2 & all(table(IPS$hasVirus) > 30)){
     IPSInfectComp <- Seurat::FoldChange(IPS, ident.1 = 1, 
                                         group.by = 'hasVirus')
   }
@@ -146,21 +157,14 @@ for(i in 1:length(uniqueGenoCell)){
   
 } 
 
+dplyr::arrange(interferonDatInfected, NES)
 
-
-interferonDat %>% head()
-ggplot(interferonDat, aes(x = groupLab, y = pathway, size = -log10(padj),
+interferonDatInfected %>% head()
+ggplot(interferonDatInfected, aes(x = groupLab, y = pathway, size = -log10(padj),
                           color = NES))+
   geom_point()+
   theme(axis.text.x = element_text(angle = 90))
 
-
-(GSEAres[order(pval), ]) %>% as.data.frame()
-GSEAres[grep('INTERFERON', GSEAres$pathway),] %>% dplyr::arrange(padj)
-GSEAres[grep('ANTIVIRAL', GSEAres$pathway),] %>% dplyr::arrange(padj)
-
-plotEnrichment(gene_sets[["REACTOME_INTERFERON_SIGNALING"]],
-               rankings) + labs(title="REACTOME_INTERFERON_SIGNALING")
 
 #Check simple plot
 #messy import of genes from https://www.gsea-msigdb.org/gsea/msigdb/mouse/geneset/REACTOME_INTERFERON_SIGNALING.html
@@ -170,13 +174,29 @@ Reactome_interferon_genes <- read_table("REACTOME_INTERFERON_SIGNALING.v2025.1.M
 Reactome_interferon_genes <- colnames(Reactome_interferon_genes)
 ParseSeuratObj_int <- AddModuleScore(ParseSeuratObj_int, features = list(Reactome_interferon_genes),
                                      assay = 'RNA', name = 'interferonReactomeScore')
-infected <- subset(ParseSeuratObj_int, hasVirus == 1)
-VlnPlot(ParseSeuratObj_int, features = 'interferonReactomeScore1', group.by = 'genotypeCellType',
+infected <- subset(ParseSeuratObj_int, hasVirus == 1 & Treatment %in% c('rChLGTV', 'rLGTV'))
+VlnPlot(ParseSeuratObj_int, features = 'interferonReactomeScore1', group.by = 'Treatment', split.by = 'Genotype',
         pt.size = 0) +
-  theme(legend.position = 'None')
-VlnPlot(infected, features = 'interferonReactomeScore1', group.by = 'Genotype',
+  ggtitle('Interferon reactome score relative expression')
+
+VlnPlot(ParseSeuratObj_int, features = 'interferonReactomeScore1', group.by = 'manualAnnotation', split.by = 'Genotype',
+        pt.size = 0) 
+
+FeaturePlot(ParseSeuratObj_int, features = 'interferonReactomeScore1', reduction = 'umap.integrated')
+VlnPlot(infected, features = 'interferonReactomeScore1', group.by = 'Treatment', split.by = 'Genotype',
         pt.size = 0) +
-  theme(legend.position = 'None')
+  ggtitle('Interferon reactome score relative expression')
+
+#Look by celltype
+table(ParseSeuratObj_int$Genotype, ParseSeuratObj_int$hasVirus, ParseSeuratObj_int$manualAnnotation)
+plotGenotypeReactome <- function(dat, celltype){
+  celltype <- subset(dat, manualAnnotation == celltype)
+  print(table(celltype$Genotype, celltype$hasVirus))
+  print(VlnPlot(celltype, features = 'interferonReactomeScore1', group.by = 'Genotype', split.by = 'hasVirus', 
+                alpha = 0.2)) +
+    ggtitle(paste('Interferon reactome score', unique(celltype$manualAnnotation)))
+}
+plotGenotypeReactome(ParseSeuratObj_int, cellTypes[1])
 
 
 #Look for IFN genes and explore
@@ -188,7 +208,10 @@ ParseSeuratObj_int <- AddModuleScore(ParseSeuratObj_int, features = list(IfnGene
 VlnPlot(ParseSeuratObj_int, features = 'ifnGenes1', pt.size = 0, group.by = 'genotypeCellType')+
   theme(legend.position = 'None')
 
-
+ifnExp <- ParseSeuratObj_int[['RNA']]$data[grep('Ifn', rownames(ParseSeuratObj_int[['RNA']]$data)),] 
+rowSums(ifnExp >0) / ncol(ifnExp)
+  
+subset(ParseSeuratObj_int, Ifna4 > 0)
 #ReactomeGSA try
 pseudo_bulk_data <- ReactomeGSA::generate_pseudo_bulk_data(ParseSeuratObj_int, group_by = "Genotype")
 pseudo_metadata <- generate_metadata(pseudo_bulk_data)
@@ -219,4 +242,24 @@ head(quant_pathways)
 quant_pathways['R-HSA-913531',]
 quant_pathways['R-HSA-1606341',]
 
- 
+#ReactomePA attempt
+#Probably will turn this into loop and see common themes.
+astrocytes <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes')
+wt <- subset(astrocytes, Genotype == 'WT')
+IPS <- subset(astrocytes, Genotype == 'IPS1')
+
+infectionMarkers <- Seurat::FindMarkers(wt, group.by = 'hasVirus', ident.1 = 1, test.use = 'MAST', only.pos = TRUE)
+infectionMarkersIPS <- Seurat::FindMarkers(IPS, group.by = 'hasVirus', ident.1 = 1, test.use = 'MAST', only.pos = TRUE)
+
+infectionMarkersSig <- infectionMarkersIPS %>% filter(p_val_adj < 0.05)
+eID <- bitr(rownames(infectionMarkersSig), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Mm.eg.db")
+upPaths <- enrichPathway(gene=eID$ENTREZID, pvalueCutoff = 0.05, readable=TRUE, 
+                   organism = 'mouse')
+upPaths@result
+
+#Overall comparison of infected wt and infected ips
+infected <- subset(ParseSeuratObj_int, hasVirus == 1)
+table(infected$Genotype)
+genotypeMarkers <- FindMarkers(infected, group.by = 'Genotype', ident.1 = 'WT',only.pos = TRUE, test.use = 'MAST')
+genotypeMarkersIPS <- FindMarkers(infected, group.by = 'Genotype', ident.1 = 'IPS1',only.pos = TRUE, test.use = 'MAST')
+
