@@ -11,6 +11,10 @@ library(readr)
 library(ReactomePA)
 library(clusterProfiler)
 
+#Loading to try new mousser analysis
+library(mousseR)
+library(stringr)
+
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
@@ -99,17 +103,29 @@ for(i in 1:length(uniqueGenoCell)){
   #Need a ranked gene list for this, so create DEG list then rank by
   #most upregulated to most downregulated
   if(length(table(wt$hasVirus)) == 2 & all(table(wt$hasVirus) > 30)){
-    wtInfectComp <- Seurat::FoldChange(wt, ident.1 = 1, 
-                                       group.by = 'hasVirus')
+    # wtInfectComp <- Seurat::FoldChange(wt, 
+    #                                    group.by = 'hasVirus', 
+    #                                    assay = 'RNA',
+    #                                    ident.1 = 1)
+    
+    #Using findMarkers because I don't think min.pct is working for foldChange
+    wtInfectComp <- FindMarkers(wt, 
+                                group.by = 'hasVirus', 
+                                ident.1 = 1,
+                                 min.pct = 0.05,
+                                 test.use = 'MAST')
   }
   
   if(length(table(IPS$hasVirus)) == 2 & all(table(IPS$hasVirus) > 30)){
-    IPSInfectComp <- Seurat::FoldChange(IPS, ident.1 = 1, 
-                                        group.by = 'hasVirus')
+    IPSInfectComp <- FindMarkers(IPS, 
+                                 group.by = 'hasVirus', 
+                                 ident.1 = 1,
+                                 min.pct = 0.05,
+                                 test.use = 'MAST')
   }
  
   if(exists('wtInfectComp')){
-    wtInfectComp <- wtInfectComp[wtInfectComp$pct.1 > 0 | wtInfectComp$pct.2 > 0,]
+    wtInfectComp <- wtInfectComp[wtInfectComp$pct.1 > 0.05 | wtInfectComp$pct.2 > 0.05,]
     wtInfectComp <- wtInfectComp[order(dplyr::desc(wtInfectComp$avg_log2FC)),]
     wtRankings <- wtInfectComp$avg_log2FC
     names(wtRankings) <- rownames(wtInfectComp)
@@ -262,4 +278,25 @@ infected <- subset(ParseSeuratObj_int, hasVirus == 1)
 table(infected$Genotype)
 genotypeMarkers <- FindMarkers(infected, group.by = 'Genotype', ident.1 = 'WT',only.pos = TRUE, test.use = 'MAST')
 genotypeMarkersIPS <- FindMarkers(infected, group.by = 'Genotype', ident.1 = 'IPS1',only.pos = TRUE, test.use = 'MAST')
+
+#plot specific ifn genes
+VlnPlot(ParseSeuratObj_int, features = 'Ifnar1', group.by = 'Genotype', split.by = 'hasVirus',
+        pt.size = 0, assay = 'RNA')
+
+#try new mousser library
+counts.matrix <- as.data.frame(t(as.matrix(ParseSeuratObj_int@assays$RNA@layers$data)))
+rownames(counts.matrix) <- colnames(ParseSeuratObj_int)
+colnames(counts.matrix) <- str_to_title(rownames(ParseSeuratObj_int))
+mousse.scores <- mousse(counts.matrix = counts.matrix, numGenes = 60)
+
+#prepare for plotting
+ParseSeuratObj_int[["Mousse"]] <- CreateAssayObject(data = (t(mousse.scores)))
+ParseSeuratObj_int <- ScaleData(ParseSeuratObj_int, assay = 'Mousse')
+
+mark <- FindAllMarkers(ParseSeuratObj_int, min.pct = 0.05, test.use = "roc", assay = 'Mousse', group.by = 'hasVirus')
+GOI_niche <- mark %>% 
+  group_by(cluster) %>% 
+  top_n(5, myAUC)
+DoHeatmap(ParseSeuratObj_int, features = unique(GOI_niche$gene), size = 2.5, group.by = 'Treatment', assay = 'Mousse')
+
 
