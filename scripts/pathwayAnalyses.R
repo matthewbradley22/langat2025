@@ -54,8 +54,12 @@ for(i in 1:length(uniqueGenoCell)){
   
   #Need a ranked gene list for this, so create DEG list then rank by
   #most upregulated to most downregulated
-  genoCellComp <- Seurat::FoldChange(ParseSeuratObj_int, ident.1 = ident1_label, 
-                                     group.by = 'genotypeCellType')
+  
+  # Just using this for average log fold change, so don't think test used should matter, same below
+  genoCellComp <- FindMarkers(ParseSeuratObj_int, 
+              group.by = 'genotypeCellType', 
+              ident.1 = ident1_label,
+              min.pct = 0.05)
   genoCellComp <- genoCellComp[genoCellComp$pct.1 > 0 | genoCellComp$pct.2 > 0,]
   # genoCellComp <- FindMarkers(ParseSeuratObj_int, 
   #                             group.by = 'genotypeCellType', 
@@ -175,11 +179,15 @@ for(i in 1:length(uniqueGenoCell)){
 
 dplyr::arrange(interferonDatInfected, NES)
 
-interferonDatInfected %>% head()
-ggplot(interferonDatInfected, aes(x = groupLab, y = pathway, size = -log10(padj),
+wtSamples <- interferonDatInfected[grep('WT',interferonDatInfected$groupLab),]
+ipsSamples <-  interferonDatInfected[grep('IPS',interferonDatInfected$groupLab),]
+plotOrder <- c(wtSamples$groupLab, ipsSamples$groupLab)
+ggplot(interferonDatInfected, aes(x = factor(groupLab, levels = plotOrder), y = pathway, size = -log10(padj),
                           color = NES))+
   geom_point()+
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90))+
+  xlab('cell genotype group')+
+  ggtitle('Infected vs Uninfected Interferon Expression')
 
 
 #Check simple plot
@@ -227,7 +235,6 @@ VlnPlot(ParseSeuratObj_int, features = 'ifnGenes1', pt.size = 0, group.by = 'gen
 ifnExp <- ParseSeuratObj_int[['RNA']]$data[grep('Ifn', rownames(ParseSeuratObj_int[['RNA']]$data)),] 
 rowSums(ifnExp >0) / ncol(ifnExp)
   
-subset(ParseSeuratObj_int, Ifna4 > 0)
 #ReactomeGSA try
 pseudo_bulk_data <- ReactomeGSA::generate_pseudo_bulk_data(ParseSeuratObj_int, group_by = "Genotype")
 pseudo_metadata <- generate_metadata(pseudo_bulk_data)

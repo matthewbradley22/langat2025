@@ -10,7 +10,7 @@ createPseudoBulk <- function(data, variables){
   
   meta_columns <- variables
   meta <- data[[]] %>%
-    select(all_of(meta_columns)) %>%
+    dplyr::select(all_of(meta_columns)) %>%
     unique() %>%
     remove_rownames()
   
