@@ -31,11 +31,6 @@ all_gene_sets <- msigdbr(species = "Mus musculus")
 gene_sets <- all_gene_sets %>%
   split(x = .$gene_symbol, f = .$gs_name)
 
-cat(paste("Loaded", length(gene_sets), "gene sets\n"))
-
-
-plotEnrichment(gene_sets[["REACTOME_INTERFERON_SIGNALING"]],
-               rankings) + labs(title="REACTOME_INTERFERON_SIGNALING")
 
 #Maybe also try with subset to just significant genes and see if there's a bif difference
 ParseSeuratObj_int$genotypeCellType <- paste0(ParseSeuratObj_int$Genotype, ParseSeuratObj_int$manualAnnotation)
@@ -48,6 +43,11 @@ colnames(interferonDat) = c("pathway", "pval", "padj", "log2err",  "ES" ,  "NES"
 
 #Also should do this a different way to check
 #Compare infected vs uninfected in both groups and see differences between groups
+
+#Several gene sets to try with:
+mouse_gene_sets[grep('INTERFERON' , names(mouse_gene_sets))]
+#Want to try at least REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES and HALLMARK_INTERFERON_ALPHA_RESPONSE ad
+#REACTOME_INTERFERON_ALPHA_BETA_SIGNALING
 
 for(i in 1:length(uniqueGenoCell)){
   ident1_label = uniqueGenoCell[i]
@@ -80,7 +80,7 @@ for(i in 1:length(uniqueGenoCell)){
                    scoreType = 'pos', # in this case we have both pos and neg rankings. if only pos or neg, set to 'pos', 'neg'
                    minSize = 15,
                    maxSize = 500) 
-  interferonRow <- GSEAres[grep('REACTOME_INTERFERON_SIGNALING', GSEAres$pathway),]
+  interferonRow <- GSEAres[grep('REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES', GSEAres$pathway),]
   interferonRow$groupLab <- ident1_label
   print(paste("Done with", ident1_label))
   interferonDat <- rbind(interferonDat, interferonRow)
@@ -139,7 +139,7 @@ for(i in 1:length(uniqueGenoCell)){
                        scoreType = 'pos', # in this case we have both pos and neg rankings. if only pos or neg, set to 'pos', 'neg'
                        minSize = 15,
                        maxSize = 500) 
-    interferonRowWt <- WtGSEAres[grep('REACTOME_INTERFERON_SIGNALING', WtGSEAres$pathway),]
+    interferonRowWt <- WtGSEAres[grep('REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES', WtGSEAres$pathway),]
     interferonRowWt$groupLab <- unique(paste0(wt$manualAnnotation, wt$Genotype))
     interferonDatInfected <- rbind(interferonDatInfected, interferonRowWt)
   }
@@ -155,7 +155,7 @@ for(i in 1:length(uniqueGenoCell)){
                        scoreType = 'pos', # in this case we have both pos and neg rankings. if only pos or neg, set to 'pos', 'neg'
                        minSize = 15,
                        maxSize = 500) 
-    interferonRowIps <- IpGSEAres[grep('REACTOME_INTERFERON_SIGNALING', IpGSEAres$pathway),]
+    interferonRowIps <- IpGSEAres[grep('REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES', IpGSEAres$pathway),]
     interferonRowIps$groupLab <- unique(paste0(IPS$manualAnnotation, IPS$Genotype))
     interferonDatInfected <- rbind(interferonDatInfected, interferonRowIps)
   }
@@ -306,4 +306,10 @@ GOI_niche <- mark %>%
   top_n(5, myAUC)
 DoHeatmap(ParseSeuratObj_int, features = unique(GOI_niche$gene), size = 2.5, group.by = 'Treatment', assay = 'Mousse')
 
+#LRP8
+FeaturePlot(ParseSeuratObj_int, reduction = 'umap.integrated', features = 'Lrp8')
+FeaturePlot(ParseSeuratObj_int, reduction = 'umap.integrated', features = 'Rsad2')
+
+VlnPlot(ParseSeuratObj_int, features = 'Rsad2', group.by = 'hasVirus', pt.size = 0)
+VlnPlot(ParseSeuratObj_int, features = 'Lrp8', group.by = 'hasVirus', pt.size = 0)
 

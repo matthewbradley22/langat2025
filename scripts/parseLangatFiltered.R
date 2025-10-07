@@ -10,7 +10,6 @@ library(Matrix)
 
 #List out our data files, and read them into R
 parseOutput <- list.files("./data/FilteredParseOutput/")
-
 #Can load integrated data and skip integration steps
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
 
@@ -39,7 +38,21 @@ toMerge <- c(ParseSeuratObj[[2]], ParseSeuratObj[[3]], ParseSeuratObj[[4]],
 ParseSeuratObj <- merge(ParseSeuratObj[[1]], y = toMerge, 
                         add.cell.ids = paste0('seuObj', seq(1,8)), project = "ParseLangat")
 
+#Quick section to look at raw data ifn values (set min.cells to 0 for this only)
+countDats <- list(ParseSeuratObj[['RNA']]$counts.1, ParseSeuratObj[['RNA']]$counts.2,
+                  ParseSeuratObj[['RNA']]$counts.3, ParseSeuratObj[['RNA']]$counts.4,
+                  ParseSeuratObj[['RNA']]$counts.5, ParseSeuratObj[['RNA']]$counts.6,
+                  ParseSeuratObj[['RNA']]$counts.7, ParseSeuratObj[['RNA']]$counts.8)
 
+ifnCounts <- list()
+for(i in 1:length(countDats)){
+  countDat = countDats[[i]]
+  ifnDat <- countDat[grep('Ifn', rownames(countDat)),]
+  ifnDat[ifnDat > 0] <- 1
+  ifnCounts[[i]] = (rowSums(ifnDat))
+}
+ifnCountDat <- do.call(rbind, ifnCounts)
+write.csv(ifnCountDat, "~/Documents/ÖverbyLab/ifnCountDat.csv")
 #Label mitochondrial gene expression
 ParseSeuratObj[["percent.mt"]] <- PercentageFeatureSet(ParseSeuratObj, pattern = "^mt-")
 

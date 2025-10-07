@@ -8,6 +8,7 @@ library(pheatmap)
 library(RColorBrewer)
 library(dplyr)
 
+source('./scripts/langatFunctions.R')
 #Load in data
 #ParseSeuratObj_int <- LoadSeuratRds('./ccaIntegratedDat.rds')
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
@@ -273,17 +274,23 @@ table(cluster17MapMy$supertype_name)
 markers35 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 35,
                          only.pos = TRUE)
 head(markers35, n = 20)
-
+FeaturePlot(ParseSeuratObj_int, reduction = 'umap.integrated', features = 'Kif5a')
 clust35 <- subset(ParseSeuratObj_int, seurat_clusters == 35)
+clust35 <- prepUmapSeuratObj(clust35, nDims = 25, reductionName = 'clust35.umap')
 table(clust35$Treatment)
 clust35[['RNA']]$counts %>% t() %>% write.csv(file = './data/cluster35Counts.csv', row.names = TRUE)
 
+#From allen brain atlas mapping
 cluster35Map <- read_csv("data/cluster35Countscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1757928986340/cluster35Countscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1757928986340.csv", 
                          skip = 4)
 table(cluster35Map$class_name)
 clust35$mapLabel = cluster35Map$class_name
-DimPlot(clust35, reduction = 'umap.integrated', group.by = 'mapLabel')
-FeaturePlot(clust35, features = 'hasVirus',  reduction = 'umap.integrated', split.by = 'hasVirus')
+DimPlot(clust35, reduction = 'clust35.umap', group.by = 'mapLabel')
+FeaturePlot(clust35, features = 'hasVirus',  reduction = 'clust35.umap', split.by = 'hasVirus')
+clust35[[]] %>% dplyr::group_by(mapLabel, hasVirus) %>% dplyr::summarise(num = n()) %>% 
+  ggplot(aes(x = mapLabel, y = num, fill = factor(hasVirus)))+
+  geom_bar(stat = 'identity')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
 #34, macro or micro
 markers34 <- FindMarkers(ParseSeuratObj_int, group.by = 'seurat_clusters', ident.1 = 34,
                          only.pos = TRUE)
