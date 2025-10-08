@@ -24,11 +24,20 @@ newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E',  '#FF8A
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
 
+#How many wt infected cells from each cell type
+ParseSeuratObj_int[[]] %>% dplyr::group_by(Genotype, manualAnnotation, hasVirus) %>% dplyr::summarise(total = n()) %>% 
+  dplyr::filter(Genotype == 'WT') %>% ggplot(aes(x = manualAnnotation, y = total, fill = factor(hasVirus)))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  geom_text(aes(label=total), vjust=0, position = position_dodge(1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  xlab('')+
+  labs(fill = 'has virus')
+
 
 #Molecular signatures database
 all_gene_sets <- msigdbr(species = "Mus musculus")
 
-gene_sets <- all_gene_sets %>%
+mouse_gene_sets <- all_gene_sets %>%
   split(x = .$gene_symbol, f = .$gs_name)
 
 
@@ -113,23 +122,24 @@ for(i in 1:length(uniqueGenoCell)){
     #                                    ident.1 = 1)
     
     #Using findMarkers because I don't think min.pct is working for foldChange
+    #Don't think findMarkers test matters because we are only using Log fold change for rankigns
     wtInfectComp <- FindMarkers(wt, 
                                 group.by = 'hasVirus', 
-                                ident.1 = 1,
-                                 min.pct = 0.05,
-                                 test.use = 'MAST')
+                                ident.1 = 1)
+                                # min.pct = 0.05)
+                                 #test.use = 'MAST')
   }
   
   if(length(table(IPS$hasVirus)) == 2 & all(table(IPS$hasVirus) > 30)){
     IPSInfectComp <- FindMarkers(IPS, 
                                  group.by = 'hasVirus', 
-                                 ident.1 = 1,
-                                 min.pct = 0.05,
-                                 test.use = 'MAST')
+                                 ident.1 = 1)
+                                 #min.pct = 0.05)
+                                 #test.use = 'MAST')
   }
  
   if(exists('wtInfectComp')){
-    wtInfectComp <- wtInfectComp[wtInfectComp$pct.1 > 0.05 | wtInfectComp$pct.2 > 0.05,]
+    wtInfectComp <- wtInfectComp[wtInfectComp$pct.1 > 0 | wtInfectComp$pct.2 > 0,]
     wtInfectComp <- wtInfectComp[order(dplyr::desc(wtInfectComp$avg_log2FC)),]
     wtRankings <- wtInfectComp$avg_log2FC
     names(wtRankings) <- rownames(wtInfectComp)
@@ -139,7 +149,7 @@ for(i in 1:length(uniqueGenoCell)){
                        scoreType = 'pos', # in this case we have both pos and neg rankings. if only pos or neg, set to 'pos', 'neg'
                        minSize = 15,
                        maxSize = 500) 
-    interferonRowWt <- WtGSEAres[grep('REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES', WtGSEAres$pathway),]
+    interferonRowWt <- WtGSEAres[grep('HALLMARK_INTERFERON_ALPHA_RESPONSE', WtGSEAres$pathway),]
     interferonRowWt$groupLab <- unique(paste0(wt$manualAnnotation, wt$Genotype))
     interferonDatInfected <- rbind(interferonDatInfected, interferonRowWt)
   }
@@ -155,7 +165,7 @@ for(i in 1:length(uniqueGenoCell)){
                        scoreType = 'pos', # in this case we have both pos and neg rankings. if only pos or neg, set to 'pos', 'neg'
                        minSize = 15,
                        maxSize = 500) 
-    interferonRowIps <- IpGSEAres[grep('REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES', IpGSEAres$pathway),]
+    interferonRowIps <- IpGSEAres[grep('HALLMARK_INTERFERON_ALPHA_RESPONSE', IpGSEAres$pathway),]
     interferonRowIps$groupLab <- unique(paste0(IPS$manualAnnotation, IPS$Genotype))
     interferonDatInfected <- rbind(interferonDatInfected, interferonRowIps)
   }
@@ -190,18 +200,27 @@ ggplot(interferonDatInfected, aes(x = factor(groupLab, levels = plotOrder), y = 
   ggtitle('Infected vs Uninfected Interferon Expression')
 
 
+#Do above, but not split by celltype
+wt <- subset(ParseSeuratObj_int, Genotype == 'WT')
+ips1 <- subset(ParseSeuratObj_int, Genotype == 'IPS1')
+genoCellComp <- FindMarkers(ParseSeuratObj_int, 
+                            group.by = 'hasVirus', 
+                            ident.1 = ident1_label,
+                            min.pct = 0.05)
+genoCellComp <- genoCellComp[genoCellComp$pct.1 > 0 | genoCellComp$pct.2 > 0,]
+
+
 #Check simple plot
 #messy import of genes from https://www.gsea-msigdb.org/gsea/msigdb/mouse/geneset/REACTOME_INTERFERON_SIGNALING.html
 #gmt file
-Reactome_interferon_genes <- read_table("REACTOME_INTERFERON_SIGNALING.v2025.1.Mm.gmt", 
-                                                       skip = 1)
-Reactome_interferon_genes <- colnames(Reactome_interferon_genes)
-ParseSeuratObj_int <- AddModuleScore(ParseSeuratObj_int, features = list(Reactome_interferon_genes),
-                                     assay = 'RNA', name = 'interferonReactomeScore')
+ifnStimGenes <- mouse_gene_sets$REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES
+ParseSeuratObj_int <- AddModuleScore(ParseSeuratObj_int, features = list(ifnStimGenes),
+                                     assay = 'RNA', name = 'ifnStimGenes')
 infected <- subset(ParseSeuratObj_int, hasVirus == 1 & Treatment %in% c('rChLGTV', 'rLGTV'))
-VlnPlot(ParseSeuratObj_int, features = 'interferonReactomeScore1', group.by = 'Treatment', split.by = 'Genotype',
+VlnPlot(ParseSeuratObj_int, features = 'ifnStimGenes1', group.by = 'Treatment', split.by = 'Genotype',
         pt.size = 0) +
   ggtitle('Interferon reactome score relative expression')
+ParseSeuratObj_int[[]] %>% filter(Genotype == 'WT', hasVirus == 1, Treatment == 'rLGTV') %>% count(manualAnnotation)
 
 VlnPlot(ParseSeuratObj_int, features = 'interferonReactomeScore1', group.by = 'manualAnnotation', split.by = 'Genotype',
         pt.size = 0) 
