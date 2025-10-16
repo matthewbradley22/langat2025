@@ -315,7 +315,7 @@ ParseSeuratObj_int <- LoadSeuratRds("./data/seuratSingletsAnnotated.rds")
 #Look at pbs samples with virus
 PBS_with_virus <- subset(ParseSeuratObj_int, Treatment == 'PBS' & virusCountPAdj > 9)
 PBS_with_virus[[]]
-colnames(PBS_with_virus) %>% substr(9, 16) 
+colnames(PBS_with_virus) %>% substr(9, 16)
 
 #Look at cells with high viral load
 ggplot(ParseSeuratObj_int[[]], aes(y = log10(virusCountPAdj), x = ''))+
@@ -332,6 +332,7 @@ table(subset(ParseSeuratObj_int, virusCountPAdj > 5)$Treatment)
 getVirusDepthCounts <- function(cellDat, xLimit){
   viralLevelPlotDat <- data.frame()
   for(i in 0:xLimit){
+    #Seems unnecessarily slow to subset seurat object for this, should change
     dat = subset(cellDat, virusCountPAdj >= i)
     treatmentCounts <- as.data.frame(table(dat$Treatment))
     treatmentCounts$cutoff = i

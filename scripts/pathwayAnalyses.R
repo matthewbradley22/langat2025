@@ -109,6 +109,7 @@ colnames(interferonDatInfected) = c("pathway", "pval", "padj", "log2err",  "ES" 
                             "leadingEdge", 'groupLab')
 
 for(i in 1:length(uniqueGenoCell)){
+  
   cellTypeObj <- subset(ParseSeuratObj_int, manualAnnotation ==  cellTypes[i])
   wt <- subset(cellTypeObj, Genotype == 'WT')
   IPS <- subset(cellTypeObj, Genotype == 'IPS1')
@@ -208,11 +209,141 @@ genoCellComp <- FindMarkers(ParseSeuratObj_int,
                             ident.1 = ident1_label,
                             min.pct = 0.05)
 genoCellComp <- genoCellComp[genoCellComp$pct.1 > 0 | genoCellComp$pct.2 > 0,]
+DotPlot(ips1Astro, group.by = 'hasVirus', features = c('Rsad2', 'Ifitm3', 'Oas2', 'Isg20'), scale = FALSE)
 
+#Maybe, for a few cell types (split by wt and ips1), just look at degs between infected and uninfected,
+#subset to positive, and map how many are in ISG list
 
+wtImNeu = subset(wt, manualAnnotation == 'Immature Neurons')
+ips1ImNeu = subset(ips1, manualAnnotation == 'Immature Neurons')
+wtEpen = subset(wt, manualAnnotation == 'Ependymal')
+ips1Epen = subset(ips1, manualAnnotation == 'Ependymal')
+
+#Get an idea if wt infections are increasing isg's
+manualInspectionIfnGenes <- function(celltype){
+  if(!exists("mouse_gene_sets")){
+    return("No gene set loaded")
+  }
+  wtCell = subset(wt, manualAnnotation == celltype)
+  ips1Cell = subset(ips1, manualAnnotation == celltype)
+  
+  wtCellComp <- FindMarkers(wtCell, 
+                             group.by = 'hasVirus', 
+                             ident.1 = 1,
+                             test.use = 'MAST')
+  ips1CellComp <- FindMarkers(ips1Cell, 
+                               group.by = 'hasVirus', 
+                               ident.1 = 1,
+                               test.use = 'MAST')
+  #Get total number of positive DEGs between infected and uninfected for both genotypes
+  wtCellComp_pos <- wtCellComp[wtCellComp$p_val_adj < 0.05 & wtCellComp$avg_log2FC > 0,]
+  ips1CellComp_pos <- ips1CellComp[ips1CellComp$p_val_adj < 0.05 & ips1CellComp$avg_log2FC > 0,]
+  
+  newRow = data.frame(cellType = celltype, wtPos = nrow(wtCellComp_pos), ipsPos = nrow(ips1CellComp_pos))
+
+  
+  #Get total number of positive DEGs as above, but subset to ISGs
+  ifnA_response <- mouse_gene_sets$HALLMARK_INTERFERON_ALPHA_RESPONSE
+  ifnA_GOBP_response <- mouse_gene_sets$GOBP_RESPONSE_TO_INTERFERON_ALPHA
+  type1_response <- mouse_gene_sets$GOBP_RESPONSE_TO_TYPE_I_INTERFERON
+  reactome_ifn_antiviral <- mouse_gene_sets$REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES
+  all_ISGs = unique(c(ifnA_response, ifnA_GOBP_response, type1_response, reactome_ifn_antiviral))
+  
+  wt_upreg_isgs <- sum(rownames(wtCellComp_pos) %in% all_ISGs)
+  ips_upreg_isgs <- sum(rownames(ips1CellComp_pos) %in% all_ISGs)
+  newRow_isg = data.frame(cellType = celltype, wtPos = wt_upreg_isgs, ipsPos = ips_upreg_isgs)
+  
+  return(list('allDEGS' = newRow, 'ISG_DEGs' = newRow_isg))
+  print(paste('Done with', celltype))
+  #Just running beginning for now
+  if(FALSE){
+   
+    print(paste("Number of wt positive DEGs", nrow(wtCellComp_pos)))
+    print(paste("Number of IPS positive DEGs", nrow(ips1CellComp_pos)))
+    
+    
+    print(paste("Number of wt DEGs in ifn response list", sum(rownames(wtCellComp_pos) %in% ifnA_response)))
+    print(paste("Number of IPS DEGs in ifn response list", sum(rownames(ips1CellComp_pos) %in% ifnA_response)))
+    print(paste("Number of wt DEGs in ifn GOBP response list", sum(rownames(wtCellComp_pos) %in% ifnA_GOBP_response)))
+    print(paste("Number of IPS DEGs in ifn GOBP response list", sum(rownames(ips1CellComp_pos) %in% ifnA_GOBP_response)))
+    print(paste("Number of wt DEGs in ifn ISG Viral response list", sum(rownames(wtCellComp_pos) %in% reactome_ifn_antiviral)))
+    print(paste("Number of IPS DEGs in ifn ISG Viral response list", sum(rownames(ips1CellComp_pos) %in% reactome_ifn_antiviral)))
+    
+    geneLocations <- which(rownames(dplyr::arrange(wtAstroComp, desc(avg_log2FC))) %in% ifnA_response)
+    geneLocaitonsIps <- which(rownames(dplyr::arrange(ips1CellComp_pos, desc(avg_log2FC))) %in% ifnA_response)
+    
+    p1 = ggplot(data.frame(geneLocations, y = 1), aes(x = geneLocations, y = y))+
+      geom_point()+
+      xlim(0, nrow(wtAstroComp))+
+      xlab('IFN gene LFC Ranking')+
+      ylab('')
+    p2 = ggplot(data.frame(geneLocations, y = 1), aes(x = geneLocations, y = y))+
+      geom_point()+
+      xlim(0, nrow(ips1AstroComp))+
+      xlab('IFN gene LFC Ranking')+
+      ylab('')
+    
+    #fgsea
+    WtRankings <- wtCellComp$avg_log2FC
+    names(WtRankings) <- rownames(wtCellComp)
+    WtRankings <- WtRankings[!is.na(WtRankings)]
+    WtRankings <- WtRankings[names(WtRankings) != '']
+    WtRankings <- WtRankings[!duplicated(names(WtRankings))]
+    
+    GSEAres <- fgsea(pathways = mouse_gene_sets, # List of gene sets to check
+                     stats = WtRankings,
+                     scoreType = 'pos', # in this case we have both pos and neg rankings. if only pos or neg, set to 'pos', 'neg'
+                     minSize = 10,
+                     maxSize = 500)
+    
+    IpsRankings <- ips1CellComp$avg_log2FC
+    names(IpsRankings) <- rownames(ips1CellComp)
+    IpsRankings <- IpsRankings[!is.na(IpsRankings)]
+    IpsRankings <- IpsRankings[names(IpsRankings) != '']
+    IpsRankings <- IpsRankings[!duplicated(names(IpsRankings))]
+    
+    Ips_GSEAres <- fgsea(pathways = mouse_gene_sets, # List of gene sets to check
+                         stats = IpsRankings,
+                         scoreType = 'pos', # in this case we have both pos and neg rankings. if only pos or neg, set to 'pos', 'neg'
+                         minSize = 10,
+                         maxSize = 500)
+    
+    View(GSEAres)
+    
+  }
+  
+}
+
+celltypes <- unique(ParseSeuratObj_int$manualAnnotation)
+#Run one at at time - for loop crashed r for some reason
+EndoUp <- manualInspectionIfnGenes(celltypes[1])
+MicroUp <- manualInspectionIfnGenes(celltypes[2])
+oligoUp <- manualInspectionIfnGenes(celltypes[3])
+astroUp <- manualInspectionIfnGenes(celltypes[4])
+manualInspectionIfnGenes(celltypes[5])
+manualInspectionIfnGenes(celltypes[6])
+epenUp <- manualInspectionIfnGenes(celltypes[7])
+manualInspectionIfnGenes(celltypes[8])
+manualInspectionIfnGenes(celltypes[9])
+manualInspectionIfnGenes(celltypes[10])
+manualInspectionIfnGenes(celltypes[11])
+manualInspectionIfnGenes(celltypes[12])
+manualInspectionIfnGenes(celltypes[13])
+manualInspectionIfnGenes(celltypes[14])
+manualInspectionIfnGenes(celltypes[15])
+manualInspectionIfnGenes(celltypes[16])
+
+#Compare wt isg directly w ips isgs, all infected
+testing <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & hasVirus == 1)
+infectedISGComp <- FindMarkers(testing, 
+                            group.by = 'Genotype', 
+                            ident.1 = 'WT',
+                            test.use = 'MAST')
+infectedISGComp_pos <- infectedISGComp[infectedISGComp$p_val_adj < 0.05 & infectedISGComp$avg_log2FC > 0,]
+infectedISGComp_neg <- infectedISGComp[infectedISGComp$p_val_adj < 0.05 & infectedISGComp$avg_log2FC < 0,]
+sum(rownames(infectedISGComp_pos) %in% all_ISGs)
+sum(rownames(infectedISGComp_neg) %in% all_ISGs)
 #Check simple plot
-#messy import of genes from https://www.gsea-msigdb.org/gsea/msigdb/mouse/geneset/REACTOME_INTERFERON_SIGNALING.html
-#gmt file
 ifnStimGenes <- mouse_gene_sets$REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES
 ParseSeuratObj_int <- AddModuleScore(ParseSeuratObj_int, features = list(ifnStimGenes),
                                      assay = 'RNA', name = 'ifnStimGenes')
@@ -331,4 +462,21 @@ FeaturePlot(ParseSeuratObj_int, reduction = 'umap.integrated', features = 'Rsad2
 
 VlnPlot(ParseSeuratObj_int, features = 'Rsad2', group.by = 'hasVirus', pt.size = 0)
 VlnPlot(ParseSeuratObj_int, features = 'Lrp8', group.by = 'hasVirus', pt.size = 0)
+
+#Look at select isg in cells
+ifnA_response <- mouse_gene_sets$HALLMARK_INTERFERON_ALPHA_RESPONSE
+ifnA_GOBP_response <- mouse_gene_sets$GOBP_RESPONSE_TO_INTERFERON_ALPHA
+type1_response <- mouse_gene_sets$GOBP_RESPONSE_TO_TYPE_I_INTERFERON
+reactome_ifn_antiviral <- mouse_gene_sets$REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES
+all_ISGs = unique(c(ifnA_response, ifnA_GOBP_response, type1_response, reactome_ifn_antiviral))
+
+ParseSeuratObj_int = AddModuleScore(ParseSeuratObj_int, features = list(all_ISGs), name = 'ISG_score') 
+VlnPlot(subset(ParseSeuratObj_int, Timepoint == 'Day 5'), features = 'ISG_score1', group.by = 'Genotype', pt.size = 0,
+        split.by = 'hasVirus')+
+  ggtitle('ISG Score day 5')
+  
+parseSub = subset(ParseSeuratObj_int, Timepoint == 'Day 5')
+table(parseSub$Genotype, parseSub$hasVirus)
+
+FeaturePlot(ParseSeuratObj_int, features = 'ISG_score1', reduction = 'umap.integrated') + ggtitle('ISG Expression')
 
