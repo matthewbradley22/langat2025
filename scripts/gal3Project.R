@@ -1,4 +1,5 @@
 #Packages and functions
+library(gridExtra)
 source('./scripts/langatFunctions.R')
 
 #Load data
@@ -45,5 +46,46 @@ immune <- prepUmapSeuratObj(immune, nDims = 25, reductionName = 'immune.umap')
 #Plug granulocytes into allan brain atlas and check
 DimPlot(immune, reduction = 'immune.umap', label = TRUE)
 DimPlot(immune, reduction = 'immune.umap', group.by = 'manualAnnotation')
+
+#Dotplot
+DotPlot(immune, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Ccr1', 'Ccr2', 'Ccr3', 'Ccr5', 'Tmem119'),
+        group.by = 'manualAnnotation')+
+  scale_color_gradient2(low = 'blue', mid = 'white', high = 'red')+
+  scale_size(range = c(2, 10))+
+   theme(axis.text.x = element_text(angle = 45, vjust = 0.8))
+
+#Featureplots
+geneList = c('Lgals3', 'Adgre1', 'Ptprc', 'Ccr1',
+             'Ccr2', 'Ccr3', 'Ccr5', 'Cd68',
+             'Cd86', 'Tmem119', 'Tspo', 'Csf1r')
+FeaturePlot(immune, geneList, reduction = 'immune.umap')
+
+featurePlotLight <- function(gene){
+  FeaturePlot(immune, gene, reduction = 'immune.umap') +  
+    theme(line = element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.ticks.y=element_blank())
+}
+
+plotList <- list(featurePlotLight('Lgals3'),
+                 featurePlotLight('Adgre1'),
+                 featurePlotLight('Ptprc'),
+                 featurePlotLight('Ccr1'),
+                 featurePlotLight('Ccr2'),
+                 featurePlotLight('Ccr3'),
+                 featurePlotLight('Ccr5'),
+                 featurePlotLight('Cd68'),
+                 featurePlotLight('Cd86'),
+                 featurePlotLight('Tmem119'),
+                 featurePlotLight('Tspo'),
+                 featurePlotLight('Csf1r'))
+do.call(grid.arrange, plotList)
+
+
+
 
 
