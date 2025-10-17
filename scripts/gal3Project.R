@@ -156,9 +156,49 @@ FeaturePlot(macrophages_wt_mock, 'Apoe', reduction = 'wt.immune.mac.umap')
 FeaturePlot(macrophages_wt_mock, 'Cd74', reduction = 'wt.immune.mac.umap')
 FeaturePlot(macrophages_wt_mock, 'Ccr2', reduction = 'wt.immune.mac.umap')
 
-FeaturePlot(macrophages_wt_mock, 'Tnf', reduction = 'wt.immune.mac.umap')
+#infected macs
+macrophages_wt_infected <- subset(wt_cerebrum_infected, manualAnnotation %in% c('Macrophage/Monocytes'))
 
+macrophages_wt_infected <- prepSeuratObj(macrophages_wt_infected)
+ElbowPlot(macrophages_wt_infected, ndims = 40)
+macrophages_wt_infected <- prepUmapSeuratObj(macrophages_wt_infected, nDims = 20, reductionName = 'wt.infected.mac.umap')
 
+DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = TRUE, group.by = 'seurat_clusters')
+macMarkers <- FindAllMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
+                             test.use = 'MAST')
+View(macMarkers %>% dplyr::filter(p_val_adj < 0.01))
 
+#interesting genes
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Ccr7')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cxcl9') #m1 marker
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Adgre1')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Lgals3')
+
+#Some type 1 markers per https://www.nature.com/articles/s41598-020-73624-w
+#https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0119751
+#Poppovich paper seems like good source https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0145342
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Fcgr2b')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Fcgr1')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cd80')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il6')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il12a')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il12b')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Tnf')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Slc7a2')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cxcl9')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il1b')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il1a')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Ptgs2')
+
+#Type 2
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cd163')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Msr1')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Mrc1')
+
+#M2c macs
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il10')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Tgfb1')
+
+#Cluster 15 seems interesting, no idea which type
 #Look at how many macros coexpress f480 and lgals3 
 
