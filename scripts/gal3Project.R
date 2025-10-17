@@ -12,7 +12,7 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
         cols = newCols)
 
 #ReUMAP
-wt_cerebrum <- subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum')
+wt_cerebrum <- subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT')
 
 wt_cerebrum <- prepSeuratObj(wt_cerebrum)
 ElbowPlot(wt_cerebrum, ndims = 40)
@@ -84,6 +84,52 @@ plotList <- list(featurePlotLight('Lgals3'),
                  featurePlotLight('Tspo'),
                  featurePlotLight('Csf1r'))
 do.call(grid.arrange, plotList)
+
+
+#Look at mock and infected separately
+wt_cerebrum_mock <- subset(wt_cerebrum, Treatment == ('PBS'))
+wt_cerebrum_infected <- subset(wt_cerebrum, Treatment == ('rLGTV'))
+
+wt_cerebrum_mock <- prepSeuratObj(wt_cerebrum_mock)
+ElbowPlot(wt_cerebrum_mock, ndims = 40)
+wt_cerebrum_mock <- prepUmapSeuratObj(wt_cerebrum_mock, nDims = 20, reductionName = 'wt.cerebrum.mock.umap')
+
+DimPlot(wt_cerebrum_mock, reduction = 'wt.cerebrum.mock.umap', label = TRUE)
+DimPlot(wt_cerebrum_mock, reduction = 'wt.cerebrum.mock.umap', group.by = 'manualAnnotation',
+        cols = newCols)
+
+immune_wt_mock <- subset(wt_cerebrum_mock, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
+                                                      'T cells', 'Granulocytes', 'Nk cells'))
+
+immune_wt_mock <- prepSeuratObj(immune_wt_mock)
+ElbowPlot(immune_wt_mock, ndims = 40)
+immune_wt_mock <- prepUmapSeuratObj(immune_wt_mock, nDims = 20, reductionName = 'wt.immune.mock.umap')
+
+DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', label = TRUE)
+DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnnotation',
+        cols = newCols)
+
+#Infected now
+wt_cerebrum_infected <- prepSeuratObj(wt_cerebrum_infected)
+ElbowPlot(wt_cerebrum_infected, ndims = 40)
+wt_cerebrum_infected <- prepUmapSeuratObj(wt_cerebrum_infected, nDims = 20, reductionName = 'wt.cerebrum.infected.umap')
+
+DimPlot(wt_cerebrum_infected, reduction = 'wt.cerebrum.infected.umap', label = TRUE)
+DimPlot(wt_cerebrum_infected, reduction = 'wt.cerebrum.infected.umap', group.by = 'manualAnnotation',
+        cols = newCols)
+
+immune_wt_infected <- subset(wt_cerebrum_infected, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
+                                                                   'T cells', 'Granulocytes', 'Nk cells'))
+
+immune_wt_infected <- prepSeuratObj(immune_wt_infected)
+ElbowPlot(immune_wt_infected, ndims = 40)
+immune_wt_infected <- prepUmapSeuratObj(immune_wt_infected, nDims = 20, reductionName = 'wt.immune.infected.umap')
+
+DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', label = TRUE)
+DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
+        cols = newCols)
+
+#Now look at macrophage subsets
 
 
 
