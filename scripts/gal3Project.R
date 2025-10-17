@@ -130,8 +130,35 @@ DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'm
         cols = newCols)
 
 #Now look at macrophage subsets
+#plug into allen brain + look at markers + literature scan
+macrophages_wt_mock <- subset(wt_cerebrum_mock, manualAnnotation %in% c('Macrophage/Monocytes'))
+
+macrophages_wt_mock <- prepSeuratObj(macrophages_wt_mock)
+ElbowPlot(macrophages_wt_mock, ndims = 40)
+macrophages_wt_mock <- prepUmapSeuratObj(macrophages_wt_mock, nDims = 15, reductionName = 'wt.immune.mac.umap')
+
+DimPlot(macrophages_wt_mock, reduction = 'wt.immune.mac.umap', label = TRUE, group.by = 'seurat_clusters')
+macMarkers <- FindAllMarkers(macrophages_wt_mock, only.pos = TRUE, assay = 'RNA',
+                             test.use = 'MAST')
+View(macMarkers %>% dplyr::filter(p_val_adj < 0.01))
+
+#Type 2 macrophage group on left?
+#Dab2 https://pubmed.ncbi.nlm.nih.gov/26927671/. Mrc1 known marker
+FeaturePlot(macrophages_wt_mock, 'Mrc1', reduction = 'wt.immune.mac.umap')
+FeaturePlot(macrophages_wt_mock, 'Csf1r', reduction = 'wt.immune.mac.umap')
+FeaturePlot(macrophages_wt_mock, 'Dab2', reduction = 'wt.immune.mac.umap')
+
+#APOE inflammation control marker https://pmc.ncbi.nlm.nih.gov/articles/PMC10436255/
+FeaturePlot(macrophages_wt_mock, 'Apoe', reduction = 'wt.immune.mac.umap')
+
+#Type 1 markers?
+#Cd74 https://www.nature.com/articles/s41598-024-58899-7
+FeaturePlot(macrophages_wt_mock, 'Cd74', reduction = 'wt.immune.mac.umap')
+FeaturePlot(macrophages_wt_mock, 'Ccr2', reduction = 'wt.immune.mac.umap')
+
+FeaturePlot(macrophages_wt_mock, 'Tnf', reduction = 'wt.immune.mac.umap')
 
 
 
-
+#Look at how many macros coexpress f480 and lgals3 
 
