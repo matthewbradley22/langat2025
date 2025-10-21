@@ -27,6 +27,8 @@ barDat <- wt_cerebrum[[]] %>% dplyr::group_by(Treatment, manualAnnotation) %>%
   dplyr::summarise(total = n()) %>% dplyr::mutate(prop = total/sum(total)) %>% 
   arrange(desc(total)) 
 
+barDat %>% dplyr::filter(manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes'))
+
 order <- subset(barDat, Treatment == 'PBS')
 barDat$manualAnnotation = factor(barDat$manualAnnotation, levels = order$manualAnnotation)
 barDat %>% ggplot(aes(x = Treatment, y = prop, fill = manualAnnotation))+
@@ -60,8 +62,8 @@ geneList = c('Lgals3', 'Adgre1', 'Ptprc', 'Ccr1',
              'Cd86', 'Tmem119', 'Tspo', 'Csf1r')
 FeaturePlot(immune, geneList, reduction = 'immune.umap')
 
-featurePlotLight <- function(gene){
-  FeaturePlot(immune, gene, reduction = 'immune.umap') +  
+featurePlotLight <- function(gene, data, reduction_choice){
+  FeaturePlot(data, gene, reduction = reduction_choice) +  
     theme(line = element_blank(),
           axis.title.x=element_blank(),
           axis.title.y=element_blank(),
@@ -71,18 +73,18 @@ featurePlotLight <- function(gene){
           axis.ticks.y=element_blank())
 }
 
-plotList <- list(featurePlotLight('Lgals3'),
-                 featurePlotLight('Adgre1'),
-                 featurePlotLight('Ptprc'),
-                 featurePlotLight('Ccr1'),
-                 featurePlotLight('Ccr2'),
-                 featurePlotLight('Ccr3'),
-                 featurePlotLight('Ccr5'),
-                 featurePlotLight('Cd68'),
-                 featurePlotLight('Cd86'),
-                 featurePlotLight('Tmem119'),
-                 featurePlotLight('Tspo'),
-                 featurePlotLight('Csf1r'))
+plotList <- list(featurePlotLight('Lgals3', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Adgre1', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Ptprc', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Ccr1', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Ccr2', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Ccr3', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Ccr5', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Cd68', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Cd86', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Tmem119', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Tspo', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Csf1r', data = immune, reduction_choice = 'immune.umap'))
 do.call(grid.arrange, plotList)
 
 
@@ -163,10 +165,21 @@ macrophages_wt_infected <- prepSeuratObj(macrophages_wt_infected)
 ElbowPlot(macrophages_wt_infected, ndims = 40)
 macrophages_wt_infected <- prepUmapSeuratObj(macrophages_wt_infected, nDims = 20, reductionName = 'wt.infected.mac.umap')
 
-DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = TRUE, group.by = 'seurat_clusters')
+DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'seurat_clusters')+
+  ggtitle('WT Infected Macrophages')
+
 macMarkers <- FindAllMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
                              test.use = 'MAST')
+macMarkers$pct_dif = macMarkers$pct.1 - macMarkers$pct.2
+macMarkers
 View(macMarkers %>% dplyr::filter(p_val_adj < 0.01))
+
+#Write out data for allen mapmycells
+macrophages_wt_infected[['RNA']]$counts %>% t() %>% write.csv(file = './data/wt_infected_macrophages.csv', row.names = TRUE)
+
+#I think this doesn't work well becaues mapMy has almost no monocytes to map to
+wt_infected_macro_mapMY <- read_csv("/Users/matthewbradley/Documents/ÖverbyLab/data/wt_infected_macrophagescsv_mapMy/wt_infected_macrophagescsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1761034702698.csv", 
+                           skip = 4)
 
 #interesting genes
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Ccr7')
@@ -177,16 +190,30 @@ FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', feature
 #Some type 1 markers per https://www.nature.com/articles/s41598-020-73624-w
 #https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0119751
 #Poppovich paper seems like good source https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0145342
+#Canonical m1 markers
+m1Canonical <- list(featurePlotLight('Tnf', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'),
+                 featurePlotLight('Nos2', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'),
+                 featurePlotLight('Il1b', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'),
+                 featurePlotLight('Il6', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'),
+                 featurePlotLight('Il12b', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'),
+                 featurePlotLight('Ccr7', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'),
+                 featurePlotLight('Inhba', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'))
+do.call(grid.arrange, m1Canonical)
+
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Tnf')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Nos2')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il1b')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il6')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il12b')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Ccr7')
+
+#Other m1
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Fcgr2b')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Fcgr1')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cd80')
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il6')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il12a')
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il12b')
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Tnf')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Slc7a2')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cxcl9')
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il1b')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il1a')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Ptgs2')
 
@@ -195,10 +222,29 @@ FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', feature
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Msr1')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Mrc1')
 
-#M2c macs
+#M2 canonical
+m2Canonical <- list(featurePlotLight('Arg1', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'),
+                    featurePlotLight('Chil3', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'),
+                    featurePlotLight('Egr2', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'),
+                    featurePlotLight('Fn1', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'),
+                    featurePlotLight('Mrc1', data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap'))
+do.call(grid.arrange, m2Canonical)
+#Other m2 markers
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il10')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Tgfb1')
 
+#Plot cluster markers
+clusterMarkerList = list()
+for(i in 1:length(unique(macMarkers$cluster))){
+  clusterMarkers <- head(macMarkers[macMarkers$cluster == i-1,], n = 10)
+  clusterMarkers <- clusterMarkers$gene
+  clusterPlots <- lapply(clusterMarkers, FUN = featurePlotLight, 
+                          data = macrophages_wt_infected, reduction_choice = 'wt.infected.mac.umap')
+  clusterMarkerList[[i]] = clusterPlots
+}
+
+#Number from list indicates cluster +1, so plotting [[4]] is cluster 3
+do.call(grid.arrange, clusterMarkerList[[1]])
 #Cluster 15 seems interesting, no idea which type
 #Look at how many macros coexpress f480 and lgals3 
 
