@@ -165,7 +165,7 @@ macrophages_wt_infected <- prepSeuratObj(macrophages_wt_infected)
 ElbowPlot(macrophages_wt_infected, ndims = 40)
 macrophages_wt_infected <- prepUmapSeuratObj(macrophages_wt_infected, nDims = 20, reductionName = 'wt.infected.mac.umap')
 
-DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'seurat_clusters')+
+DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = TRUE, group.by = 'seurat_clusters')+
   ggtitle('WT Infected Macrophages')
 
 macMarkers <- FindAllMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
@@ -182,10 +182,10 @@ wt_infected_macro_mapMY <- read_csv("/Users/matthewbradley/Documents/ÖverbyLab/
                            skip = 4)
 
 #interesting genes
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Ccr7')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cxcl9') #m1 marker
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Adgre1')
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Lgals3')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Slc7a2')
 
 #Some type 1 markers per https://www.nature.com/articles/s41598-020-73624-w
 #https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0119751
@@ -244,7 +244,16 @@ for(i in 1:length(unique(macMarkers$cluster))){
 }
 
 #Number from list indicates cluster +1, so plotting [[4]] is cluster 3
-do.call(grid.arrange, clusterMarkerList[[1]])
+do.call(grid.arrange, clusterMarkerList[[16]])
+
 #Cluster 15 seems interesting, no idea which type
 #Look at how many macros coexpress f480 and lgals3 
+Lgals_f480_dat <- macrophages_wt_infected[['RNA']]$counts[c('Lgals3', 'Adgre1'),] 
+Lgals_f480_dat[Lgals_f480_dat>0] = 1
+colSums(Lgals_f480_dat) %>% table()
+Lgals_f480_dat <- t(Lgals_f480_dat) %>% as.data.frame()
+Lgals_f480_dat$total = Lgals_f480_dat$Lgals3 + Lgals_f480_dat$Adgre1
+table(Lgals_f480_dat$total)
 
+Lgals_f480_dat[Lgals_f480_dat$Lgals3 == 1 & Lgals_f480_dat$Adgre1 == 0,] %>% nrow()
+Lgals_f480_dat[Lgals_f480_dat$Lgals3 == 0 & Lgals_f480_dat$Adgre1 == 1,] %>% nrow()
