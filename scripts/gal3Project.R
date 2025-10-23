@@ -1,6 +1,7 @@
 #Packages and functions
 library(gridExtra)
 source('./scripts/langatFunctions.R')
+library(ggpubr)
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds") 
@@ -19,8 +20,18 @@ ElbowPlot(wt_cerebrum, ndims = 40)
 wt_cerebrum <- prepUmapSeuratObj(wt_cerebrum, nDims = 20, reductionName = 'wt.cerebrum.umap')
 
 DimPlot(wt_cerebrum, reduction = 'wt.cerebrum.umap', label = TRUE)
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_cerebrum_heatmap.pdf',
+    width = 7, height = 5)
 DimPlot(wt_cerebrum, reduction = 'wt.cerebrum.umap', group.by = 'manualAnnotation', cols = newCols)+
-  ggtitle('WT Cerebrum UMAP')
+  ggtitle('WT Cerebrum UMAP')+
+  xlab('Umap 1')+
+  ylab('Umap 2')+  
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank())
+dev.off()
 
 #Barplot of proportions
 barDat <- wt_cerebrum[[]] %>% dplyr::group_by(Treatment, manualAnnotation) %>% 
@@ -50,11 +61,12 @@ DimPlot(immune, reduction = 'immune.umap', label = TRUE)
 DimPlot(immune, reduction = 'immune.umap', group.by = 'manualAnnotation')
 
 #Dotplot
-DotPlot(immune, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Ccr1', 'Ccr2', 'Ccr3', 'Ccr5', 'Tmem119'),
+DotPlot(immune, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
+                             'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
         group.by = 'manualAnnotation')+
   scale_color_gradient2(low = 'blue', mid = 'white', high = 'red')+
   scale_size(range = c(2, 10))+
-   theme(axis.text.x = element_text(angle = 45, vjust = 0.8))
+   theme(axis.text.x = element_text(angle = 45, vjust = 0.7))
 
 #Featureplots
 geneList = c('Lgals3', 'Adgre1', 'Ptprc', 'Ccr1',
@@ -62,30 +74,27 @@ geneList = c('Lgals3', 'Adgre1', 'Ptprc', 'Ccr1',
              'Cd86', 'Tmem119', 'Tspo', 'Csf1r')
 FeaturePlot(immune, geneList, reduction = 'immune.umap')
 
-featurePlotLight <- function(gene, data, reduction_choice){
-  FeaturePlot(data, gene, reduction = reduction_choice) +  
+featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE){
+  dat = FeaturePlot(data, gene, reduction = reduction_choice)$data
+  colnames(dat) = c('umap1', 'umap2', 'ident', 'expression')
+  ggplot(dat, aes(x = umap1, y = umap2, color = expression))+
+    geom_point(size = 0.1)+  
     theme(line = element_blank(),
           axis.title.x=element_blank(),
           axis.title.y=element_blank(),
           axis.text.x=element_blank(),
           axis.text.y=element_blank(),
           axis.ticks.x=element_blank(),
-          axis.ticks.y=element_blank())
+          axis.ticks.y=element_blank(),
+          panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))+
+    scale_color_gradient(low = 'lightgrey', high = 'blue', limits = c(0,6))+
+    ggtitle(gene)
+    # annotate(x = min(dat$umap1) - 1, xend = min(dat$umap1) - 1, 
+    #          y = min(dat$umap2) - 1, yend = min(dat$umap2) + 1, geom = 'segment')+
+    # annotate(x = min(dat$umap1)-1, xend = min(dat$umap1) + 1, 
+    #          y = min(dat$umap2) - 1, yend = min(dat$umap2) - 1, geom = 'segment')
 }
 
-plotList <- list(featurePlotLight('Lgals3', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Adgre1', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Ptprc', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Ccr1', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Ccr2', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Ccr3', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Ccr5', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Cd68', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Cd86', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Tmem119', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Tspo', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Csf1r', data = immune, reduction_choice = 'immune.umap'))
-do.call(grid.arrange, plotList)
 
 
 #Look at mock and infected separately
@@ -108,8 +117,30 @@ ElbowPlot(immune_wt_mock, ndims = 40)
 immune_wt_mock <- prepUmapSeuratObj(immune_wt_mock, nDims = 20, reductionName = 'wt.immune.mock.umap')
 
 DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', label = TRUE)
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_cerebrum.pdf',
+    width = 7, height = 5)
 DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnnotation',
         cols = newCols)
+dev.off()
+
+plotList <- list(featurePlotLight('Lgals3', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Adgre1', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Ptprc', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Ccr1', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Ccr2', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Ccr3', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Ccr5', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Cd68', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Cd86', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Tmem119', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Tspo', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Csf1r', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'))
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_features.pdf',
+    width = 9, height = 6)
+do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
+dev.off()
 
 #Infected now
 wt_cerebrum_infected <- prepSeuratObj(wt_cerebrum_infected)
@@ -130,6 +161,29 @@ immune_wt_infected <- prepUmapSeuratObj(immune_wt_infected, nDims = 20, reductio
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', label = TRUE)
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
         cols = newCols)
+
+plotList_infected <- list(featurePlotLight('Lgals3', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Adgre1', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Ptprc', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Ccr1', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Ccr2', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Ccr3', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Ccr5', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Cd68', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Cd86', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Tmem119', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Tspo', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Csf1r', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'))
+
+lapply(plotList_infected, FUN = function(x){
+  #Make sure 6 is high enough scale for all plots
+  dat = x$data
+  print(max(dat[4]))
+})
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_infected_features.pdf',
+    width = 9, height = 6)
+do.call(ggarrange, c(plotList_infected, common.legend = TRUE, legend = 'right'))
+dev.off()
 
 #Now look at macrophage subsets
 #plug into allen brain + look at markers + literature scan
@@ -183,8 +237,35 @@ wt_infected_macro_mapMY <- read_csv("/Users/matthewbradley/Documents/ÖverbyLab/
 
 #interesting genes
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cxcl9') #m1 marker
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Adgre1')
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Lgals3')
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/infected_macs_Adgre1.pdf',
+    width = 7, height = 5)
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'rna_Adgre1')+
+  theme(line = element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank(),
+        panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))+
+  ggtitle('Adgre1')
+dev.off()
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/infected_macs_Lgals3.pdf',
+    width = 7, height = 5)
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'rna_Lgals3')+
+  theme(line = element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank(),
+        panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))+
+  ggtitle('Lgals3')
+dev.off()
+
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Slc7a2')
 
 #Some type 1 markers per https://www.nature.com/articles/s41598-020-73624-w
@@ -248,12 +329,26 @@ do.call(grid.arrange, clusterMarkerList[[16]])
 
 #Cluster 15 seems interesting, no idea which type
 #Look at how many macros coexpress f480 and lgals3 
-Lgals_f480_dat <- macrophages_wt_infected[['RNA']]$counts[c('Lgals3', 'Adgre1'),] 
-Lgals_f480_dat[Lgals_f480_dat>0] = 1
-colSums(Lgals_f480_dat) %>% table()
-Lgals_f480_dat <- t(Lgals_f480_dat) %>% as.data.frame()
-Lgals_f480_dat$total = Lgals_f480_dat$Lgals3 + Lgals_f480_dat$Adgre1
-table(Lgals_f480_dat$total)
+macrophages_wt_infected$Lgals3 = FetchData(macrophages_wt_infected, vars = 'Lgals3', layer = 'counts')
+macrophages_wt_infected$Adgre1 = FetchData(macrophages_wt_infected, vars = 'Adgre1', layer = 'counts')
+table(macrophages_wt_infected$Lgals3>0, macrophages_wt_infected$Adgre1>0 )
+macrophages_wt_infected[[]] <- macrophages_wt_infected[[]] %>% mutate(Lgals_Adgre_both = 
+                                         case_when(Lgals3 > 0 & Adgre1> 0 ~ 'Both',
+                                                   Lgals3 > 0 & Adgre1 == 0 ~ 'Lgals3',
+                                                   Lgals3 == 0 & Adgre1 > 0 ~ 'Adgre1',
+                                                   Lgals3 == 0 & Adgre1 == 0 ~ 'Neither'))
 
-Lgals_f480_dat[Lgals_f480_dat$Lgals3 == 1 & Lgals_f480_dat$Adgre1 == 0,] %>% nrow()
-Lgals_f480_dat[Lgals_f480_dat$Lgals3 == 0 & Lgals_f480_dat$Adgre1 == 1,] %>% nrow()
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/infected_macs_Lgals3_Adgre1_overlay.pdf',
+    width = 7, height = 5)
+DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap',
+        group.by = 'Lgals_Adgre_both')+
+  ggtitle('Lgals3 Adgre1 Expression WT Infected Macrophages')+
+  theme(line = element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank(),
+        panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))
+dev.off()

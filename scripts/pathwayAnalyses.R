@@ -461,8 +461,34 @@ FeaturePlot(ParseSeuratObj_int, reduction = 'umap.integrated', features = 'Lrp8'
 FeaturePlot(ParseSeuratObj_int, reduction = 'umap.integrated', features = 'Rsad2')
 
 VlnPlot(ParseSeuratObj_int, features = 'Rsad2', group.by = 'hasVirus', pt.size = 0)
-VlnPlot(ParseSeuratObj_int, features = 'Lrp8', group.by = 'hasVirus', pt.size = 0)
+DotPlot(subset(ParseSeuratObj_int, Treatment == 'rChLGTV' | Treatment == 'PBS'), features = 'Lrp8', 
+        group.by = 'manualAnnotation',split.by = 'Treatment', scale = FALSE)
 
+chimeric_and_mock <- subset(ParseSeuratObj_int, Treatment == 'rChLGTV' | Treatment == 'PBS')
+chimeric_and_mock$cellType_treatment <- paste(chimeric_and_mock$manualAnnotation, chimeric_and_mock$Treatment, sep = '_')
+chimeric_and_mock_ips <- subset(chimeric_and_mock, Genotype == 'IPS1')
+chimeric_and_mock_wt <- subset(chimeric_and_mock, Genotype == 'WT')
+dplot <- DotPlot(chimeric_and_mock_wt, features = 'rna_Lrp8', 
+        group.by = 'cellType_treatment', scale = TRUE)
+
+dplot_dat <- dplot$data
+dplot_meta <- str_split_fixed(dplot_dat$id, "_", 2)
+colnames(dplot_meta) = c('cellType', 'treatment')
+dplot_dat <- cbind(dplot_dat, dplot_meta)
+ggplot(dplot_dat, aes(x = treatment, y = cellType, color = avg.exp.scaled, size = pct.exp))+
+  geom_point()+
+  ggtitle('Lrp8 expression WT')+
+  scale_color_gradient2(low = '#3DB9FF', mid = 'white', high = 'red', midpoint = 0)+
+  scale_size(range = c(2, 10))+
+  theme_bw()+
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) 
+
+
+FeaturePlot(ParseSeuratObj_int, features = 'Lrp8', reduction = 'umap.integrated')
 #Look at select isg in cells
 ifnA_response <- mouse_gene_sets$HALLMARK_INTERFERON_ALPHA_RESPONSE
 ifnA_GOBP_response <- mouse_gene_sets$GOBP_RESPONSE_TO_INTERFERON_ALPHA
@@ -480,3 +506,19 @@ table(parseSub$Genotype, parseSub$hasVirus)
 
 FeaturePlot(ParseSeuratObj_int, features = 'ISG_score1', reduction = 'umap.integrated') + ggtitle('ISG Expression')
 
+#Reln
+dplot <- DotPlot(chimeric_and_mock, features = 'Reln', group.by = 'cellType_treatment') 
+dplot_dat_Reln <- dplot$data
+dplot_Reln_meta <- str_split_fixed(dplot_dat_Reln$id, "_", 2)
+colnames(dplot_Reln_meta) = c('cellType', 'treatment')
+dplot_dat_Reln <- cbind(dplot_dat_Reln, dplot_Reln_meta)
+ggplot(dplot_dat_Reln, aes(x = treatment, y = cellType, color = avg.exp.scaled, size = pct.exp))+
+  geom_point()+
+  ggtitle('Reln expression single-cell')
+VlnPlot(chimeric_and_mock, 'Reln', group.by = 'cellType_treatment') + theme(legend.position = 'None')
+
+chi_mock_pseudo <- createPseudoBulk(chimeric_and_mock, c('Genotype', 'Timepoint', 'Treatment'))
+chi_mock_pseudo <- DESeq(chi_mock_pseudo)
+resultsNames(chi_mock_pseudo)
+treatment_res <- results(chi_mock_pseudo, name = 'Treatment_rChLGTV_vs_PBS')
+treatment_res['Reln',]
