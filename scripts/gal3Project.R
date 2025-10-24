@@ -58,7 +58,18 @@ immune <- prepUmapSeuratObj(immune, nDims = 25, reductionName = 'immune.umap')
 
 #Plug granulocytes into allan brain atlas and check
 DimPlot(immune, reduction = 'immune.umap', label = TRUE)
-DimPlot(immune, reduction = 'immune.umap', group.by = 'manualAnnotation')
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_cell_umap.pdf',
+    width = 7, height = 5)
+DimPlot(immune, reduction = 'immune.umap', group.by = 'manualAnnotation')+
+  ggtitle('Immune cells')+
+  xlab('Umap 1')+
+  ylab('Umap 2')+  
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank())
+dev.off()
 
 #Dotplot
 DotPlot(immune, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
@@ -162,6 +173,48 @@ DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', label = TRUE)
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
         cols = newCols)
 
+#Microglia
+FeaturePlot(immune_wt_infected, 'Ctss', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Csf1r', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Tmem119', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'P2ry12', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Cx3cr1', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Itgam', reduction = 'wt.immune.infected.umap')
+
+#https://actaneurocomms.biomedcentral.com/articles/10.1186/s40478-019-0665-y has some markers
+FeaturePlot(immune_wt_infected, 'Gda', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Sell', reduction = 'wt.immune.infected.umap')
+
+#Micro/macrophage markers from Allen atlas https://knowledge.brain-map.org/celltypes/CCN202002013
+FeaturePlot(immune_wt_infected, 'Hexb', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Inpp5d', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Ms4a4a', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Cd74', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Klra2', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Cd209a', reduction = 'wt.immune.infected.umap')
+
+#Macrophage/monocyte markers
+FeaturePlot(immune_wt_infected, 'Ptprc', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Ccr2', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Lyz2', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, 'Ccr2', reduction = 'wt.immune.infected.umap')
+
+FeaturePlot(immune_wt_infected, 'Adgre1', reduction = 'wt.immune.infected.umap')
+
+#Look for clust 11 markers against microglia and macrophages
+clust11_markers_vsMicro <- FindMarkers(immune_wt_infected, group.by = 'seurat_clusters', ident.1 = 11, 
+                               ident.2 = 5,
+            test.use = 'MAST') 
+clust11_markers_vsMac<- FindMarkers(immune_wt_infected, group.by = 'seurat_clusters', ident.1 = 11, 
+                                       ident.2 = 1,
+                                       test.use = 'MAST') 
+clust11_markers_vsMicro
+FeaturePlot(immune_wt_infected, 'Mndal', reduction = 'wt.immune.infected.umap')
+
+clust11_markers_vsMac
+FeaturePlot(immune_wt_infected, 'Plxdc2', reduction = 'wt.immune.infected.umap')
+clust11_markers_vsMac['Tmem119',]
+#Plot important markers
 plotList_infected <- list(featurePlotLight('Lgals3', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Adgre1', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Ptprc', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
@@ -350,5 +403,6 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap',
         axis.text.y=element_blank(),
         axis.ticks.x=element_blank(),
         axis.ticks.y=element_blank(),
-        panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))
+        panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))+
+  scale_color_manual(values = c('#0FA7FF', '#FC5656', '#65BD40', 'gray'))
 dev.off()
