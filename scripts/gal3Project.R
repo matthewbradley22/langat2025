@@ -1,7 +1,8 @@
 #Packages and functions
 library(gridExtra)
-source('./scripts/langatFunctions.R')
 library(ggpubr)
+library(Seurat)
+source('./scripts/langatFunctions.R')
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds") 
@@ -197,9 +198,16 @@ FeaturePlot(immune_wt_infected, 'Cd209a', reduction = 'wt.immune.infected.umap')
 FeaturePlot(immune_wt_infected, 'Ptprc', reduction = 'wt.immune.infected.umap')
 FeaturePlot(immune_wt_infected, 'Ccr2', reduction = 'wt.immune.infected.umap')
 FeaturePlot(immune_wt_infected, 'Lyz2', reduction = 'wt.immune.infected.umap')
-FeaturePlot(immune_wt_infected, 'Ccr2', reduction = 'wt.immune.infected.umap')
 
 FeaturePlot(immune_wt_infected, 'Adgre1', reduction = 'wt.immune.infected.umap')
+
+#Possible bam cluster? genes from https://journals.lww.com/nrronline/fulltext/2026/01000/changes_in_border_associated_macrophages_after.38.aspx
+#and https://link.springer.com/article/10.1186/s12974-024-03059-x
+FeaturePlot(immune_wt_infected, features =  'Mrc1', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, features =  'Pf4', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, features =  'Cd163', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, features =  'Apoe', reduction = 'wt.immune.infected.umap')
+FeaturePlot(immune_wt_infected, features =  'Ms4a7', reduction = 'wt.immune.infected.umap')
 
 #Look for clust 11 markers against microglia and macrophages
 clust11_markers_vsMicro <- FindMarkers(immune_wt_infected, group.by = 'seurat_clusters', ident.1 = 11, 
@@ -209,10 +217,12 @@ clust11_markers_vsMac<- FindMarkers(immune_wt_infected, group.by = 'seurat_clust
                                        ident.2 = 1,
                                        test.use = 'MAST') 
 clust11_markers_vsMicro
-FeaturePlot(immune_wt_infected, 'Mndal', reduction = 'wt.immune.infected.umap')
+topGenesVsMicro <- head(rownames(clust11_markers_vsMicro), n = 20)
+FeaturePlot(immune_wt_infected, topGenesVsMicro, reduction = 'wt.immune.infected.umap')
 
 clust11_markers_vsMac
-FeaturePlot(immune_wt_infected, 'Plxdc2', reduction = 'wt.immune.infected.umap')
+topGenesVsMac <- head(rownames(clust11_markers_vsMac), n = 20)
+FeaturePlot(immune_wt_infected, features =  'Nav3', reduction = 'wt.immune.infected.umap')
 clust11_markers_vsMac['Tmem119',]
 #Plot important markers
 plotList_infected <- list(featurePlotLight('Lgals3', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
