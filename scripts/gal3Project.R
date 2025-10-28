@@ -416,3 +416,32 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap',
         panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))+
   scale_color_manual(values = c('#0FA7FF', '#FC5656', '#65BD40', 'gray'))
 dev.off()
+
+#Look at unknown cells in micro/macro clusters
+unknown <- subset(wt_cerebrum, manualAnnotation == 'unknown' & seurat_clusters %in% c(0,1,2,15,31))
+
+
+unknown <- prepSeuratObj(unknown)
+ElbowPlot(unknown, ndims = 40)
+unknown <- prepUmapSeuratObj(unknown, nDims = 20, reductionName = 'wt.cerebrum.unknown.umap')
+
+DimPlot(unknown, reduction = 'wt.cerebrum.unknown.umap', label = TRUE)
+
+plotList_unknown <- list(featurePlotLight('Lgals3', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Adgre1', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Ptprc', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Ccr1', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Ccr2', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Ccr3', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Ccr5', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Cd68', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Cd86', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Tmem119', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Tspo', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Csf1r', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Gda', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'),
+                 featurePlotLight('Sell', data = unknown, reduction_choice = 'wt.cerebrum.unknown.umap'))
+
+
+do.call(ggarrange, c(plotList_unknown, common.legend = TRUE, legend = 'right'))
+

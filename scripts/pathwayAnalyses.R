@@ -21,18 +21,11 @@ ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1,
 
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E',  '#FF8AEF','#737272')
+
+pdf('~/Documents/ÖverbyLab/scPlots/scUMAP.pdf', width = 8, height = 6)
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
-
-#How many wt infected cells from each cell type
-ParseSeuratObj_int[[]] %>% dplyr::group_by(Genotype, manualAnnotation, hasVirus) %>% dplyr::summarise(total = n()) %>% 
-  dplyr::filter(Genotype == 'WT') %>% ggplot(aes(x = manualAnnotation, y = total, fill = factor(hasVirus)))+
-  geom_bar(stat = 'identity', position = 'dodge')+
-  geom_text(aes(label=total), vjust=0, position = position_dodge(1)) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  xlab('')+
-  labs(fill = 'has virus')
-
+dev.off()
 
 #Molecular signatures database
 all_gene_sets <- msigdbr(species = "Mus musculus")
