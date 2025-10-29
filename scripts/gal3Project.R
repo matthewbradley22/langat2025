@@ -9,7 +9,8 @@ ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.
 ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
 
 #Check data
-newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#8A5730', '#18662E',  '#FF8AEF','#737272')
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
+newCols[11] =  '#FF8AEF'
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
 
@@ -248,6 +249,9 @@ pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_infected_fea
 do.call(ggarrange, c(plotList_infected, common.legend = TRUE, legend = 'right'))
 dev.off()
 
+#Nonclustering mac group seems to fit in inflammatory monocyte signature from here https://www.nature.com/articles/s41467-021-21407-w
+#Ly6c2high, Ccr2high, and Tgfbilow but also probably in some microglia groups they mention, check further
+
 #Now look at macrophage subsets
 #plug into allen brain + look at markers + literature scan
 macrophages_wt_mock <- subset(wt_cerebrum_mock, manualAnnotation %in% c('Macrophage/Monocytes'))
@@ -287,9 +291,11 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = TRU
 
 macMarkers <- FindAllMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
                              test.use = 'MAST')
+
 macMarkers$pct_dif = macMarkers$pct.1 - macMarkers$pct.2
 macMarkers
-View(macMarkers %>% dplyr::filter(p_val_adj < 0.01))
+macMarkers %>% dplyr::filter(p_val_adj < 0.01 & cluster == 15) %>% head()
+FeaturePlot(macrophages_wt_infected, 'Adgre4', reduction = 'wt.infected.mac.umap', slot = 'data')
 
 #Write out data for allen mapmycells
 macrophages_wt_infected[['RNA']]$counts %>% t() %>% write.csv(file = './data/wt_infected_macrophages.csv', row.names = TRUE)
@@ -444,4 +450,7 @@ plotList_unknown <- list(featurePlotLight('Lgals3', data = unknown, reduction_ch
 
 
 do.call(ggarrange, c(plotList_unknown, common.legend = TRUE, legend = 'right'))
+
+
+
 
