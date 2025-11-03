@@ -14,6 +14,8 @@ newCols[11] =  '#FF8AEF'
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
 
+false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
+ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macrophages_toremove, invert = TRUE)
 #ReUMAP
 wt_cerebrum <- subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT')
 
@@ -293,9 +295,32 @@ macMarkers <- FindAllMarkers(macrophages_wt_infected, only.pos = TRUE, assay = '
                              test.use = 'MAST')
 
 macMarkers$pct_dif = macMarkers$pct.1 - macMarkers$pct.2
-macMarkers
-macMarkers %>% dplyr::filter(p_val_adj < 0.01 & cluster == 15) %>% head()
-FeaturePlot(macrophages_wt_infected, 'Adgre4', reduction = 'wt.infected.mac.umap', slot = 'data')
+macMarkers %>% arrange(desc(pct_dif)) %>% 
+  group_by(cluster) %>% dplyr::slice_head(n = 5) %>% 
+  arrange(desc(pct_dif)) %>% View()
+
+macMarkers %>% dplyr::filter(p_val_adj < 0.01 & cluster == 14) %>% head(n = 150) %>%  dplyr::select(gene) %>% 
+  remove_rownames() %>% write.csv(file = "~/Documents/ÖverbyLab/macrophage_markers_clust9.csv", quote = FALSE, row.names = FALSE)
+
+#Cluster 4 - lots about response to virus
+FeaturePlot(macrophages_wt_infected, 'Nos2', reduction = 'wt.infected.mac.umap', slot = 'data') #proinflammatory
+FeaturePlot(macrophages_wt_infected, 'Bnip3', reduction = 'wt.infected.mac.umap', slot = 'data') #Apoptosis
+FeaturePlot(macrophages_wt_infected, 'Ccr1', reduction = 'wt.infected.mac.umap', slot = 'data') #recruitment
+FeaturePlot(macrophages_wt_infected, 'Cxcl2', reduction = 'wt.infected.mac.umap', slot = 'data') #recruitment
+FeaturePlot(macrophages_wt_infected, 'Ccl5', reduction = 'wt.infected.mac.umap', slot = 'data')  #recruitment
+
+#Cluster 9 markers
+FeaturePlot(macrophages_wt_infected, 'Gpnmb', reduction = 'wt.infected.mac.umap', slot = 'data') #Often anti inflammatory https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2021.674739/full
+FeaturePlot(macrophages_wt_infected, 'Spp1', reduction = 'wt.infected.mac.umap', slot = 'data') #
+
+#Clust 11
+FeaturePlot(macrophages_wt_infected, 'Cd74', reduction = 'wt.infected.mac.umap', slot = 'data') #histocompatibility chaperone
+FeaturePlot(macrophages_wt_infected, 'H2-Ab1', reduction = 'wt.infected.mac.umap', slot = 'data') 
+FeaturePlot(macrophages_wt_infected, 'H2-Eb1', reduction = 'wt.infected.mac.umap', slot = 'data') 
+FeaturePlot(macrophages_wt_infected, 'Ciita', reduction = 'wt.infected.mac.umap', slot = 'data') 
+
+#Clust 14
+FeaturePlot(macrophages_wt_infected, 'Vcan', reduction = 'wt.infected.mac.umap', slot = 'data') 
 
 #Write out data for allen mapmycells
 macrophages_wt_infected[['RNA']]$counts %>% t() %>% write.csv(file = './data/wt_infected_macrophages.csv', row.names = TRUE)
