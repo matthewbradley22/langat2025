@@ -11,6 +11,7 @@ ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1,
 
 #Create new column for plotting later 
 ParseSeuratObj_int$time_treatment <- paste(ParseSeuratObj_int$Treatment, ParseSeuratObj_int$Timepoint, sep = '_')
+ParseSeuratObj_int$time_celltype <-  paste(ParseSeuratObj_int$Timepoint, ParseSeuratObj_int$manualAnnotation, sep = '_')
 
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E',  '#FF8AEF','#737272')
@@ -83,8 +84,97 @@ DotPlot(subset(ParseSeuratObj_int, Treatment != 'PBS'), group.by = 'time_treatme
   theme(axis.text.x = element_text(angle = 90))+
   ggtitle('High variance ISGs')
 
+#################################Groups#############################################################
+#Split everything by group, look at celltypes in each group as well ie UMAPs/dotplots
+wt_cerebrum <- subset(wt, Organ == 'Cerebrum')
 
-###############################################################################################
+pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/wt_cerebrum_ISG_violin.pdf", width = 7, height = 4)
+VlnPlot(wt_cerebrum, features = 'ISG_score1', group.by = 'Treatment', split.by = 'Timepoint',
+        pt.size = 0)+
+  ggtitle('ISG Module Scores WT Cerebrum')
+dev.off()
+
+wt_cerebrum_isg_plot <- DotPlot(wt_cerebrum, features = 'ISG_score1', group.by = 'time_celltype', scale = FALSE) #Can split this by day too at some point, or make heatmap but that's annoying.
+wt_cerebrum_isg_plot_data <- wt_cerebrum_isg_plot$data
+
+pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/wt_cerebrum_ISG.pdf", width = 6, height = 5)
+wt_cerebrum_isg_plot_data %>% tidyr::separate(id, c('ignore_that' ,'time', 'celltype')) %>% 
+  mutate(celltype = replace(celltype, celltype == "Macrophage", "Macrophage/Monocytes"))  %>% 
+  ggplot(aes(x = time, y = celltype, size = pct.exp, color = avg.exp))+
+  geom_point()+
+  xlab('Day')+
+  ylab('Cell type')+
+  ggtitle('WT Cerebrum ISG Scores')
+dev.off()
+
+#Could also instead get dotplot data then split variables into custom dotplot
+
+#Looks less intense than cerebrum on violin plot
+wt_cerebellum <- subset(wt, Organ == 'Cerebellum')
+
+pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/wt_cerebrellum_ISG_violin.pdf", width = 7, height = 4)
+VlnPlot(wt_cerebellum, features = 'ISG_score1', group.by = 'Treatment', split.by = 'Timepoint',
+        pt.size = 0)+
+  ggtitle('ISG Module Scores WT Cerebellum')
+dev.off()
+
+wt_cerebellum_isg_plot <- DotPlot(wt_cerebellum, features = 'ISG_score1', group.by = 'time_celltype', scale = FALSE) #Can split this by day too at some point, or make heatmap but that's annoying.
+wt_cerebellum_isg_plot_data <- wt_cerebellum_isg_plot$data
+
+pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/wt_cerebellum_ISG.pdf", width = 6, height = 5)
+wt_cerebellum_isg_plot_data %>% tidyr::separate(id, c('ignore_that' ,'time', 'celltype')) %>% 
+  mutate(celltype = replace(celltype, celltype == "Macrophage", "Macrophage/Monocytes"))  %>% 
+  ggplot(aes(x = time, y = celltype, size = pct.exp, color = avg.exp))+
+  geom_point()+
+  xlab('Day')+
+  ylab('Cell type')+
+  ggtitle('WT Cerebellum ISG Scores')
+dev.off()
+
+#IPS groups
+ips_cerebrum <- subset(ips, Organ == 'Cerebrum')
+
+pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/ips_cerebrum_ISG_violin.pdf", width = 7, height = 4)
+VlnPlot(ips_cerebrum, features = 'ISG_score1', group.by = 'Treatment', split.by = 'Timepoint',
+        pt.size = 0)+
+  ggtitle('ISG Module Scores IPS1 Cerebrum')
+dev.off()
+
+ips_cerebrum_isg_plot <- DotPlot(ips_cerebrum, features = 'ISG_score1', group.by = 'time_celltype', scale = FALSE) #Can split this by day too at some point, or make heatmap but that's annoying.
+ips_cerebrum_isg_plot_data <- ips_cerebrum_isg_plot$data
+
+pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/ips_cerebrum_ISG.pdf", width = 6, height = 5)
+ips_cerebrum_isg_plot_data %>% tidyr::separate(id, c('ignore_that' ,'time', 'celltype')) %>% 
+  mutate(celltype = replace(celltype, celltype == "Macrophage", "Macrophage/Monocytes"))  %>% 
+  ggplot(aes(x = time, y = celltype, size = pct.exp, color = avg.exp))+
+  geom_point()+
+  xlab('Day')+
+  ylab('Cell type')+
+  ggtitle('IPS Cerebrum ISG Scores')
+dev.off()
+
+ips_cerebellum <- subset(ips, Organ == 'Cerebellum')
+
+pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/ips_cerebellum_ISG_violin.pdf", width = 7, height = 4)
+VlnPlot(ips_cerebellum, features = 'ISG_score1', group.by = 'Treatment', split.by = 'Timepoint',
+        pt.size = 0)+
+  ggtitle('ISG Module Scores IPS1 Cerebellum')
+dev.off()
+
+ips_cerebellum_isg_plot <- DotPlot(ips_cerebellum, features = 'ISG_score1', group.by = 'time_celltype', scale = FALSE) #Can split this by day too at some point, or make heatmap but that's annoying.
+ips_cerebellum_isg_plot_data <- ips_cerebellum_isg_plot$data
+
+pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/ips_cerebellum_ISG.pdf", width = 6, height = 5)
+ips_cerebellum_isg_plot_data %>% tidyr::separate(id, c('ignore_that' ,'time', 'celltype')) %>% 
+  mutate(celltype = replace(celltype, celltype == "Macrophage", "Macrophage/Monocytes"))  %>% 
+  ggplot(aes(x = time, y = celltype, size = pct.exp, color = avg.exp))+
+  geom_point()+
+  xlab('Day')+
+  ylab('Cell type')+
+  ggtitle('IPS Cerebrum ISG Scores')
+dev.off()
+
+####################################OtherGenes###########################################################
 #Other gene markers
 
 #IFN genes
@@ -145,3 +235,8 @@ ggplot(dplot_dat, aes(x = treatment, y = cellType, color = avg.exp.scaled, size 
 
 
 FeaturePlot(ParseSeuratObj_int, features = 'Lrp8', reduction = 'umap.integrated')
+
+
+
+
+
