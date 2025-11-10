@@ -2,10 +2,10 @@
 library(gridExtra)
 library(ggpubr)
 library(Seurat)
-source('./scripts/langatFunctions.R')
+source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
-ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds") 
+ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
 
 #Check data
@@ -14,8 +14,10 @@ newCols[11] =  '#FF8AEF'
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
 
+#Can run this to remove odd macrophage group, but need to create immune_wt_infected below first
 false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
 ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macrophages_toremove, invert = TRUE)
+
 #ReUMAP
 wt_cerebrum <- subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT')
 
@@ -174,8 +176,12 @@ ElbowPlot(immune_wt_infected, ndims = 40)
 immune_wt_infected <- prepUmapSeuratObj(immune_wt_infected, nDims = 20, reductionName = 'wt.immune.infected.umap')
 
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', label = TRUE)
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_wt_infected_umap.pdf',
+    width = 8, height = 6)
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
         cols = newCols)
+dev.off()
 
 #Microglia
 FeaturePlot(immune_wt_infected, 'Ctss', reduction = 'wt.immune.infected.umap')
