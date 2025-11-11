@@ -1,4 +1,5 @@
 #Look at necroptosis/pyroptosis genes from email
+source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
