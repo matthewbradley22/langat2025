@@ -139,7 +139,7 @@ isg_dotplot_create <- function(dat , main, file_name_start = NULL, returnData = 
       ylab('Cell type')+
       ggtitle(paste0(main, ' ', treatments[i]))+
        #Make limits argument for function
-      scale_colour_gradient2(low = "blue", high = "red", limits = c(-0.1, 0.9))+
+      scale_colour_gradient2(low = "blue", high = "red", limits = c(-0.1, 0.95))+
       geom_text(hjust=0.5, vjust=0.5, aes(label = round(avg.exp, digits = 2)), color = 'black', size = 4)
      print(plot)
      dev.off()
@@ -155,8 +155,8 @@ isg_dotplot_create <- function(dat , main, file_name_start = NULL, returnData = 
 
 isg_dotplot_create(wt_cerebrum, main = "WT Cerebrum ISG Scores", file_name_start = 'wt_cerebrum_')
 isg_dotplot_create(wt_cerebellum, main = "WT Cerebellum ISG Scores", file_name_start = 'wt_cerebellum_')
-isg_dotplot_create(ips_cerebrum, main = "WT Cerebrum ISG Scores", file_name_start = 'ips_cerebrum_')
-isg_dotplot_create(ips_cerebellum, main = "WT Cerebrum ISG Scores", file_name_start = 'ips_cerebellum_')
+isg_dotplot_create(ips_cerebrum, main = "IPS Cerebrum ISG Scores", file_name_start = 'ips_cerebrum_')
+isg_dotplot_create(ips_cerebellum, main = "IPS Cerebellum ISG Scores", file_name_start = 'ips_cerebellum_')
 
 
 #Looks less intense than cerebrum on violin plot
@@ -329,6 +329,14 @@ ggplot(dplot_dat, aes(x = treatment, y = cellType, color = avg.exp.scaled, size 
 FeaturePlot(ParseSeuratObj_int, features = 'Lrp8', reduction = 'umap.integrated')
 
 
+#Could ISG differences in cerebrum and cerebellum be due to cell type porportion diffs?
+#Particularly granulocytes + macrophages
 
+cerebellum <- subset(ParseSeuratObj_int, Organ == 'Cerebellum')
+cerebrum <- subset(ParseSeuratObj_int, Organ == 'Cerebrum')
 
+cerebellum_chLgtv <- subset(cerebellum, Treatment == 'rChLGTV')
+cerebrum_chLgtv <- subset(cerebrum, Treatment == 'rChLGTV')
 
+table(cerebrum_chLgtv$Timepoint, cerebrum_chLgtv$manualAnnotation)
+table(cerebellum_chLgtv$Timepoint, cerebellum_chLgtv$manualAnnotation)

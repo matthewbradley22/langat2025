@@ -1,5 +1,5 @@
 #Load data
-ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds") 
+ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
 
 #Check data
@@ -15,6 +15,7 @@ lgtv_ips <- subset(ParseSeuratObj_int, Treatment == 'rLGTV' & Genotype == 'IPS1'
 lgtv_wt <- subset(ParseSeuratObj_int, Treatment == 'rLGTV' & Genotype == 'WT')
 chLgtv_ips <- subset(ParseSeuratObj_int, Treatment == 'rChLGTV' & Genotype == 'IPS1')
 chLgtv_wt <- subset(ParseSeuratObj_int, Treatment == 'rChLGTV' & Genotype == 'WT')
+
 
 lgtv_ips[[]] %>% dplyr::group_by(Timepoint, Genotype, hasVirus) %>% 
   dplyr::summarise(total = n()) %>% 
@@ -43,6 +44,13 @@ chLgtv_wt[[]] %>% dplyr::group_by(Timepoint, Genotype, hasVirus) %>%
   geom_bar(stat = 'identity', position = 'dodge')+
   ggtitle('ChLGTV WT')+
   geom_text(aes(label=total), vjust=0, position = position_dodge(width = .9))
+
+#Look at percent infected frm above comparisons but including organ
+chLgtv_wt[[]] %>% dplyr::group_by(Timepoint, Genotype, Organ, hasVirus) %>% 
+  dplyr::summarise(total = n()) %>% dplyr::mutate(percent_infected = total/sum(total))
+
+chLgtv_ips[[]] %>% dplyr::group_by(Timepoint, Genotype, Organ, hasVirus) %>% 
+  dplyr::summarise(total = n()) %>% dplyr::mutate(percent_infected = total/sum(total))
 
 #How many wt infected cells from each cell type
 ParseSeuratObj_int[[]] %>% dplyr::group_by(Genotype, manualAnnotation, hasVirus) %>% dplyr::summarise(total = n()) %>% 
