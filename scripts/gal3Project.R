@@ -2,6 +2,7 @@
 library(gridExtra)
 library(ggpubr)
 library(Seurat)
+library(gprofiler2)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -39,8 +40,6 @@ macrophages_wt_mock <- subset(wt_cerebrum_mock, manualAnnotation %in% c('Macroph
 macrophages_wt_infected <- subset(wt_cerebrum_infected, manualAnnotation %in% c('Macrophage/Monocytes'))
 
 #ReUMAP
-
-
 wt_cerebrum <- prepSeuratObj(wt_cerebrum)
 ElbowPlot(wt_cerebrum, ndims = 40)
 wt_cerebrum <- prepUmapSeuratObj(wt_cerebrum, nDims = 20, reductionName = 'wt.cerebrum.umap')
@@ -67,7 +66,7 @@ barDat <- wt_cerebrum[[]] %>% dplyr::group_by(Treatment, manualAnnotation) %>%
 barDat %>% dplyr::filter(manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes'))
 
 order <- subset(barDat, Treatment == 'PBS')
-barDat$manualAnnotation = factor(barDat$manualAnnotation, levels = levels(wt_cerebrum$manualAnnotation))
+barDat$manualAnnotation = factor(barDat$manualAnnotation, levels = levels(factor(wt_cerebrum$manualAnnotation)))
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_cerebrum_cell_prop_bar.pdf", width = 8, height = 6)
 barDat %>% ggplot(aes(x = Treatment, y = prop, fill = manualAnnotation))+
@@ -91,7 +90,8 @@ DimPlot(immune, reduction = 'immune.umap', label = TRUE)
 
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_cell_umap.pdf',
     width = 7, height = 5)
-DimPlot(immune, reduction = 'immune.umap', group.by = 'manualAnnotation')+
+DimPlot(immune, reduction = 'immune.umap', group.by = 'manualAnnotation', 
+        cols = c(newCols[[2]], newCols[[6]], newCols[[8]], newCols[[9]], newCols[[12]], newCols[[15]]))+
   ggtitle('Immune cells')+
   xlab('Umap 1')+
   ylab('Umap 2')+  
@@ -123,7 +123,7 @@ geneList = c('Lgals3', 'Adgre1', 'Ptprc', 'Ccr1',
              'Cd86', 'Tmem119', 'Tspo', 'Csf1r')
 FeaturePlot(immune, geneList, reduction = 'immune.umap')
 
-featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE){
+featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim = 0, maxLim = 6){
   dat = FeaturePlot(data, gene, reduction = reduction_choice)$data
   colnames(dat) = c('umap1', 'umap2', 'ident', 'expression')
   ggplot(dat, aes(x = umap1, y = umap2, color = expression))+
@@ -136,7 +136,7 @@ featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE){
           axis.ticks.x=element_blank(),
           axis.ticks.y=element_blank(),
           panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))+
-    scale_color_gradient(low = 'lightgrey', high = 'blue', limits = c(0,6))+
+    scale_color_gradient(low = 'lightgrey', high = 'blue', limits = c(minLim,maxLim))+
     ggtitle(gene)
     # annotate(x = min(dat$umap1) - 1, xend = min(dat$umap1) - 1, 
     #          y = min(dat$umap2) - 1, yend = min(dat$umap2) + 1, geom = 'segment')+
@@ -168,7 +168,7 @@ DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', label = TRUE)
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_cerebrum.pdf',
     width = 7, height = 5)
 DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnnotation',
-        cols = newCols)
+        cols = c(newCols[[2]], newCols[[6]], newCols[[8]], newCols[[9]], newCols[[12]], newCols[[15]]))
 dev.off()
 
 plotList <- list(featurePlotLight('Lgals3', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
@@ -209,7 +209,7 @@ DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', label = TRUE)
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_wt_infected_umap.pdf',
     width = 8, height = 6)
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
-        cols = newCols)
+         cols = c(newCols[[2]], newCols[[6]], newCols[[8]], newCols[[9]], newCols[[12]], newCols[[15]]))
 dev.off()
 
 #Microglia
@@ -281,12 +281,12 @@ lapply(plotList_infected, FUN = function(x){
   dat = x$data
   print(max(dat[4]))
 })
-pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_infected_features_version2.pdf',
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_infected_features.pdf',
     width = 10, height = 5)
 ggarrange(plotList_infected[[1]], plotList_infected[[2]], plotList_infected[[3]], plotList_infected[[4]], 
           plotList_infected[[5]], plotList_infected[[6]], plotList_infected[[7]], plotList_infected[[8]],
           plotList_infected[[9]], plotList_infected[[10]], plotList_infected[[11]], plotList_infected[[12]],
-          common.legend = TRUE, ncol = 6, nrow = 2, legend = 'right')
+          common.legend = TRUE, legend = 'right')#ncol = 6, nrow = 2, )
 
 dev.off()
 
@@ -337,7 +337,7 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = TRU
 macMarkers <- FindAllMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
                              test.use = 'MAST')
 
-macMarkers$pct_dif = macMarkers$pct.1 - macMarkers$pct.2
+pe_fs_comp$result$pct_dif = macMarkers$pct.1 - macMarkers$pct.2
 top_by_cluster = macMarkers %>% arrange(desc(pct_dif)) %>% 
   group_by(cluster) %>% dplyr::slice_head(n = 10) %>% 
   arrange(cluster) 
@@ -346,25 +346,35 @@ write.csv(top_by_cluster$gene, "~/Documents/ÖverbyLab/scPlots/galectin3_proj/to
 macMarkers %>% dplyr::filter(p_val_adj < 0.01 & cluster == 14) %>% head(n = 150) %>%  dplyr::select(gene) %>% 
   remove_rownames() %>% write.csv(file = "~/Documents/ÖverbyLab/macrophage_markers_clust9.csv", quote = FALSE, row.names = FALSE)
 
-#Cluster 4 - lots about response to virus
-FeaturePlot(macrophages_wt_infected, 'Nos2', reduction = 'wt.infected.mac.umap', slot = 'data') #proinflammatory
-FeaturePlot(macrophages_wt_infected, 'Bnip3', reduction = 'wt.infected.mac.umap', slot = 'data') #Apoptosis
-FeaturePlot(macrophages_wt_infected, 'Ccr1', reduction = 'wt.infected.mac.umap', slot = 'data') #recruitment
-FeaturePlot(macrophages_wt_infected, 'Cxcl2', reduction = 'wt.infected.mac.umap', slot = 'data') #recruitment
-FeaturePlot(macrophages_wt_infected, 'Ccl5', reduction = 'wt.infected.mac.umap', slot = 'data')  #recruitment
+#Gene ontologyz
+pathway_result_list = list()
+for(i in 1:length(unique(macMarkers$cluster))){
+  markers <- macMarkers[macMarkers$cluster==i-1 &macMarkers$p_val_adj < 0.01,]$gene
+  print(paste('Cluster', i-1, head(markers)))
+  marker_paths <- gprofiler2::gost(query = markers, organism = 'mmusculus', evcodes = TRUE)
+  pathway_result_list[[i]] = marker_paths$result
+}
+head(pathway_result_list[[5]]$term_name, n = 20)
 
-#Cluster 9 markers
-FeaturePlot(macrophages_wt_infected, 'Gpnmb', reduction = 'wt.infected.mac.umap', slot = 'data') #Often anti inflammatory https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2021.674739/full
-FeaturePlot(macrophages_wt_infected, 'Spp1', reduction = 'wt.infected.mac.umap', slot = 'data') #
+#Specific genes of interest
+#CLuster 7
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Ccr7') #m1 marker
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Stat4') 
 
-#Clust 11
-FeaturePlot(macrophages_wt_infected, 'Cd74', reduction = 'wt.infected.mac.umap', slot = 'data') #histocompatibility chaperone
-FeaturePlot(macrophages_wt_infected, 'H2-Ab1', reduction = 'wt.infected.mac.umap', slot = 'data') 
-FeaturePlot(macrophages_wt_infected, 'H2-Eb1', reduction = 'wt.infected.mac.umap', slot = 'data') 
-FeaturePlot(macrophages_wt_infected, 'Ciita', reduction = 'wt.infected.mac.umap', slot = 'data') 
+#Cluster 10, BAMs
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Mrc1') #Border associated marker
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Apoe') #Border associated marker
 
-#Clust 14
-FeaturePlot(macrophages_wt_infected, 'Vcan', reduction = 'wt.infected.mac.umap', slot = 'data') 
+#Clusetr 4 mhc
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'H2-Ab1') 
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cd74') 
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'H2-Eb1') 
+
+#Cluster 0
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cxcl2') #neutrophil recruitment/inflammatory response
+
+#Cluster 9
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Mef2c') #M1 marker?
 
 #Write out data for allen mapmycells
 macrophages_wt_infected[['RNA']]$counts %>% t() %>% write.csv(file = './data/wt_infected_macrophages.csv', row.names = TRUE)
@@ -374,7 +384,7 @@ wt_infected_macro_mapMY <- read_csv("/Users/matthewbradley/Documents/ÖverbyLab/
                            skip = 4)
 
 #interesting genes
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cxcl9') #m1 marker
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Nav3') 
 
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/infected_macs_Adgre1.pdf',
     width = 7, height = 5)
@@ -476,7 +486,7 @@ macrophages_wt_infected[[]] <- macrophages_wt_infected[[]] %>% mutate(Lgals_Adgr
                                                    Lgals3 == 0 & Adgre1 > 0 ~ 'Adgre1',
                                                    Lgals3 == 0 & Adgre1 == 0 ~ 'Neither'))
 
-pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/infected_macs_Lgals3_Adgre1_overlay.pdf',
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/infected_macs_Lgals3_Adgre1_overlay_withCounts.pdf',
     width = 7, height = 5)
 DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap',
         group.by = 'Lgals_Adgre_both')+
@@ -490,6 +500,22 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap',
         axis.ticks.y=element_blank(),
         panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))+
   scale_color_manual(values = c('#0FA7FF', '#FC5656', '#65BD40', 'gray'))
+  # labs(caption = 'Expressing both: 358 cells
+  #      Expressing Lgals3 only: 1,516 cells,
+  #      Expressing Adgre1 only: 329 cells,
+  #      Expressing neither: 2,271 cells')
+dev.off()
+
+macrophages_wt_infected$Lgals_Adgre_both <- factor(macrophages_wt_infected$Lgals_Adgre_both, levels = c('Neither', 'Lgals3', 'Adgre1', 'Both'))
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/infected_macs_Lgals3_Adgre1_barplot.pdf',
+    width = 7, height = 5)
+macrophages_wt_infected[[]] %>% dplyr::group_by(Lgals_Adgre_both) %>% dplyr::reframe(gene_totals = n()) %>% 
+  ggplot(aes(x = Lgals_Adgre_both, y = gene_totals))+
+  geom_bar(stat = 'identity')+
+  xlab('')+
+  ylab('Cell count')+
+  theme(axis.text.x = element_text(size = 15))
 dev.off()
 
 #Look at unknown cells in micro/macro clusters
@@ -520,6 +546,22 @@ plotList_unknown <- list(featurePlotLight('Lgals3', data = unknown, reduction_ch
 
 do.call(ggarrange, c(plotList_unknown, common.legend = TRUE, legend = 'right'))
 
+#Run cell_death_pathways.R to get gene lists
+macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(pro_apoptosis), name = 'pro_apoptosis_score', assay = 'RNA')
+macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(anti_apoptosis), name = 'anti_apoptosis_score', assay = 'RNA')
+macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(ferroptosis), name = 'ferroptosis_score', assay = 'RNA')
+macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(autophagy), name = 'autophagy_score', assay = 'RNA')
+macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(cuproptosis), name = 'cuproptosis_score', assay = 'RNA')
 
-
+plotList_apoptosis <- list(featurePlotLight(data = macrophages_wt_infected, gene =  'pro_apoptosis_score1', reduction = 'wt.infected.mac.umap', 
+                                            minLim = -0.4, maxLim = 1.1),
+                           featurePlotLight(data = macrophages_wt_infected, gene = 'anti_apoptosis_score1', reduction = 'wt.infected.mac.umap',
+                                            minLim = -0.4, maxLim = 1.1),
+                           featurePlotLight(data = macrophages_wt_infected, gene = 'ferroptosis_score1', reduction = 'wt.infected.mac.umap',
+                                            minLim = -0.4, maxLim = 1.1),
+                           featurePlotLight(data = macrophages_wt_infected, gene = 'autophagy_score1', reduction = 'wt.infected.mac.umap',
+                                            minLim = -0.4, maxLim = 1.1),
+                           featurePlotLight(data = macrophages_wt_infected, gene = 'cuproptosis_score1', reduction = 'wt.infected.mac.umap',
+                                            minLim = -0.4, maxLim = 1.1))
+do.call(ggarrange, c(plotList_apoptosis, common.legend = TRUE, legend = 'right'))
 

@@ -340,3 +340,22 @@ cerebrum_chLgtv <- subset(cerebrum, Treatment == 'rChLGTV')
 
 table(cerebrum_chLgtv$Timepoint, cerebrum_chLgtv$manualAnnotation)
 table(cerebellum_chLgtv$Timepoint, cerebellum_chLgtv$manualAnnotation)
+
+#Ifng could be driving things, look at levels across groups
+wt_lgtv <-subset(wt, Treatment == 'rLGTV')
+wt_lgtv <- prepSeuratObj(wt_lgtv)
+ElbowPlot(wt_lgtv, ndims = 40)
+wt_lgtv <- prepUmapSeuratObj(wt_lgtv, nDims = 20, reductionName = 'wt.lgtv.cerebrum.umap', resolution_value = 1)
+DimPlot(wt_lgtv, reduction = 'wt.lgtv.cerebrum.umap', group.by = 'manualAnnotation')
+wt_lgtv_ifng_data <- DotPlot(wt_lgtv, features = 'Ifng', scale = FALSE, group.by = 'time_celltype')$data
+wt_lgtv_ifng_meta <- str_split_fixed(wt_lgtv_ifng_data$id, "_", 2)
+colnames(wt_lgtv_ifng_meta) = c('time', 'celltype')
+wt_lgtv_ifng_data <- cbind(wt_lgtv_ifng_data, wt_lgtv_ifng_meta)
+ggplot(wt_lgtv_ifng_data, aes(x = time, y = celltype, color = avg.exp, size = pct.exp))+
+  geom_point()
+
+ips_LGTV <- subset(ips, Treatment == 'rLGTV')
+ips_LGTV <- prepSeuratObj(ips_LGTV)
+ElbowPlot(ips_LGTV, ndims = 40)
+ips_LGTV <- prepUmapSeuratObj(ips_LGTV, nDims = 20, reductionName = 'wt.lgtv.cerebrum.umap', resolution_value = 1)
+DotPlot(ips_LGTV, features = 'Ifng', scale = FALSE, group.by = 'Timepoint')
