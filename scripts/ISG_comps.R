@@ -5,6 +5,7 @@ library(dplyr)
 library(matrixStats)
 library(ggplot2)
 library(gt)
+library(ggrepel)
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
@@ -105,58 +106,11 @@ wt_cerebrum <- subset(wt, Organ == 'Cerebrum')
 pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/wt_cerebrum_ISG_violin.pdf", width = 7, height = 4)
 VlnPlot(wt_cerebrum, features = 'ISG_score1', group.by = 'Treatment', split.by = 'Timepoint',
         pt.size = 0)+
-  ggtitle('ISG Module Scores WT Cerebrum')
+  ggtitle('ISG Module Scores WT Cerebrum')+
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2))
 dev.off()
 
-#Need a function to plug in data , return dotplot splot by day and celltype for each virus type (3 dot plots)
-#Color and size based on isg scores
-isg_dotplot_create <- function(dat , main, file_name_start = NULL, returnData = FALSE){
-  
-  #There must be a better way to extract name of each treatment group from a seurat object, but 
-  #for now this works fine, just hard to read
-  treatments <- c(unique(dat[['Treatment']]))[['Treatment']]
-  
-  if(returnData){
-    data_list = list()
-  }
-  
-  #Create dotplot for each treatment
-  #2 to 3 plots total 
-  for(i in 1:length(treatments)){
-    treatment_subset_dat <-subset(dat, Treatment == treatments[i])
-    isg_plot <- DotPlot(treatment_subset_dat, features = 'ISG_score1', group.by = 'time_celltype', scale = FALSE)
-    isg_plot_data <- isg_plot$data
-    if(returnData){
-      data_list[[i]] = isg_plot_data
-      next
-    }
-    pdf(paste0("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/", file_name_start, treatments[i], '_ISG_dot.pdf'), width = 6, height = 5)
-     plot = isg_plot_data %>% tidyr::separate(id, c('ignore_that' ,'time', 'celltype')) %>% 
-      mutate(celltype = replace(celltype, celltype == "Macrophage", "Macrophage/Monocytes"))  %>% 
-      ggplot(aes(x = time, y = celltype, size = pct.exp, color = avg.exp))+
-      geom_point()+
-      xlab('Day')+
-      ylab('Cell type')+
-      ggtitle(paste0(main, ' ', treatments[i]))+
-       #Make limits argument for function
-      scale_colour_gradient2(low = "blue", high = "red", limits = c(-0.1, 0.95))+
-      geom_text(hjust=0.5, vjust=0.5, aes(label = round(avg.exp, digits = 2)), color = 'black', size = 4)
-     print(plot)
-     dev.off()
 
-  }
-  
-  if(returnData){
-    names(data_list) = treatments
-    data_list
-  }
-  
-}
-
-isg_dotplot_create(wt_cerebrum, main = "WT Cerebrum ISG Scores", file_name_start = 'wt_cerebrum_')
-isg_dotplot_create(wt_cerebellum, main = "WT Cerebellum ISG Scores", file_name_start = 'wt_cerebellum_')
-isg_dotplot_create(ips_cerebrum, main = "IPS Cerebrum ISG Scores", file_name_start = 'ips_cerebrum_')
-isg_dotplot_create(ips_cerebellum, main = "IPS Cerebellum ISG Scores", file_name_start = 'ips_cerebellum_')
 
 
 #Looks less intense than cerebrum on violin plot
@@ -165,7 +119,8 @@ wt_cerebellum <- subset(wt, Organ == 'Cerebellum')
 pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/wt_cerebrellum_ISG_violin.pdf", width = 7, height = 4)
 VlnPlot(wt_cerebellum, features = 'ISG_score1', group.by = 'Treatment', split.by = 'Timepoint',
         pt.size = 0)+
-  ggtitle('ISG Module Scores WT Cerebellum')
+  ggtitle('ISG Module Scores WT Cerebellum')+
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2), limits = c(-0.25, 1))
 dev.off()
 
 #rank celltypes
@@ -210,7 +165,8 @@ ips_cerebrum <- subset(ips, Organ == 'Cerebrum')
 pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/ips_cerebrum_ISG_violin.pdf", width = 7, height = 4)
 VlnPlot(ips_cerebrum, features = 'ISG_score1', group.by = 'Treatment', split.by = 'Timepoint',
         pt.size = 0)+
-  ggtitle('ISG Module Scores IPS1 Cerebrum')
+  ggtitle('ISG Module Scores IPS1 Cerebrum')+
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2), limits = c(-0.25, 1))
 dev.off()
 
 ips_cerebrum_isg_plot <- DotPlot(ips_cerebrum, features = 'ISG_score1', group.by = 'time_celltype', scale = FALSE) #Can split this by day too at some point, or make heatmap but that's annoying.
@@ -221,11 +177,65 @@ ips_cerebellum <- subset(ips, Organ == 'Cerebellum')
 pdf("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/ips_cerebellum_ISG_violin.pdf", width = 7, height = 4)
 VlnPlot(ips_cerebellum, features = 'ISG_score1', group.by = 'Treatment', split.by = 'Timepoint',
         pt.size = 0)+
-  ggtitle('ISG Module Scores IPS1 Cerebellum')
+  ggtitle('ISG Module Scores IPS1 Cerebellum')+
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2), limits = c(-0.25, 1))
 dev.off()
 
 ips_cerebellum_isg_plot <- DotPlot(ips_cerebellum, features = 'ISG_score1', group.by = 'time_celltype', scale = FALSE) #Can split this by day too at some point, or make heatmap but that's annoying.
 ips_cerebellum_isg_plot_data <- ips_cerebellum_isg_plot$data
+
+##########################ISG Dotplots##########################
+
+#Need a function to plug in data , return dotplot splot by day and celltype for each virus type (3 dot plots)
+#Color and size based on isg scores
+isg_dotplot_create <- function(dat , main, file_name_start = NULL, returnData = FALSE){
+  
+  #There must be a better way to extract name of each treatment group from a seurat object, but 
+  #for now this works fine, just hard to read
+  treatments <- c(unique(dat[['Treatment']]))[['Treatment']]
+  
+  if(returnData){
+    data_list = list()
+  }
+  
+  #Create dotplot for each treatment
+  #2 to 3 plots total 
+  for(i in 1:length(treatments)){
+    treatment_subset_dat <-subset(dat, Treatment == treatments[i])
+    isg_plot <- DotPlot(treatment_subset_dat, features = 'ISG_score1', group.by = 'time_celltype', scale = FALSE)
+    isg_plot_data <- isg_plot$data
+    if(returnData){
+      data_list[[i]] = isg_plot_data
+      next
+    }
+    pdf(paste0("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/", file_name_start, treatments[i], '_ISG_dot.pdf'), width = 6, height = 5)
+    plot = isg_plot_data %>% tidyr::separate(id, c('ignore_that' ,'time', 'celltype')) %>% 
+      mutate(celltype = replace(celltype, celltype == "Macrophage", "Macrophage/Monocytes"))  %>% 
+      ggplot(aes(x = time, y = celltype, size = pct.exp, color = avg.exp))+
+      geom_point()+
+      xlab('Day')+
+      ylab('Cell type')+
+      ggtitle(paste0(main, ' ', treatments[i]))+
+      #Make limits argument for function
+      scale_colour_gradient2(low = "blue", high = "red", limits = c(-0.1, 0.95))+
+      geom_text(hjust=0.5, vjust=0.5, aes(label = round(avg.exp, digits = 2)), color = 'black', size = 4)
+    print(plot)
+    dev.off()
+    
+  }
+  
+  if(returnData){
+    names(data_list) = treatments
+    data_list
+  }
+  
+}
+
+#Warnings expected here since we're splitting data columns roughly right now. WIll fix for final plotting
+isg_dotplot_create(wt_cerebrum, main = "WT Cerebrum ISG Scores", file_name_start = 'wt_cerebrum_')
+isg_dotplot_create(wt_cerebellum, main = "WT Cerebellum ISG Scores", file_name_start = 'wt_cerebellum_')
+isg_dotplot_create(ips_cerebrum, main = "IPS Cerebrum ISG Scores", file_name_start = 'ips_cerebrum_')
+isg_dotplot_create(ips_cerebellum, main = "IPS Cerebellum ISG Scores", file_name_start = 'ips_cerebellum_')
 
 #Difference between ips organ groups
 left_join(ips_cerebrum_isg_plot_data, ips_cerebellum_isg_plot_data, by = 'id', suffix = c('.cerebrum',
@@ -343,19 +353,36 @@ table(cerebellum_chLgtv$Timepoint, cerebellum_chLgtv$manualAnnotation)
 
 #Ifng could be driving things, look at levels across groups
 wt_lgtv <-subset(wt, Treatment == 'rLGTV')
-wt_lgtv <- prepSeuratObj(wt_lgtv)
-ElbowPlot(wt_lgtv, ndims = 40)
-wt_lgtv <- prepUmapSeuratObj(wt_lgtv, nDims = 20, reductionName = 'wt.lgtv.cerebrum.umap', resolution_value = 1)
-DimPlot(wt_lgtv, reduction = 'wt.lgtv.cerebrum.umap', group.by = 'manualAnnotation')
-wt_lgtv_ifng_data <- DotPlot(wt_lgtv, features = 'Ifng', scale = FALSE, group.by = 'time_celltype')$data
-wt_lgtv_ifng_meta <- str_split_fixed(wt_lgtv_ifng_data$id, "_", 2)
-colnames(wt_lgtv_ifng_meta) = c('time', 'celltype')
-wt_lgtv_ifng_data <- cbind(wt_lgtv_ifng_data, wt_lgtv_ifng_meta)
-ggplot(wt_lgtv_ifng_data, aes(x = time, y = celltype, color = avg.exp, size = pct.exp))+
-  geom_point()
+wt_pbs <-subset(wt, Treatment == 'PBS')
+wt_chLgtv <-subset(wt, Treatment == 'rChLGTV')
 
-ips_LGTV <- subset(ips, Treatment == 'rLGTV')
-ips_LGTV <- prepSeuratObj(ips_LGTV)
-ElbowPlot(ips_LGTV, ndims = 40)
-ips_LGTV <- prepUmapSeuratObj(ips_LGTV, nDims = 20, reductionName = 'wt.lgtv.cerebrum.umap', resolution_value = 1)
-DotPlot(ips_LGTV, features = 'Ifng', scale = FALSE, group.by = 'Timepoint')
+ips_lgtv <-subset(ips, Treatment == 'rLGTV')
+ips_pbs <-subset(ips, Treatment == 'PBS')
+ips_chLgtv <-subset(ips, Treatment == 'rChLGTV')
+
+time_celltype_ifng_dot <- function(dat, title){
+  #Get number of cells of each cell type at each timepoint
+  cell_counts <- data.frame(id = names(table(dat$time_celltype)), counts = c(unname(table(dat$time_celltype))))
+  #get plotting data
+  dot_dat <- DotPlot(dat, features = 'Ifng', scale = FALSE, group.by = 'time_celltype')$data
+  #combine plotting data with cell counts
+  dot_dat <- left_join(dot_dat, cell_counts, by = 'id')
+  #prep data for plotting
+  dot_meta <- str_split_fixed(dot_dat$id, "_", 2)
+  colnames(dot_meta) = c('time', 'celltype')
+  dot_dat_meta <- cbind(dot_dat, dot_meta)
+  dot <- ggplot(dot_dat_meta, aes(x = time, y = celltype, color = avg.exp, size = pct.exp, label = counts))+
+    geom_point()+
+    geom_text_repel(nudge_x = 0.05, size = 4, color = 'black')+
+    ggtitle(title)
+  print(dot)
+}
+
+time_celltype_ifng_dot(wt_pbs, title = 'WT PBS')
+time_celltype_ifng_dot(wt_lgtv,  title = 'WT LGTV')
+time_celltype_ifng_dot(wt_chLgtv,  title = 'WT ChLGTV')
+
+time_celltype_ifng_dot(ips_pbs, , title = 'IPS PBS')
+time_celltype_ifng_dot(ips_LGTV, title = 'IPS LGTV')
+#ips chimeric seems to have unique nk cell infiltration
+time_celltype_ifng_dot(ips_chLgtv, title = 'IPS ChLGTV')
