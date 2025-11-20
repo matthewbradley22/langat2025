@@ -336,8 +336,10 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = TRU
 
 macMarkers <- FindAllMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
                              test.use = 'MAST')
-
-pe_fs_comp$result$pct_dif = macMarkers$pct.1 - macMarkers$pct.2
+mac_timeMarkers <- FindMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA', group.by = 'Timepoint', ident.1 ='Day 5',
+                             test.use = 'MAST')
+VlnPlot(macrophages_wt_infected, features = 'Nos2', group.by = 'Timepoint')
+macMarkers$pct_dif = macMarkers$pct.1 - macMarkers$pct.2
 top_by_cluster = macMarkers %>% arrange(desc(pct_dif)) %>% 
   group_by(cluster) %>% dplyr::slice_head(n = 10) %>% 
   arrange(cluster) 
@@ -375,6 +377,16 @@ FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', feature
 
 #Cluster 9
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Mef2c') #M1 marker?
+
+#Compare Lgals3+ and - macrophages
+macrophages_wt_infected$lgals_presence <- ifelse(FetchData(object = macrophages_wt_infected, vars = c("Lgals3")) > 0, 1, 0)
+table(macrophages_wt_infected$lgals_presence)
+lgal_markers <- FindMarkers(macrophages_wt_infected, group.by = 'lgals_presence', ident.1 = '1', test.use = 'MAST')
+significant_markers <- lgal_markers %>% as.data.frame() %>% dplyr::filter(p_val_adj < 0.01 & abs(avg_log2FC) > 1)
+significant_marker_names <- rownames(significant_markers)
+
+lgal_marker_path <- gprofiler2::gost(query = significant_marker_names, organism = 'mmusculus', evcodes = TRUE)
+lgal_marker_path$result %>% as.data.frame() %>% dplyr::filter(intersection_size > 2)
 
 #Write out data for allen mapmycells
 macrophages_wt_infected[['RNA']]$counts %>% t() %>% write.csv(file = './data/wt_infected_macrophages.csv', row.names = TRUE)

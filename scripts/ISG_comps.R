@@ -6,6 +6,7 @@ library(matrixStats)
 library(ggplot2)
 library(gt)
 library(ggrepel)
+library(purrr)
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
@@ -39,6 +40,16 @@ all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
 #Look at select isg in cells
 ParseSeuratObj_int = AddModuleScore(ParseSeuratObj_int, features = list(all_ISGs_type1), name = 'ISG_score',
                                     slot = 'data', assay = 'RNA') 
+chimeric_mock <- subset(ParseSeuratObj_int, Treatment != 'rLGTV')
+chimeric_mock$genotype_treatment <- paste(chimeric_mock$Genotype, chimeric_mock$Treatment, sep = '_')
+
+#Violin plot separated by genotype and treatment
+chimeric_mock$genotype_treatment <- factor(chimeric_mock$genotype_treatment, levels = c('WT_PBS', 'WT_rChLGTV', 'IPS1_PBS', 'IPS1_rChLGTV'))
+pdf('~/Documents/ÖverbyLab/scPlots/ISG_chimeric_vln_ips.pdf', width = 7, height = 4)
+VlnPlot(chimeric_mock, features = 'ISG_score1', group.by = 'genotype_treatment', split.by = 'Timepoint',
+        pt.size = 0)+
+  ggtitle('ISG Module Scores')
+dev.off()
 
 #Subset by genotype for plotting later
 ips <- subset(ParseSeuratObj_int, Genotype == 'IPS1')
@@ -87,7 +98,7 @@ DotPlot(subset(ParseSeuratObj_int, Treatment != 'PBS'), group.by = 'time_treatme
   theme(axis.text.x = element_text(angle = 90))+
   ggtitle('High variance ISGs')
 
-#################################Groups#############################################################
+#################################Groups#################################
 #Split everything by group, look at celltypes in each group as well ie UMAPs/dotplots
 
 #Create a table with y axis cell types, x axis days, and values as avg.expression of isg scores. split by virus and organ and genotype?
@@ -186,9 +197,15 @@ ips_cerebellum_isg_plot_data <- ips_cerebellum_isg_plot$data
 
 ##########################ISG Dotplots##########################
 
+#Will order heatmap by resident and infiltrating
+resident_celltypes <- rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal', 'Immature Neurons',
+                        'Microglia', 'Muscle cells','Neurons', 'Oligodendrocytes', 'Pericytes'))
+
+infiltrating_celltypes <- rev(c( 'B cells',  'Granulocytes', 'Macrophage/Monocytes', 'Nk cells',  "T cells"))
+
 #Need a function to plug in data , return dotplot splot by day and celltype for each virus type (3 dot plots)
 #Color and size based on isg scores
-isg_dotplot_create <- function(dat , main, file_name_start = NULL, returnData = FALSE){
+isg_heatmap_create <- function(dat , main, file_name_start = NULL, returnData = FALSE){
   
   #There must be a better way to extract name of each treatment group from a seurat object, but 
   #for now this works fine, just hard to read
@@ -208,19 +225,43 @@ isg_dotplot_create <- function(dat , main, file_name_start = NULL, returnData = 
       data_list[[i]] = isg_plot_data
       next
     }
-    pdf(paste0("~/Documents/ÖverbyLab/scPlots/ISG_plots_byOrgan/", file_name_start, treatments[i], '_ISG_dot.pdf'), width = 6, height = 5)
+    pdf(paste0("~/Documents/ÖverbyLab/scPlots/ISG_heatmaps_by_genotype/", file_name_start, treatments[i], '_ISG_heatmap.pdf'), width = 6, height = 5)
     plot = isg_plot_data %>% tidyr::separate(id, c('ignore_that' ,'time', 'celltype')) %>% 
-      mutate(celltype = replace(celltype, celltype == "Macrophage", "Macrophage/Monocytes"))  %>% 
-      ggplot(aes(x = time, y = celltype, size = pct.exp, color = avg.exp))+
-      geom_point()+
+      mutate(celltype = case_when(celltype == "Macrophage" ~ "Macrophage/Monocytes",
+                                  celltype == "B" ~ "B cells",
+                                  celltype == "T" ~ "T cells",
+                                  celltype == "Nk" ~ "Nk cells",
+                                  celltype == "Immature" ~ "Immature Neurons",
+                                  celltype == "Choroid" ~ "Choroid Plexus",
+                                  celltype == "Muscle" ~ "Muscle cells",
+                                  .default = celltype))  %>% 
+      mutate(celltype=fct_relevel(celltype,c(resident_celltypes, infiltrating_celltypes))) %>% 
+      ggplot(aes(x = time, y = celltype, fill = avg.exp))+
+      geom_tile()+
       xlab('Day')+
       ylab('Cell type')+
       ggtitle(paste0(main, ' ', treatments[i]))+
       #Make limits argument for function
-      scale_colour_gradient2(low = "blue", high = "red", limits = c(-0.1, 0.95))+
-      geom_text(hjust=0.5, vjust=0.5, aes(label = round(avg.exp, digits = 2)), color = 'black', size = 4)
+      scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
+                            values = c(1.0,0.7,0.4,0.2,0),
+                           limits = c(-0.15, 0.95))+
+      geom_text(hjust=0.5, vjust=0.5, aes(label = round(avg.exp, digits = 2)), color = 'black', size = 4)+
+      theme_classic()+
+      theme(axis.line=element_blank())
     print(plot)
     dev.off()
+    
+    #Can replace heatmap with dotplot
+    # isg_plot_data %>% tidyr::separate(id, c('ignore_that' ,'time', 'celltype')) %>% 
+    #   mutate(celltype = replace(celltype, celltype == "Macrophage", "Macrophage/Monocytes"))  %>% 
+    #   ggplot(aes(x = time, y = celltype, size = pct.exp, color = avg.exp))+
+    #   geom_point()+
+    #   xlab('Day')+
+    #   ylab('Cell type')+
+    #   ggtitle(paste0(main, ' ', treatments[i]))+
+    #   #Make limits argument for function
+    #   scale_colour_gradient2(low = "blue", high = "red", limits = c(-0.1, 0.95))+
+    #   geom_text(hjust=0.5, vjust=0.5, aes(label = round(avg.exp, digits = 2)), color = 'black', size = 4)
     
   }
   
@@ -232,10 +273,48 @@ isg_dotplot_create <- function(dat , main, file_name_start = NULL, returnData = 
 }
 
 #Warnings expected here since we're splitting data columns roughly right now. WIll fix for final plotting
-isg_dotplot_create(wt_cerebrum, main = "WT Cerebrum ISG Scores", file_name_start = 'wt_cerebrum_')
-isg_dotplot_create(wt_cerebellum, main = "WT Cerebellum ISG Scores", file_name_start = 'wt_cerebellum_')
-isg_dotplot_create(ips_cerebrum, main = "IPS Cerebrum ISG Scores", file_name_start = 'ips_cerebrum_')
-isg_dotplot_create(ips_cerebellum, main = "IPS Cerebellum ISG Scores", file_name_start = 'ips_cerebellum_')
+#wt cerebrum
+isg_heatmap_create(wt_cerebrum, main = "WT Cerebrum ISG Scores", file_name_start = 'wt_cerebrum_')
+
+#wrt cerebellum
+isg_heatmap_create(wt_cerebellum, main = "WT Cerebellum ISG Scores", file_name_start = 'wt_cerebellum_')
+
+#ips cerebrum
+isg_heatmap_create(ips_cerebrum, main = "IPS Cerebrum ISG Scores", file_name_start = 'ips_cerebrum_')
+table(subset(ips_cerebrum, Treatment == 'rLGTV')$Timepoint, subset(ips_cerebrum, Treatment == 'rLGTV')$manualAnnotation) %>% 
+  as.data.frame() %>% pivot_wider(names_from = Var1, values_from = Freq) %>% map_df(rev)
+table(subset(ips_cerebrum, Treatment == 'rChLGTV')$Timepoint, subset(ips_cerebrum, Treatment == 'rLGTV')$manualAnnotation) %>% 
+  as.data.frame() %>% pivot_wider(names_from = Var1, values_from = Freq) %>% map_df(rev)
+
+#ips cerebellum
+isg_heatmap_create(ips_cerebellum, main = "IPS Cerebellum ISG Scores", file_name_start = 'ips_cerebellum_')
+table(subset(ips_cerebellum, Treatment == 'rChLGTV')$Timepoint, subset(ips_cerebellum, Treatment == 'rChLGTV')$manualAnnotation) %>% 
+  as.data.frame() %>% pivot_wider(names_from = Var1, values_from = Freq) %>% map_df(rev)
+
+#wt both organs
+#Annoying column names, but Var1 = day, Var2 = cell type
+chimeric_mock_ips <- subset(chimeric_mock, Genotype == 'IPS1')
+chimeric_mock_wt <- subset(chimeric_mock, Genotype == 'WT')
+isg_heatmap_create(chimeric_mock_ips, main = "IPS ISG Score", file_name_start = 'ips_isg_')
+isg_heatmap_create(chimeric_mock_wt, main = "WT ISG Score", file_name_start = 'wt_isg_')
+
+pdf("~/Documents/ÖverbyLab/scPlots/chimeric_ips_cellPopBars.pdf", width = 5, height = 7)
+table(subset(chimeric_mock_ips, Treatment == 'rChLGTV')$Timepoint, subset(chimeric_mock_ips, Treatment == 'rChLGTV')$manualAnnotation) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = newCols)+
+  theme_classic()
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/scPlots/wt_ips_cellPopBars.pdf", width = 5, height = 7)
+table(subset(chimeric_mock_wt, Treatment == 'rChLGTV')$Timepoint, subset(chimeric_mock_wt, Treatment == 'rChLGTV')$manualAnnotation) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = newCols)+
+  theme_classic()
+dev.off()
 
 #Difference between ips organ groups
 left_join(ips_cerebrum_isg_plot_data, ips_cerebellum_isg_plot_data, by = 'id', suffix = c('.cerebrum',
@@ -352,6 +431,12 @@ table(cerebrum_chLgtv$Timepoint, cerebrum_chLgtv$manualAnnotation)
 table(cerebellum_chLgtv$Timepoint, cerebellum_chLgtv$manualAnnotation)
 
 #Ifng could be driving things, look at levels across groups
+#Look overall at ips
+DotPlot(ips, features = 'Ifng', group.by = 'time_treatment', scale = F)$data
+DotPlot(ips, features = 'Ifng', group.by = 'time_treatment', scale = F)+
+  scale_size_continuous(range = c(2,6), breaks = seq(0.5, 3, 0.5))
+
+#Look by celltype
 wt_lgtv <-subset(wt, Treatment == 'rLGTV')
 wt_pbs <-subset(wt, Treatment == 'PBS')
 wt_chLgtv <-subset(wt, Treatment == 'rChLGTV')
@@ -378,11 +463,28 @@ time_celltype_ifng_dot <- function(dat, title){
   print(dot)
 }
 
-time_celltype_ifng_dot(wt_pbs, title = 'WT PBS')
-time_celltype_ifng_dot(wt_lgtv,  title = 'WT LGTV')
-time_celltype_ifng_dot(wt_chLgtv,  title = 'WT ChLGTV')
+time_celltype_ifng_dot(wt_pbs, title = 'WT PBS Ifng Expression')
+time_celltype_ifng_dot(wt_lgtv,  title = 'WT LGTV Ifng Expression')
+time_celltype_ifng_dot(wt_chLgtv,  title = 'WT ChLGTV Ifng Expression')
 
-time_celltype_ifng_dot(ips_pbs, , title = 'IPS PBS')
-time_celltype_ifng_dot(ips_LGTV, title = 'IPS LGTV')
+time_celltype_ifng_dot(ips_pbs, title = 'IPS PBS Ifng Expression')
+time_celltype_ifng_dot(ips_lgtv, title = 'IPS LGTV Ifng Expression')
 #ips chimeric seems to have unique nk cell infiltration
-time_celltype_ifng_dot(ips_chLgtv, title = 'IPS ChLGTV')
+time_celltype_ifng_dot(ips_chLgtv, title = 'IPS ChLGTV Ifng Expression')
+
+ips$time_treatment <- factor(ips$time_treatment)
+ips_dds <- createPseudoBulk(ips, variables = c("time_treatment", "Organ"))
+ips_dds <- DESeq(ips_dds)
+
+#Choose ref level for comparison
+colData(ips_dds)$time_treatment <- relevel(colData(ips_dds)$time_treatment, ref = "Day 3-rLGTV")
+colData(ips_dds)$time_treatment <- relevel(colData(ips_dds)$time_treatment, ref = "rChLGTV-Day 3")
+ips_dds <- DESeq(ips_dds)
+resultsNames(ips_dds)
+
+#Depending on ref choice
+results(ips_dds, name ='time_treatment_Day.4.rLGTV_vs_Day.3.rLGTV')['Ifng',]
+results(ips_dds, name ='time_treatment_rChLGTV.Day.4_vs_rChLGTV.Day.3')['Ifng',]
+results(ips_dds, name ='time_treatment_rChLGTV.Day.5_vs_rChLGTV.Day.3')['Ifng',]
+
+AverageExpression(ips, features = 'Ifng', group.by = 'time_treatment')
