@@ -8,6 +8,8 @@ library(scran)
 library(GSEABase)
 library(AUCell)
 
+#Source function
+source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
 
 #This is where the 10x data is
 setwd('~/Documents/ÖverbyLab/single_nuclei_proj/')
@@ -83,7 +85,9 @@ scCombined <- subset(scCombined, sexGenePresence != 'Two')
 
 #SaveSeuratRds(scCombined, './LGTVscCombined.rds')
 
+
 ##############Begin analysis##############
+
 
 ###########Cell annotation##############
 DefaultAssay(sn_integrated_dat) <- "RNA"
@@ -150,15 +154,23 @@ pdf("~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/celltype_umap.pdf", widt
 DimPlot(sn_integrated_dat, group.by =   'manualAnnotation', cols = newCols)
 dev.off()
 
-DimPlot(sn_integrated_dat, group.by =   'treatment')DimPlot(sn_integrated_dat, group.by =   'treatment')
-DimPlot(sn_integrated_dat, group.by =   'infected')
-DimPlot(sn_integrated_dat, group.by =   'new_genotype')
+DimPlot(sn_integrated_dat, group.by = 'treatment')
+DimPlot(sn_integrated_dat, group.by = 'infected')
+DimPlot(sn_integrated_dat, group.by = 'new_genotype')
 
 
 ###########Necroptosis and pyroptosis analysis###############
 #Gene lists
 necroptosis <- c('Tnf', 'Tnfrsf1a', 'Ripk2', 'Mlkl', 'Ripk1', 'Ripk3')
 pyoptosis <- c('Gsdmc', 'Nlrp3', 'Aim2', 'Gsdmd', 'Il18', 'Il1b', 'Casp9', 'Casp8', 'Casp6', 'Casp3', 'Casp4', 'Casp1')
+
+#Remove ifnar for this analysis, I am guessing this is anything labelled KO in new_genotype, need to confirm
+table(sn_integrated_dat$new_genotype)
+cells_for_necroptosis <- subset(sn_integrated_dat, new_genotype == 'wt' | new_genotype == 'wt (same)')
+table(cells_for_necroptosis$new_genotype)
+
+#Split by treatment to plot each separately
+
 
 pdf("~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/sn_necroptosis_dotplot.pdf", width = 9, height = 5)
 DotPlot(sn_integrated_dat, features = c(necroptosis, pyoptosis), group.by = 'manualAnnotation', scale = FALSE)+
@@ -167,6 +179,29 @@ DotPlot(sn_integrated_dat, features = c(necroptosis, pyoptosis), group.by = 'man
   ggtitle("Single Nuclei necroptosis and pyoptosis genes")
 dev.off()
 
+
+###########Pseudobulk Comparison of treatment###############
+############################################################
+sn_integrated_dat_wt <- subset(sn_integrated_dat, new_genotype %in% c('wt', 'wt (same)'))
+table(sn_integrated_dat_wt$new_genotype)
+
+#Bool variable doesn't work well with pseudobulk pipeline, just make factor
+sn_integrated_dat_wt$infected <- factor(sn_integrated_dat_wt$infected)
+
+sn_wt_bulk <- createPseudoBulk(sn_integrated_dat_wt, variables = c('infected', 'manualAnnotation'))
+sn_wt_bulk <- DESeq(sn_wt_bulk)
+resultsNames(sn_wt_bulk)
+infected_vs_uninfected <- results(sn_wt_bulk, name="infected_TRUE_vs_FALSE")
+infected_vs_uninfected_upregulated <- subset(infected_vs_uninfected, padj < 0.01 & log2FoldChange > 1)
+infected_vs_uninfected_upregulated
+infected_vs_uninfected_up_paths<- gprofiler2::gost(query = rownames(infected_vs_uninfected_upregulated), organism = 'mmusculus', evcodes = TRUE)
+
+#Look at pathway results by path type
+infected_vs_uninfected_up_paths$result[infected_vs_uninfected_up_paths$result$source == 'KEGG',]
+infected_vs_uninfected_up_paths$result[infected_vs_uninfected_up_paths$result$source == 'GO:MF',]
+infected_vs_uninfected_up_paths$result[infected_vs_uninfected_up_paths$result$source == 'GO:BP',]
+
+#Downregulated genes too
 
 #######NUP Analysis###########
 ###
