@@ -27,28 +27,28 @@ length(false_macs_to_remove)
 ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, invert = TRUE)
 
 #Create all subsets that will be used
-wt_cerebrum <- subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT')
-immune <- subset(wt_cerebrum, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
+wt_cerebrum_day5 <- subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT' & Timepoint == 'Day 5')
+immune <- subset(wt_cerebrum_day5, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
                                                       'T cells', 'Granulocytes', 'Nk cells'))
-wt_cerebrum_mock <- subset(wt_cerebrum, Treatment == ('PBS'))
-wt_cerebrum_infected <- subset(wt_cerebrum, Treatment == ('rLGTV'))
-immune_wt_mock <- subset(wt_cerebrum_mock, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
+wt_cerebrum_day5_mock <- subset(wt_cerebrum_day5, Treatment == ('PBS'))
+wt_cerebrum_day5_infected <- subset(wt_cerebrum_day5, Treatment == ('rLGTV'))
+immune_wt_mock <- subset(wt_cerebrum_day5_mock, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
                                                                    'T cells', 'Granulocytes', 'Nk cells'))
-immune_wt_infected <- subset(wt_cerebrum_infected, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
+immune_wt_infected <- subset(wt_cerebrum_day5_infected, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
                                                                            'T cells', 'Granulocytes', 'Nk cells'))
-macrophages_wt_mock <- subset(wt_cerebrum_mock, manualAnnotation %in% c('Macrophage/Monocytes'))
-macrophages_wt_infected <- subset(wt_cerebrum_infected, manualAnnotation %in% c('Macrophage/Monocytes'))
+macrophages_wt_mock <- subset(wt_cerebrum_day5_mock, manualAnnotation %in% c('Macrophage/Monocytes'))
+macrophages_wt_infected <- subset(wt_cerebrum_day5_infected, manualAnnotation %in% c('Macrophage/Monocytes'))
 
 #ReUMAP
-wt_cerebrum <- prepSeuratObj(wt_cerebrum)
-ElbowPlot(wt_cerebrum, ndims = 40)
-wt_cerebrum <- prepUmapSeuratObj(wt_cerebrum, nDims = 20, reductionName = 'wt.cerebrum.umap')
+wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5)
+ElbowPlot(wt_cerebrum_day5, ndims = 40)
+wt_cerebrum_day5 <- prepUmapSeuratObj(wt_cerebrum_day5, nDims = 20, reductionName = 'wt.cerebrum.umap')
 
-DimPlot(wt_cerebrum, reduction = 'wt.cerebrum.umap', label = TRUE)
-wt_cerebrum$manualAnnotation <- factor(wt_cerebrum$manualAnnotation)
-pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_cerebrum_UMAP.pdf',
+DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', label = TRUE)
+wt_cerebrum_day5$manualAnnotation <- factor(wt_cerebrum_day5$manualAnnotation)
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_cerebrum_day5_UMAP.pdf',
     width = 7, height = 5)
-DimPlot(wt_cerebrum, reduction = 'wt.cerebrum.umap', group.by = 'manualAnnotation', cols = newCols)+
+DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'manualAnnotation', cols = newCols)+
   ggtitle('WT Cerebrum UMAP')+
   xlab('Umap 1')+
   ylab('Umap 2')+  
@@ -59,16 +59,16 @@ DimPlot(wt_cerebrum, reduction = 'wt.cerebrum.umap', group.by = 'manualAnnotatio
 dev.off()
 
 #Barplot of proportions
-barDat <- wt_cerebrum[[]] %>% dplyr::group_by(Treatment, manualAnnotation) %>% 
+barDat <- wt_cerebrum_day5[[]] %>% dplyr::group_by(Treatment, manualAnnotation) %>% 
   dplyr::summarise(total = n()) %>% dplyr::mutate(prop = total/sum(total)) %>% 
   arrange(desc(total)) 
 
 barDat %>% dplyr::filter(manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes'))
 
 order <- subset(barDat, Treatment == 'PBS')
-barDat$manualAnnotation = factor(barDat$manualAnnotation, levels = levels(factor(wt_cerebrum$manualAnnotation)))
+barDat$manualAnnotation = factor(barDat$manualAnnotation, levels = levels(factor(wt_cerebrum_day5$manualAnnotation)))
 
-pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_cerebrum_cell_prop_bar.pdf", width = 8, height = 6)
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_cerebrum_day5_cell_prop_bar.pdf", width = 8, height = 6)
 barDat %>% ggplot(aes(x = Treatment, y = prop, fill = manualAnnotation))+
   geom_bar(stat = 'identity', position = 'stack')+
   theme(text = element_text(size = 23))+
@@ -78,7 +78,6 @@ dev.off()
 
 #Immune cell subset
 #Need to finish labelling last mo/microglia cluster
-
 
 #ReUMAP
 immune <- prepSeuratObj(immune)
@@ -149,15 +148,13 @@ featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim
 #Look at mock and infected separately
 
 
-wt_cerebrum_mock <- prepSeuratObj(wt_cerebrum_mock)
-ElbowPlot(wt_cerebrum_mock, ndims = 40)
-wt_cerebrum_mock <- prepUmapSeuratObj(wt_cerebrum_mock, nDims = 20, reductionName = 'wt.cerebrum.mock.umap')
+wt_cerebrum_day5_mock <- prepSeuratObj(wt_cerebrum_day5_mock)
+ElbowPlot(wt_cerebrum_day5_mock, ndims = 40)
+wt_cerebrum_day5_mock <- prepUmapSeuratObj(wt_cerebrum_day5_mock, nDims = 20, reductionName = 'wt.cerebrum.mock.umap')
 
-DimPlot(wt_cerebrum_mock, reduction = 'wt.cerebrum.mock.umap', label = TRUE)
-DimPlot(wt_cerebrum_mock, reduction = 'wt.cerebrum.mock.umap', group.by = 'manualAnnotation',
+DimPlot(wt_cerebrum_day5_mock, reduction = 'wt.cerebrum.mock.umap', label = TRUE)
+DimPlot(wt_cerebrum_day5_mock, reduction = 'wt.cerebrum.mock.umap', group.by = 'manualAnnotation',
         cols = newCols)
-
-
 
 immune_wt_mock <- prepSeuratObj(immune_wt_mock)
 ElbowPlot(immune_wt_mock, ndims = 40)
@@ -190,15 +187,19 @@ do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 dev.off()
 
 #Infected now
-wt_cerebrum_infected <- prepSeuratObj(wt_cerebrum_infected)
-ElbowPlot(wt_cerebrum_infected, ndims = 40)
-wt_cerebrum_infected <- prepUmapSeuratObj(wt_cerebrum_infected, nDims = 20, reductionName = 'wt.cerebrum.infected.umap')
+wt_cerebrum_day5_infected <- prepSeuratObj(wt_cerebrum_day5_infected)
+ElbowPlot(wt_cerebrum_day5_infected, ndims = 40)
+wt_cerebrum_day5_infected <- prepUmapSeuratObj(wt_cerebrum_day5_infected, nDims = 20, reductionName = 'wt.cerebrum.infected.umap',
+                                               resolution_value = 0.8)
 
-DimPlot(wt_cerebrum_infected, reduction = 'wt.cerebrum.infected.umap', label = TRUE)
-DimPlot(wt_cerebrum_infected, reduction = 'wt.cerebrum.infected.umap', group.by = 'manualAnnotation',
-        cols = newCols)
+DimPlot(wt_cerebrum_day5_infected, reduction = 'wt.cerebrum.infected.umap', label = TRUE)
 
-
+#Missing immature neurons so need to remove their color from umap, hence newCols[-7]
+DimPlot(wt_cerebrum_day5_infected, reduction = 'wt.cerebrum.infected.umap', group.by = 'manualAnnotation',
+        cols = newCols[-7])
+#How many macrophages clustering with microglia?
+table(subset(wt_cerebrum_day5_infected, seurat_clusters %in% c(5,7,14,12))$manualAnnotation)
+table(wt_cerebrum_day5_infected$manualAnnotation)
 
 immune_wt_infected <- prepSeuratObj(immune_wt_infected)
 ElbowPlot(immune_wt_infected, ndims = 40)
@@ -206,7 +207,7 @@ immune_wt_infected <- prepUmapSeuratObj(immune_wt_infected, nDims = 20, reductio
 
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', label = TRUE)
 
-pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_wt_infected_umap.pdf',
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_wt_infected_day5_umap.pdf',
     width = 8, height = 6)
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
          cols = c(newCols[[2]], newCols[[6]], newCols[[8]], newCols[[9]], newCols[[12]], newCols[[15]]))
@@ -262,6 +263,7 @@ clust11_markers_vsMac
 topGenesVsMac <- head(rownames(clust11_markers_vsMac), n = 20)
 FeaturePlot(immune_wt_infected, features =  'Nav3', reduction = 'wt.immune.infected.umap')
 clust11_markers_vsMac['Tmem119',]
+
 #Plot important markers
 plotList_infected <- list(featurePlotLight('Lgals3', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Adgre1', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
@@ -281,7 +283,8 @@ lapply(plotList_infected, FUN = function(x){
   dat = x$data
   print(max(dat[4]))
 })
-pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_infected_features.pdf',
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_infected_features_day5.pdf',
     width = 10, height = 5)
 ggarrange(plotList_infected[[1]], plotList_infected[[2]], plotList_infected[[3]], plotList_infected[[4]], 
           plotList_infected[[5]], plotList_infected[[6]], plotList_infected[[7]], plotList_infected[[8]],
@@ -326,13 +329,17 @@ FeaturePlot(macrophages_wt_mock, 'Ccr2', reduction = 'wt.immune.mac.umap')
 
 macrophages_wt_infected <- prepSeuratObj(macrophages_wt_infected)
 ElbowPlot(macrophages_wt_infected, ndims = 40)
+
 #Higher num neighbors for fewer clusters
 macrophages_wt_infected <- prepUmapSeuratObj(macrophages_wt_infected, nDims = 20, reductionName = 'wt.infected.mac.umap',
                                              resolution_value = 0.8)
 
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_infected_macrophages_day5.pdf',
+    width = 7, height = 5)
 DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = TRUE, group.by = 'seurat_clusters',
         label.size = 6)+
   ggtitle('WT Infected Macrophages')
+dev.off()
 
 macMarkers <- FindAllMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
                              test.use = 'MAST')
@@ -531,7 +538,7 @@ macrophages_wt_infected[[]] %>% dplyr::group_by(Lgals_Adgre_both) %>% dplyr::ref
 dev.off()
 
 #Look at unknown cells in micro/macro clusters
-unknown <- subset(wt_cerebrum, manualAnnotation == 'unknown' & seurat_clusters %in% c(0,1,2,15,31))
+unknown <- subset(wt_cerebrum_day5, manualAnnotation == 'unknown' & seurat_clusters %in% c(0,1,2,15,31))
 
 
 unknown <- prepSeuratObj(unknown)

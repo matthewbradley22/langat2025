@@ -40,7 +40,8 @@ DotPlot(chimeric_mock_wt_infected, cxcl_chemokines, group.by = 'Timepoint', scal
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
                         values = c(1.0,0.7,0.4,0.2,0),
                         limits = c(0,2.8))+
-  scale_size_continuous(range = c(1,6))
+  scale_size_continuous(range = c(1,6))+
+  ggtitle("WT rChLGTV chemokines")
 
 #IPS
 DotPlot(chimeric_mock_ips_infected, ccl_chemokines, group.by = 'Timepoint', scale = FALSE)+
@@ -56,6 +57,7 @@ DotPlot(chimeric_mock_ips_infected, cxcl_chemokines, group.by = 'Timepoint', sca
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
                         values = c(1.0,0.7,0.4,0.2,0),
                         limits = c(0,2.8))+
-  scale_size_continuous(range = c(1,6))
+  scale_size_continuous(range = c(1,6))+
+  ggtitle("IPS rChLGTV chemokines")
 
 

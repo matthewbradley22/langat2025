@@ -459,7 +459,11 @@ time_celltype_ifng_dot <- function(dat, title){
   dot <- ggplot(dot_dat_meta, aes(x = time, y = celltype, color = avg.exp, size = pct.exp, label = counts))+
     geom_point()+
     geom_text_repel(nudge_x = 0.05, size = 4, color = 'black')+
-    ggtitle(title)
+    ggtitle(title)+
+    scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
+                          values = c(1.0,0.7,0.4,0.2,0),
+                          limits = c(0,3.2))+
+    scale_size_continuous(range = c(1,6))
   print(dot)
 }
 
@@ -468,7 +472,7 @@ time_celltype_ifng_dot(wt_lgtv,  title = 'WT LGTV Ifng Expression')
 time_celltype_ifng_dot(wt_chLgtv,  title = 'WT ChLGTV Ifng Expression')
 
 time_celltype_ifng_dot(ips_pbs, title = 'IPS PBS Ifng Expression')
-time_celltype_ifng_dot(ips_lgtv, title = 'IPS LGTV Ifng Expression')
+time_celltype_ifng_dot(ips_chLgtv, title = 'IPS ChLGTV Ifng Expression')
 #ips chimeric seems to have unique nk cell infiltration
 time_celltype_ifng_dot(ips_chLgtv, title = 'IPS ChLGTV Ifng Expression')
 
