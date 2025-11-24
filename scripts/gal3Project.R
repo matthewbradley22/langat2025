@@ -100,6 +100,8 @@ DimPlot(immune, reduction = 'immune.umap', group.by = 'manualAnnotation',
         axis.ticks.y=element_blank())
 dev.off()
 
+DimPlot(immune, reduction = 'immune.umap', group.by = 'Treatment')
+
 #Dotplot
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_feature_dotplot.pdf", width = 9, height = 6)
 DotPlot(immune, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 

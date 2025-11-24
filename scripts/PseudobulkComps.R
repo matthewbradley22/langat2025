@@ -1,9 +1,10 @@
 library(Seurat)
 library(ggrepel)
 library(pheatmap)
+library(VennDiagram)
 
 #Source functions
-source('./scripts/langatFunctions.R')
+source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
@@ -34,13 +35,14 @@ resultsNames(resident_no_lgtv_bulk)
 #Day 4 vs day 3
 
 #Not many upregulated at day 4
+#grpofiler path function defined at bottom of script
 day4_vs_day3_up_paths <- get_gprofiler_paths(resident_no_lgtv_bulk, compName = 'Timepoint_Day.4_vs_Day.3', direction = 'up')
 
 #Lots of synapse and ion pathways showing up
 day4_vs_day3_down_paths <- get_gprofiler_paths(resident_no_lgtv_bulk, compName = 'Timepoint_Day.4_vs_Day.3', direction = 'down')
-day4_vs_day3_down_paths$result[day4_vs_day3_paths$result$source == 'KEGG',]
-day4_vs_day3_down_paths$result[day4_vs_day3_paths$result$source == 'GO:MF',]
-day4_vs_day3_down_paths$result[day4_vs_day3_paths$result$source == 'GO:BP',]
+day4_vs_day3_down_paths$result[day4_vs_day3_down_paths$result$source == 'KEGG',]
+day4_vs_day3_down_paths$result[day4_vs_day3_down_paths$result$source == 'GO:MF',]
+day4_vs_day3_down_paths$result[day4_vs_day3_down_paths$result$source == 'GO:BP',]
 
 #Day 5 vs day 3
 #Cytokine and tnf signalling showing upregulation now
@@ -53,6 +55,65 @@ day5_vs_day3_down_paths <- get_gprofiler_paths(resident_no_lgtv_bulk, compName =
 day5_vs_day3_down_paths$result[day5_vs_day3_down_paths$result$source == 'KEGG',]
 day5_vs_day3_down_paths$result[day5_vs_day3_down_paths$result$source == 'GO:MF',]
 day5_vs_day3_down_paths$result[day5_vs_day3_down_paths$result$source == 'GO:BP',]
+
+##########GAL 3 Project Samples########
+#######################################
+wt_cerebrum_day5 <- subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT' & Timepoint == 'Day 5')
+wt_cerebrum_day5_bulk <- createPseudoBulk(wt_cerebrum_day5, variables = c('Treatment', 'manualAnnotation'))
+wt_cerebrum_day5_bulk <- DESeq(wt_cerebrum_day5_bulk)
+resultsNames(wt_cerebrum_day5_bulk)
+results(wt_cerebrum_day5_bulk, name = "Treatment_rLGTV_vs_PBS")
+#Upregulated LGTV
+wt_cerebrum_day5_paths_up <- get_gprofiler_paths(wt_cerebrum_day5_bulk, compName = "Treatment_rLGTV_vs_PBS", direction = 'up')
+wt_cerebrum_day5_paths_up$result[wt_cerebrum_day5_paths_up$result$source == 'KEGG',]$term_name
+wt_cerebrum_day5_paths_up$result[wt_cerebrum_day5_paths_up$result$source == 'GO:MF',]$term_name
+wt_cerebrum_day5_paths_up$result[wt_cerebrum_day5_paths_up$result$source == 'GO:BP',]$term_name
+
+#Select pathways to plot
+wt_cerebrum_day5_paths_up$result[wt_cerebrum_day5_paths_up$result$term_name %in% 
+                                   c('apoptotic process', 'TNF signaling pathway', 'Apoptosis', 'Chemokine signaling pathway',
+                                     'Cytokine-cytokine receptor interaction', 'Necroptosis',
+                                     'Efferocytosis', 'CCR chemokine receptor binding'),] %>% 
+  ggplot(aes(x = -log10(p_value), y = term_name, fill = source))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  ggtitle('WT Cerebrum Day 5 Upregulated in LGTV')
+
+#Compare genes across similar paths to see if they are similar or different
+#returns one long string of genes so need to split by comma
+apoptotic_process <- unlist(strsplit(wt_cerebrum_day5_paths_up$result[wt_cerebrum_day5_paths_up$result$term_name %in% 
+                                                   c('apoptotic process'),]$intersection, ","))
+apoptosis <- unlist(strsplit(wt_cerebrum_day5_paths_up$result[wt_cerebrum_day5_paths_up$result$term_name %in% 
+                                                                       c('Apoptosis'),]$intersection, ","))
+#pro apotosis list from anna email
+pro_apoptosis <- c('Apaf1', 'Casp9', 'Casp8', 'Bax', 'Bak',
+                   'Bid', 'Bad', 'Bim', 'Bcl10', 'Bik',
+                   'Blk', 'Fas', 'Fasl', 'Tnfrsf1a', 'Tnf', 'Tyro3',
+                   'Axl', 'Mertk', 'Tnfsf10', 'Tnfrsf10b', 'Casp3', 'Casp6', 'Casp7')
+venn.diagram(
+  x = list(apoptotic_process, apoptosis, pro_apoptosis),
+  category.names = c("apoptotic_process" , "apoptosis" , "pro_apoptosis"),
+  filename = '~/Documents/ÖverbyLab/scPlots/apoptosis_venn_diagram.png',
+  output=TRUE,
+  fill = c('red', 'blue', 'yellow'),
+  cat.dist = c(0.055, 0.055, 0.055),
+  cat.cex = 1.2
+)
+
+#Same thing as above apoptosis genes but with necroptosis genes
+necroptosis_kegg <- unlist(strsplit(wt_cerebrum_day5_paths_up$result[wt_cerebrum_day5_paths_up$result$term_name %in% 
+                                                                        c('Necroptosis'),]$intersection, ","))
+necroptosis <- c('Tnf', 'Tnfrsf1a', 'Ripk2', 'Mlkl', 'Ripk1', 'Ripk3')
+
+
+draw.pairwise.venn(length(necroptosis_kegg),  length(necroptosis), length(intersect(necroptosis_kegg, necroptosis)),
+                   fill = c('blue', 'yellow'))
+
+
+#Downregulated LGTV
+wt_cerebrum_day5_paths_down <- get_gprofiler_paths(wt_cerebrum_day5_bulk, compName = "Treatment_rLGTV_vs_PBS", direction = 'down')
+wt_cerebrum_day5_paths_down$result[wt_cerebrum_day5_paths_down$result$source == 'KEGG',]$term_name
+wt_cerebrum_day5_paths_down$result[wt_cerebrum_day5_paths_down$result$source == 'GO:MF',]$term_name
+wt_cerebrum_day5_paths_down$result[wt_cerebrum_day5_paths_down$result$source == 'GO:BP',]$term_name
 
 
 #Write functions to

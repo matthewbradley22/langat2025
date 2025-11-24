@@ -69,13 +69,19 @@ wt_cerebrum_day5_resident_nScores %>%
   dplyr::filter(treatment == 'rLGTV') %>% 
   ggplot(aes(x = gene, y = celltype, fill = exp_change))+
   geom_tile()+
-  scale_fill_gradientn(colors = c("purple", "white", "orange", "red"),
-                       values = scales::rescale(c(-0.2, -0.1, 1, 2)))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","blue"),
+                       values = c(1, 0.7,0.2,0.1,-0.2),
+                       limits = c(-0.45, 10))+
   ggtitle("Necroptosis gene LGTV - PBS difference")+
   geom_text(aes(label=round(exp_change, digits = 2)))
 
 #check cell counts for each group
-t(table(wt_cerebrum_day5_resident$Treatment, wt_cerebrum_day5_resident$manualAnnotation))
+table(wt_cerebrum_day5_resident$Treatment, wt_cerebrum_day5_resident$manualAnnotation)%>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = newCols[c(1,3,4,5,7,9,10,11,13,14)])+
+  theme_classic()
 
 #Same thing for pyroptosis genes
 celltype_treatment_pyroptosis_scores <- list()
@@ -114,7 +120,7 @@ wt_cerebrum_day5_resident_bulk_res[pyroptosis,] %>% as.data.frame() %>% dplyr::f
 #Look at differentially expressed pathways
 #Upregulated in infection
 upregulated_infection <- subset(wt_cerebrum_day5_resident_bulk_res, log2FoldChange > 1 & padj < 0.01)
-upregulated_infection_paths <- gprofiler2::gost(query = rownames(upregulated_infection), organism = 'mmusculus', evcodes = TRUE)
+upregulated_infection_paths <- gprofiler2::gost(query = rownames(upregulated_infection), organism = 'mmuspculus', evcodes = TRUE)
 upregulated_infection_paths$result[upregulated_infection_paths$result$source == 'KEGG',]
 upregulated_infection_paths$result[upregulated_infection_paths$result$source == 'GO:MF',]
 upregulated_infection_paths$result[upregulated_infection_paths$result$source == 'GO:BP',]
