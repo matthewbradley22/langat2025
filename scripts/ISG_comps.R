@@ -19,8 +19,18 @@ ParseSeuratObj_int$time_celltype <-  paste(ParseSeuratObj_int$Timepoint, ParseSe
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
 newCols[11] =  '#FF8AEF'
+
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/main_umap.pdf", height = 6, width = 9)
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
-        cols = newCols)
+        cols = newCols)+
+  theme(axis.ticks = element_blank(),
+        axis.text=element_blank(),
+        legend.text=element_text(size=17))+
+  xlab('Umap1')+
+  ylab('Umap2')+
+  guides(color=guide_legend(override.aes=list(size=8)))+
+  ggtitle('')
+dev.off()
 
 #Load in ISGs
 #Molecular signatures database
@@ -43,6 +53,10 @@ ParseSeuratObj_int = AddModuleScore(ParseSeuratObj_int, features = list(all_ISGs
 chimeric_mock <- subset(ParseSeuratObj_int, Treatment != 'rLGTV')
 chimeric_mock$genotype_treatment <- paste(chimeric_mock$Genotype, chimeric_mock$Treatment, sep = '_')
 
+#Subset by genotype for plotting later
+ips <- subset(ParseSeuratObj_int, Genotype == 'IPS1')
+wt <- subset(ParseSeuratObj_int, Genotype == 'WT')
+
 #Violin plot separated by genotype and treatment
 chimeric_mock$genotype_treatment <- factor(chimeric_mock$genotype_treatment, levels = c('WT_PBS', 'WT_rChLGTV', 'IPS1_PBS', 'IPS1_rChLGTV'))
 pdf('~/Documents/ÖverbyLab/scPlots/ISG_chimeric_vln_ips.pdf', width = 7, height = 4)
@@ -51,9 +65,6 @@ VlnPlot(chimeric_mock, features = 'ISG_score1', group.by = 'genotype_treatment',
   ggtitle('ISG Module Scores')
 dev.off()
 
-#Subset by genotype for plotting later
-ips <- subset(ParseSeuratObj_int, Genotype == 'IPS1')
-wt <- subset(ParseSeuratObj_int, Genotype == 'WT')
 
 #Plot ISGs
 pdf('~/Documents/ÖverbyLab/scPlots/ISG_vln_ips.pdf', width = 7, height = 4)
@@ -460,10 +471,13 @@ time_celltype_ifng_dot <- function(dat, title){
     geom_point()+
     geom_text_repel(nudge_x = 0.05, size = 4, color = 'black')+
     ggtitle(title)+
-    scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                          values = c(1.0,0.7,0.4,0.2,0),
+    scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgray"),
+                          values = c(1.0,0.65,0.3,0),
                           limits = c(0,3.2))+
-    scale_size_continuous(range = c(1,6))
+    scale_size_continuous(range = c(1,6))+
+    theme_bw()+
+    theme(panel.border = element_blank(),
+          axis.line = element_line(color = 'black'))
   print(dot)
 }
 

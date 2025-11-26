@@ -380,14 +380,33 @@ ParseSeuratObj_int$manualAnnotation = factor(ParseSeuratObj_int$manualAnnotation
                                                  'Muscle cells', 'T cells', 'Granulocytes',
                                                  'Nk cells', 'unknown')))
  
-DotPlot(ParseSeuratObj_int, features = c('Snap25', 'Syt1', 'Csf1r', 'Cx3cr1', 'Tmem119',
-                                         'Aqp4', 'Fgfr3','Gfap', 'Ccr2' , 'Ttr',
-                                         'Kl', 'Mag', 'Mog', 'Nnat', 'Cfap54' ,'Mia' ,
-                                         'Cd19', 'Ms4a1', 'Vtn', 'Abcc9', 'Acta2', 'Tagln',
-                                         'Cd3e', 'Cd3d', 'S100a9', 'Il1r2', 'Clnk', 'Nkg7'
-                                         ),
+ParseSeuratObj_int$manualAnnotation = factor(ParseSeuratObj_int$manualAnnotation, levels = rev(c('Neurons', 'Immature Neurons',
+                                                                                             'Microglia', 'Macrophage/Monocytes',
+                                                                                             'Astrocytes', 'Oligodendrocytes', 'Endothelial',
+                                                                                             'Ependymal', 'Choroid Plexus', 'Pericytes',
+                                                                                             'Muscle cells', 'B Cells', 'T cells', 
+                                                                                             'Granulocytes', 'Nk cells', 'unknown')))
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cell_type_dotplot.pdf', height = 6, width = 12)
+DotPlot(ParseSeuratObj_int, features = c('Snap25', 'Syt1', 'Celf4','Sox11', 'Csf1r', 'Cx3cr1', 'Tmem119',
+                                         'Klra2', 'Ccr2', 'Lyz2',  'Aqp4', 'Fgfr3','Gfap', 
+                                          'Mag', 'Mog', 'Vwf', 'Flt1', 'Pecam1', 'Nnat', 'Cfap54' ,'Mia', 'Ttr','Kl',
+                                          'Vtn', 'Abcc9', 'Acta2', 'Tagln','Cd19', 'Ms4a1',
+                                         'Cd3e', 'Cd3d', 'S100a9', 'Il1r2', 'Clnk', 'Nkg7', 'Ptprc'
+                                         ), 
         group.by = 'manualAnnotation', assay = 'RNA')+
-  theme(axis.text.x = element_text(angle = 75, vjust = 0.5))
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.5),
+        axis.text = element_text(size = 16))+
+  scale_color_gradient2(low = '#3DB9FF', mid = 'lightgray', high = 'darkred', midpoint = 0)+
+  scale_size_continuous(range = c(0,7))+
+  theme(legend.position = "bottom",
+        legend.justification = "center",
+        legend.direction = "horizontal",
+        legend.title = element_text(hjust = 0.3),
+        legend.spacing.x = unit(2, "cm"))+
+  guides(size = guide_legend(title.position = "top", title = 'Percent Expressed', theme = theme(legend.key.width  = unit(1, "cm"))),
+         color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression', theme = theme(legend.key.width  = unit(4, "cm"))))
+dev.off()
 
 #Look at rna features across clusters
 ParseSeuratObj_int[[]] %>% dplyr::group_by(seurat_clusters) %>% 
@@ -395,6 +414,24 @@ ParseSeuratObj_int[[]] %>% dplyr::group_by(seurat_clusters) %>%
   ggplot(aes(x = seurat_clusters, y = meanFeatures))+
   geom_bar(stat = 'identity')+
   theme(axis.text.x = element_text(angle = 90))
+
+#Barplot of proportions
+barDat <- ParseSeuratObj_int[[]] %>% dplyr::group_by(Treatment, manualAnnotation) %>% 
+  dplyr::summarise(total = n()) %>% dplyr::mutate(prop = total/sum(total)) %>% 
+  arrange(desc(total)) 
+
+barDat$manualAnnotation = factor(barDat$manualAnnotation, levels = unique(sort(as.character(ParseSeuratObj_int$manualAnnotation))))
+
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/main_celltype_props.pdf", width = 8, height = 6)
+barDat %>% ggplot(aes(x = Treatment, y = prop, fill = manualAnnotation))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.2)+
+  theme(text = element_text(size = 23))+
+  scale_fill_manual(values = newCols)+
+  guides(fill=guide_legend(title="Cell Type"))+
+  theme_bw()+
+  theme(legend.position = 'none')
+dev.off()
+
 
 
 #SaveSeuratRds(ParseSeuratObj_int, "./data/seuratSingletsAnnotated.rds")

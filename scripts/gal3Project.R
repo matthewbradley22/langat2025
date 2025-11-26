@@ -56,9 +56,18 @@ DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'manualAnno
         axis.text.y=element_blank(),
         axis.ticks.x=element_blank(),
         axis.ticks.y=element_blank())
-dev.off()
+ dev.off()
 
-#Barplot of proportions
+ #Check if microglia align to microglia in allen data
+ clust16_17 <- subset(wt_cerebrum_day5, seurat_clusters %in% c(16,17))
+ clust16_17[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/galectin_3_day5_clust16_17_cells.csv', row.names = TRUE)
+ clust16_17_map <- read_csv("~/Documents/ÖverbyLab/gal3_clust1617_allen_map/galectin_3_day5_clust16_17_cellscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1764153371391.csv", 
+                          skip = 4)
+ table(clust16_17_map$subclass_name)
+
+ #Most of the above align to microglia + show no markers of macrophages that I see.. But no Tmem119 so how to best show that they are microglia
+ 
+ #Barplot of proportions
 barDat <- wt_cerebrum_day5[[]] %>% dplyr::group_by(Treatment, manualAnnotation) %>% 
   dplyr::summarise(total = n()) %>% dplyr::mutate(prop = total/sum(total)) %>% 
   arrange(desc(total)) 
@@ -82,7 +91,7 @@ dev.off()
 #ReUMAP
 immune <- prepSeuratObj(immune)
 ElbowPlot(immune, ndims = 40)
-immune <- prepUmapSeuratObj(immune, nDims = 25, reductionName = 'immune.umap')
+immune <- prepUmapSeuratObj(immune, nDims = 25, reductionName = 'immune.umap', resolution_value = 0.8)
 
 #Plug granulocytes into allan brain atlas and check
 DimPlot(immune, reduction = 'immune.umap', label = TRUE)
@@ -164,7 +173,7 @@ immune_wt_mock <- prepUmapSeuratObj(immune_wt_mock, nDims = 20, reductionName = 
 
 DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', label = TRUE)
 
-pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_cerebrum.pdf',
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_cerebrum_day5.pdf',
     width = 7, height = 5)
 DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnnotation',
         cols = c(newCols[[2]], newCols[[6]], newCols[[8]], newCols[[9]], newCols[[12]], newCols[[15]]))
@@ -328,7 +337,6 @@ FeaturePlot(macrophages_wt_mock, 'Ccr2', reduction = 'wt.immune.mac.umap')
 ###########Infected Macrophages Only##########################
 ##############################################################
 
-
 macrophages_wt_infected <- prepSeuratObj(macrophages_wt_infected)
 ElbowPlot(macrophages_wt_infected, ndims = 40)
 
@@ -345,9 +353,9 @@ dev.off()
 
 macMarkers <- FindAllMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
                              test.use = 'MAST')
-mac_timeMarkers <- FindMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA', group.by = 'Timepoint', ident.1 ='Day 5',
-                             test.use = 'MAST')
-VlnPlot(macrophages_wt_infected, features = 'Nos2', group.by = 'Timepoint')
+#mac_timeMarkers <- FindMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA', group.by = 'Timepoint', ident.1 ='Day 5',
+      #                       test.use = 'MAST')
+
 macMarkers$pct_dif = macMarkers$pct.1 - macMarkers$pct.2
 top_by_cluster = macMarkers %>% arrange(desc(pct_dif)) %>% 
   group_by(cluster) %>% dplyr::slice_head(n = 10) %>% 
