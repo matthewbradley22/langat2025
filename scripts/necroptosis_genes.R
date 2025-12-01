@@ -184,7 +184,7 @@ plotCounts(wt_cerebrum_day5_resident_bulk, gene = 'Tnf', intgroup = 'Treatment')
 #Look at differentially expressed pathways
 #Upregulated in infection
 upregulated_infection <- subset(wt_cerebrum_day5_resident_bulk_res, log2FoldChange > 1 & padj < 0.01)
-upregulated_infection_paths <- gprofiler2::gost(query = rownames(upregulated_infection), organism = 'mmuspculus', evcodes = TRUE)
+upregulated_infection_paths <- gprofiler2::gost(query = rownames(upregulated_infection), organism = 'mmusculus', evcodes = TRUE)
 upregulated_infection_paths$result[upregulated_infection_paths$result$source == 'KEGG',]
 upregulated_infection_paths$result[upregulated_infection_paths$result$source == 'GO:MF',]
 upregulated_infection_paths$result[upregulated_infection_paths$result$source == 'GO:BP',]
