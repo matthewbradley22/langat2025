@@ -127,13 +127,27 @@ DotPlot(immune, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1'
   guides(size = guide_legend(title.position = "top", title = 'Percent Expressed'),
          color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression'))
 dev.off()
-#Featureplots
-geneList = c('Lgals3', 'Adgre1', 'Ptprc', 'Ccr1',
-             'Ccr2', 'Ccr3', 'Ccr5', 'Cd68',
-             'Cd86', 'Tmem119', 'Tspo', 'Csf1r')
-FeaturePlot(immune, geneList, reduction = 'immune.umap')
 
-featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim = 0, maxLim = 6){
+#Feature plot of immune cells relevant genes 
+plotList <- list(featurePlotLight('Lgals3', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Adgre1', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Ptprc', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Ccr1', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Ccr2', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Ccr3', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Ccr5', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Cd68', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Cd86', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Tmem119', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Tspo', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Csf1r', data = immune, reduction_choice = 'immune.umap'))
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_all_features.pdf',
+    width = 9, height = 6)
+do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
+dev.off()
+
+featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim = 0, maxLim = 5){
   dat = FeaturePlot(data, gene, reduction = reduction_choice)$data
   colnames(dat) = c('umap1', 'umap2', 'ident', 'expression')
   ggplot(dat, aes(x = umap1, y = umap2, color = expression))+
