@@ -239,7 +239,7 @@ wt_cerebrum_day5_infil_nScores <- cbind(wt_cerebrum_day5_infil_nScores, split_na
 #So few pbs cells that this doesn't make sense, just report avg expression
 wt_cerebrum_day5_infil_nScores %>%
   dplyr::group_by(gene, celltype) %>%
-  dplyr::mutate(exp_change = avg_exp - first(avg_exp)) %>% 
+  dplyr::mutate(exp_change = avg_exp - dplyr::first(avg_exp)) %>% 
   dplyr::filter(treatment == 'rLGTV') %>% 
   ggplot(aes(x = gene, y = celltype, fill = exp_change))+
   geom_tile()+
@@ -274,7 +274,7 @@ wt_cerebrum_day5_infil_pScores <- cbind(wt_cerebrum_day5_infil_pScores, split_na
 #Differences between treatment and pbs avg expression for each gene
 wt_cerebrum_day5_infil_pScores %>%
   dplyr::group_by(gene, celltype) %>%
-  dplyr::mutate(exp_change = avg_exp - first(avg_exp)) %>% 
+  dplyr::mutate(exp_change = avg_exp - dplyr::first(avg_exp)) %>% 
   dplyr::filter(treatment == 'rLGTV') %>% 
   ggplot(aes(x = gene, y = celltype, fill = exp_change))+
   geom_tile()+
@@ -283,6 +283,13 @@ wt_cerebrum_day5_infil_pScores %>%
   ggtitle("Pyroptosis gene LGTV - PBS difference")+
   geom_text(aes(label=round(exp_change, digits = 2)))
 
+wt_cerebrum_day5_infil_pScores %>% 
+  dplyr::filter(treatment == 'rLGTV') %>% 
+  ggplot(aes(x = gene, y = celltype, fill = log(avg_exp+1)))+
+  geom_tile()+
+  scale_fill_gradient2(low = "white", mid = "orange", high = "red", midpoint = 2)+
+  ggtitle("Infiltrating pyroptosis LGTV (natural log scale)")+
+  geom_text(aes(label=round(log(avg_exp+1), digits = 2)))
 
 #Are any of these significant DEGs? Create pseudobulk object and check significance
 wt_cerebrum_day5_infil_bulk <- createPseudoBulk(wt_cerebrum_day5_infiltrating, c('Treatment', 'Timepoint'))

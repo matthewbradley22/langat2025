@@ -370,40 +370,6 @@ isg_heatmap_create(chimeric_mock_wt, main = "WT ISG Score", file_name_start = 'w
 isg_heatmap_create(chimeric_mock_ips, main = "IPS ISG Infected vs Mock", file_name_start = 'ips_', infected_vs_mock = TRUE, resident_only = TRUE)
 isg_heatmap_create(chimeric_mock_wt, main = "WT ISG Infected vs Mock", file_name_start = 'wt_', infected_vs_mock = TRUE, resident_only = TRUE)
 
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/chimeric_ips_cellPopBars.pdf", width = 5, height = 8)
-table(subset(chimeric_mock_ips, Treatment == 'rChLGTV')$Timepoint, subset(chimeric_mock_ips, Treatment == 'rChLGTV')$manualAnnotation) %>% 
-  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
-  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
-  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
-  scale_fill_manual(values = newCols)+
-  theme_classic()+
-  theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
-  xlab('')+
-  ggtitle('IPS')+
-  ylab('Proportion of cells')
-dev.off()
-
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/wt_ips_cellPopBars.pdf", width = 5, height = 7)
-table(subset(chimeric_mock_wt, Treatment == 'rChLGTV')$Timepoint, subset(chimeric_mock_wt, Treatment == 'rChLGTV')$manualAnnotation) %>% 
-  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
-  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
-  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
-  scale_fill_manual(values = newCols)+
-  theme_classic()+
-  theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
-  xlab('')+
-  ggtitle('IPS')+
-  ylab('Proportion of cells')
-dev.off()
-
 #Difference between ips organ groups
 left_join(ips_cerebrum_isg_plot_data, ips_cerebellum_isg_plot_data, by = 'id', suffix = c('.cerebrum',
                                                                                         '.cerebellum')) %>% 
