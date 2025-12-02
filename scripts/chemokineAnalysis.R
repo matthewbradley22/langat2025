@@ -22,8 +22,8 @@ cxcl_chemokines <- rownames(ParseSeuratObj_int@assays$RNA$data)[grep('Cxcl', row
 chimeric_mock_wt <- subset(ParseSeuratObj_int, Treatment != 'rLGTV' & Genotype == 'WT')
 chimeric_wt_infected <- subset(chimeric_mock_wt, Treatment == 'rChLGTV')
 chimeric_wt_mock <- subset(chimeric_mock_wt, Treatment == 'PBS')
-chimeric_ips_infected<- subset(chimeric_mock, Genotype == 'IPS1' & Treatment == 'rChLGTV')
-chimeric_ips_mock<- subset(chimeric_mock, Genotype == 'IPS1' & Treatment == 'PBS')
+chimeric_ips_infected<- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment == 'rChLGTV')
+chimeric_ips_mock<- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment == 'PBS')
 
 #Cytokine dotplots
 #WT infected
@@ -39,17 +39,31 @@ wt_ccl <- rownames_to_column(wt_ccl, var = 'gene')
 #Ccl chemokines, wt infected
 DotPlot(chimeric_wt_infected, ccl_chemokines, group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
-  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                       values = c(1.0,0.7,0.4,0.2,0),
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
+                       values = c(1.0,0.7,0.4,0),
                        limits = c(0,1.6))+
   scale_size_continuous(range = c(1,6))+
   ggtitle("WT rChLGTV chemokines")
 
-#Ccl chemokines, wt mock
+#Why does ccl12 decrease?
+ccl12_dat <- DotPlot(chimeric_wt_infected, features = 'Ccl12', group.by = 'time_celltype', scale = FALSE)$data
+ccl12_dat_meta <- stringr::str_split_fixed(ccl12_dat$id, "_", 2)
+colnames(ccl12_dat_meta) = c('timepoint', 'celltype')
+ccl12_dat <- cbind(ccl12_dat, ccl12_dat_meta)
+ggplot(ccl12_dat, aes(x = timepoint, y = celltype, color = avg.exp, size = pct.exp))+
+  geom_point()+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,3))+
+  scale_size_continuous(range = c(1,6))+
+  theme_bw()
+table(chimeric_wt_infected$Timepoint, chimeric_wt_infected$manualAnnotation)
+
+#Ccl chemokines, wt mock#Ccl chemokines, wt mockFALSE
 DotPlot(chimeric_wt_mock, ccl_chemokines, group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
-  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                        values = c(1.0,0.7,0.4,0.2,0),
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
+                        values = c(1.0,0.7,0.4,0),
                         limits = c(0,1.6))+
   scale_size_continuous(range = c(1,6))+
   ggtitle("WT mock chemokines")
@@ -57,26 +71,26 @@ DotPlot(chimeric_wt_mock, ccl_chemokines, group.by = 'Timepoint', scale = FALSE)
 #Cxcl wt infected
 DotPlot(chimeric_wt_infected, cxcl_chemokines, group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
-  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                        values = c(1.0,0.7,0.4,0.2,0),
-                        limits = c(0,2.8))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,1.6))+
   scale_size_continuous(range = c(1,6))+
   ggtitle("WT rChLGTV chemokines")
 
 #Cxcl wt mock
 DotPlot(chimeric_wt_mock, cxcl_chemokines, group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
-  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                        values = c(1.0,0.7,0.4,0.2,0),
-                        limits = c(0,2.8))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,1.6))+
   scale_size_continuous(range = c(1,6))+
   ggtitle("WT mock chemokines")
 
 #Ccl chemokines, ips infected
 DotPlot(chimeric_ips_infected, ccl_chemokines, group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
-  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                        values = c(1.0,0.7,0.4,0.2,0),
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
+                        values = c(1.0,0.7,0.4,0),
                         limits = c(0,1.6))+
   scale_size_continuous(range = c(1,6))+
   ggtitle("IPS rChLGTV chemokines")
@@ -84,8 +98,8 @@ DotPlot(chimeric_ips_infected, ccl_chemokines, group.by = 'Timepoint', scale = F
 #Ccl chemokines, ips mock
 DotPlot(chimeric_ips_mock, ccl_chemokines, group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
-  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                        values = c(1.0,0.7,0.4,0.2,0),
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
+                        values = c(1.0,0.7,0.4,0),
                         limits = c(0,1.6))+
   scale_size_continuous(range = c(1,6))+
   ggtitle("IPS mock chemokines")
@@ -93,18 +107,18 @@ DotPlot(chimeric_ips_mock, ccl_chemokines, group.by = 'Timepoint', scale = FALSE
 #Cxcl chemokines, ips infected
 DotPlot(chimeric_ips_infected, cxcl_chemokines, group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
-  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                        values = c(1.0,0.7,0.4,0.2,0),
-                        limits = c(0,2.8))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,1.6))+
   scale_size_continuous(range = c(1,6))+
   ggtitle("IPS rChLGTV chemokines")
 
 #Cxcl chemokines, ips mcok
 DotPlot(chimeric_ips_mock, cxcl_chemokines, group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
-  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                        values = c(1.0,0.7,0.4,0.2,0),
-                        limits = c(0,2.8))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,1.6))+
   scale_size_continuous(range = c(1,6))+
   ggtitle("IPS mock chemokines")
 

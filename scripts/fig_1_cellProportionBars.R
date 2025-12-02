@@ -34,10 +34,10 @@ table(lgtv_ips$Timepoint, lgtv_ips$manualAnnotation) %>%
   scale_fill_manual(values = newCols)+
   theme_classic()+
   theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
   xlab('')+
   ggtitle('LGTV IPS1')+
   ylab('Proportion of cells')
@@ -52,10 +52,10 @@ table(lgtv_wt$Timepoint, lgtv_wt$manualAnnotation) %>%
   scale_fill_manual(values = newCols)+
   theme_classic()+
   theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
   xlab('')+
   ggtitle('LGTV WT')+
   ylab('Proportion of cells')
@@ -70,10 +70,10 @@ table(chLgtv_ips$Timepoint, chLgtv_ips$manualAnnotation) %>%
   scale_fill_manual(values = newCols)+
   theme_classic()+
   theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
   xlab('')+
   ggtitle('ChLGTV IPS1')+
   ylab('Proportion of cells')
@@ -88,10 +88,10 @@ table(chLgtv_wt$Timepoint, chLgtv_wt$manualAnnotation) %>%
   scale_fill_manual(values = newCols)+
   theme_classic()+
   theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
   xlab('')+
   ggtitle('ChLGTV WT')+
   ylab('Proportion of cells')
@@ -106,12 +106,12 @@ table(mock_ips$Timepoint, mock_ips$manualAnnotation) %>%
   scale_fill_manual(values = newCols)+
   theme_classic()+
   theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
   xlab('')+
-  ggtitle('ChLGTV IPS1')+
+  ggtitle('Mock IPS1')+
   ylab('Proportion of cells')
 dev.off()
 
@@ -124,12 +124,12 @@ table(mock_wt$Timepoint, mock_wt$manualAnnotation) %>%
   scale_fill_manual(values = newCols)+
   theme_classic()+
   theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
   xlab('')+
-  ggtitle('ChLGTV IPS1')+
+  ggtitle('Mock WT')+
   ylab('Proportion of cells')
 dev.off()
 
@@ -140,73 +140,73 @@ dev.off()
 
 ## Looking at data with lgtv removed
 #IPS infected
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/chimeric_ips_cellPopBars.pdf", width = 5, height = 7)
-table(subset(chimeric_mock_ips, Treatment == 'rChLGTV')$Timepoint, subset(chimeric_mock_ips, Treatment == 'rChLGTV')$manualAnnotation) %>% 
-  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
-  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
-  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
-  scale_fill_manual(values = newCols)+
-  theme_classic()+
-  theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
-  xlab('')+
-  ggtitle('IPS infected')+
-  ylab('Proportion of cells')
-dev.off()
-
-#IPS mock
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/chimeric_ips_mock_cellPopBars.pdf", width = 5, height = 7)
-table(subset(chimeric_mock_ips, Treatment == 'PBS')$Timepoint, subset(chimeric_mock_ips, Treatment == 'PBS')$manualAnnotation) %>% 
-  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
-  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
-  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
-  scale_fill_manual(values = newCols)+
-  theme_classic()+
-  theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
-  xlab('')+
-  ggtitle('IPS mock')+
-  ylab('Proportion of cells')
-dev.off()
-
-#WT infected
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/wt_ips_cellPopBars.pdf", width = 5, height = 7)
-table(subset(chimeric_mock_wt, Treatment == 'rChLGTV')$Timepoint, subset(chimeric_mock_wt, Treatment == 'rChLGTV')$manualAnnotation) %>% 
-  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
-  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
-  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
-  scale_fill_manual(values = newCols)+
-  theme_classic()+
-  theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
-  xlab('')+
-  ggtitle('WT Infected')+
-  ylab('Proportion of cells')
-dev.off()
-
-#WT mock
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/wt_ips_mock_cellPopBars.pdf", width = 5, height = 7)
-table(subset(chimeric_mock_wt, Treatment == 'PBS')$Timepoint, subset(chimeric_mock_wt, Treatment == 'PBS')$manualAnnotation) %>% 
-  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
-  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
-  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
-  scale_fill_manual(values = newCols)+
-  theme_classic()+
-  theme(legend.position = 'none',
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        axis.title=element_text(size=16),
-        plot.title = element_text(size = 20))+
-  xlab('')+
-  ggtitle('WT mock')+
-  ylab('Proportion of cells')
-dev.off()
+# pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/chimeric_ips_cellPopBars.pdf", width = 5, height = 7)
+# table(subset(chimeric_mock_ips, Treatment == 'rChLGTV')$Timepoint, subset(chimeric_mock_ips, Treatment == 'rChLGTV')$manualAnnotation) %>% 
+#   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+#   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+#   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+#   scale_fill_manual(values = newCols)+
+#   theme_classic()+
+#   theme(legend.position = 'none',
+#         axis.text.x = element_text(size = 16),
+#         axis.text.y = element_text(size = 16),
+#         axis.title=element_text(size=16),
+#         plot.title = element_text(size = 20))+
+#   xlab('')+
+#   ggtitle('IPS infected')+
+#   ylab('Proportion of cells')
+# dev.off()
+# 
+# #IPS mock
+# pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/chimeric_ips_mock_cellPopBars.pdf", width = 5, height = 7)
+# table(subset(chimeric_mock_ips, Treatment == 'PBS')$Timepoint, subset(chimeric_mock_ips, Treatment == 'PBS')$manualAnnotation) %>% 
+#   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+#   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+#   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+#   scale_fill_manual(values = newCols)+
+#   theme_classic()+
+#   theme(legend.position = 'none',
+#         axis.text.x = element_text(size = 16),
+#         axis.text.y = element_text(size = 16),
+#         axis.title=element_text(size=16),
+#         plot.title = element_text(size = 20))+
+#   xlab('')+
+#   ggtitle('IPS mock')+
+#   ylab('Proportion of cells')
+# dev.off()
+# 
+# #WT infected
+# pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/wt_ips_cellPopBars.pdf", width = 5, height = 7)
+# table(subset(chimeric_mock_wt, Treatment == 'rChLGTV')$Timepoint, subset(chimeric_mock_wt, Treatment == 'rChLGTV')$manualAnnotation) %>% 
+#   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+#   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+#   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+#   scale_fill_manual(values = newCols)+
+#   theme_classic()+
+#   theme(legend.position = 'none',
+#         axis.text.x = element_text(size = 16),
+#         axis.text.y = element_text(size = 16),
+#         axis.title=element_text(size=16),
+#         plot.title = element_text(size = 20))+
+#   xlab('')+
+#   ggtitle('WT Infected')+
+#   ylab('Proportion of cells')
+# dev.off()
+# 
+# #WT mock
+# pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/wt_ips_mock_cellPopBars.pdf", width = 5, height = 7)
+# table(subset(chimeric_mock_wt, Treatment == 'PBS')$Timepoint, subset(chimeric_mock_wt, Treatment == 'PBS')$manualAnnotation) %>% 
+#   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+#   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+#   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+#   scale_fill_manual(values = newCols)+
+#   theme_classic()+
+#   theme(legend.position = 'none',
+#         axis.text.x = element_text(size = 16),
+#         axis.text.y = element_text(size = 16),
+#         axis.title=element_text(size=16),
+#         plot.title = element_text(size = 20))+
+#   xlab('')+
+#   ggtitle('WT mock')+
+#   ylab('Proportion of cells')
+# dev.off()

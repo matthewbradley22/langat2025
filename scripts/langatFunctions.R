@@ -39,11 +39,16 @@ createPseudoBulk <- function(data, variables){
 }
 
 #Reprocess a subset seurat object (rerun normalizing, scaling etc...)
-prepSeuratObj <- function(obj){
+prepSeuratObj <- function(obj, regress = FALSE, regressVars = NULL){
   #Rerun through data processing and visualization
   obj <- NormalizeData(obj)
   obj <- FindVariableFeatures(obj)
-  obj <- ScaleData(obj)
+  if(!regress){
+    obj <- ScaleData(obj)
+  }
+  if(regress){
+    obj <- ScaleData(obj, vars.to.regress = c(regressVars), features = rownames(obj))
+  }
   obj <- RunPCA(obj)
   obj
 }

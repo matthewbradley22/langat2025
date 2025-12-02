@@ -63,7 +63,7 @@ DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'manualAnno
  clust16_17[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/galectin_3_day5_clust16_17_cells.csv', row.names = TRUE)
  clust16_17_map <- read_csv("~/Documents/ÖverbyLab/gal3_clust1617_allen_map/galectin_3_day5_clust16_17_cellscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1764153371391.csv", 
                           skip = 4)
- table(clust16_17_map$subclass_name)
+ table(clust16_17_map$cluster_name)
 
  #Most of the above align to microglia + show no markers of macrophages that I see.. But no Tmem119 so how to best show that they are microglia
  

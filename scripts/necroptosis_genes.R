@@ -38,13 +38,16 @@ length(false_macs_to_remove)
 ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, invert = TRUE)
 
 #Subset to same cells as in gal3 project
-wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT' & Timepoint == 'Day 5')
+wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
+                              Genotype == 'WT' & (Timepoint == 'Day 5' | Treatment == 'PBS'))
 
-wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5)
+#regress out ISGs for plotting
+wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5, regress = TRUE, regressVars = c('Ifit2', 'Ifit3', 'Rsad2', 'Tnf'))
 ElbowPlot(wt_cerebrum_day5, ndims = 40)
 wt_cerebrum_day5 <- prepUmapSeuratObj(wt_cerebrum_day5, nDims = 20, reductionName = 'wt.cerebrum.umap')
 
 DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', label = TRUE)
+DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'Treatment')
 DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'manualAnnotation', cols = newCols)+
   ggtitle("WT Cerebrum Day 5")+
   xlab('Umap1')+
@@ -63,7 +66,7 @@ infiltrating_celltypes <- c("T cells", 'Macrophage/Monocytes', 'Nk cells', 'Gran
 ############################################################
 #Split by treatment
 wt_cerebrum_day5_resident <- subset(wt_cerebrum_day5, manualAnnotation %in% resident_celltypes)
-
+wt_cerebrum_day5_infil <- subset(wt_cerebrum_day5, manualAnnotation %in% infiltrating_celltypes)
 #Not sure that this actually works, cannot visualize both celltype and gene well
 celltype_treatment_necroptosis_scores <- list()
 for(i in 1:length(necroptosis)){
@@ -151,6 +154,13 @@ for(i in 1:length(pyroptosis)){
   print(gene_plot)
 }
 
+#Infiltrating cell proportions
+table(wt_cerebrum_day5_infil$Treatment, wt_cerebrum_day5_infil$manualAnnotation)%>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = newCols[c(1,3,4,5,7,9,10,11,13,14)])+
+  theme_classic()
 
 #Use MAST to test for differences
 treatment_markers <- FindAllMarkers(wt_cerebrum_day5_resident, group.by = 'Treatment', test.use = 'MAST', 

@@ -16,6 +16,7 @@ ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1,
 #Create new columns for plotting and functions later later where we want things grouped
 ParseSeuratObj_int$time_treatment <- paste(ParseSeuratObj_int$Treatment, ParseSeuratObj_int$Timepoint, sep = '_')
 ParseSeuratObj_int$time_celltype <-  paste(ParseSeuratObj_int$Timepoint, ParseSeuratObj_int$manualAnnotation, sep = '_')
+ParseSeuratObj_int$celltype_time <-  paste(ParseSeuratObj_int$manualAnnotation, ParseSeuratObj_int$Timepoint, sep = '_')
 ParseSeuratObj_int$time_treatment_celltype <-  paste(ParseSeuratObj_int$Timepoint, ParseSeuratObj_int$Treatment, ParseSeuratObj_int$manualAnnotation, 
                                                      sep = '_')
  
@@ -297,11 +298,12 @@ isg_heatmap_create <- function(dat , main, file_name_start = NULL, returnData = 
     infected_isg_plot_dat <- infected_isg_plot$data
     mock_isg_plot_dat <- mock_isg_plot$data
     colnames(mock_isg_plot_dat)[4] = 'celltype'
+    
     #Extract celltype from infected data
     infected_isg_plot_dat <- tidyr::extract(infected_isg_plot_dat, col = id, regex = "(.+)_(.+)", into = c('time', 'celltype'))
     
-    combined_isg_scores <- dplyr::left_join(mock_isg_plot_dat, infected_isg_plot_dat, by = 'celltype', suffix = c('_mock', '_infeced'))
-    combined_isg_scores$inf_diff <- combined_isg_scores$avg.exp_infeced - combined_isg_scores$avg.exp_mock
+    combined_isg_scores <- dplyr::left_join(mock_isg_plot_dat, infected_isg_plot_dat, by = 'celltype', suffix = c('_mock', '_infected'))
+    combined_isg_scores$inf_diff <- combined_isg_scores$avg.exp_infected - combined_isg_scores$avg.exp_mock
     
     plot_infected_vs_mock_dat = combined_isg_scores %>% 
       mutate(celltype = case_when(celltype == "B Cells" ~ "B cells",
@@ -497,7 +499,8 @@ wt_chimeric_mock <-subset(wt, Treatment %in% c('PBS', 'rChLGTV'))
 ips_lgtv <-subset(ips, Treatment == 'rLGTV')
 ips_chimeric_mock <-subset(ips, Treatment %in% c('PBS', 'rChLGTV'))
 
-time_celltype_gene_dot <- function(dat, title, gene, exp_max = 3.2, max_pct_exp = 100){
+time_celltype_gene_dot <- function(dat, title, gene, exp_max = 3.2, max_pct_exp = 100, maxDotSize = 6,
+                                   plotTextSize = 4){
   #Get number of cells of each cell type at each timepoint
   cell_counts <- data.frame(id = names(table(dat$time_treatment_celltype)), counts = c(unname(table(dat$time_treatment_celltype))))
   #get plotting data
@@ -511,13 +514,13 @@ time_celltype_gene_dot <- function(dat, title, gene, exp_max = 3.2, max_pct_exp 
   
   dot <- ggplot(dot_dat, aes(x = time_treatment, y = celltype, color = avg.exp, size = pct.exp, label = counts))+
     geom_point()+
-    geom_text(color = 'black', size = 4, hjust = -0.5)+
+    geom_text(color = 'black', size = plotTextSize, hjust = -0.5)+
   
     ggtitle(title)+
     scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgray"),
                           values = c(1.0,0.65,0.3,0),
                           limits = c(0,exp_max))+
-    scale_size_continuous(range = c(1,6), limits = c(0, max_pct_exp))+
+    scale_size_continuous(range = c(1,maxDotSize), limits = c(0, max_pct_exp))+
     theme_bw()+
     theme(panel.border = element_blank(),
           axis.line = element_line(color = 'black'),
@@ -532,29 +535,35 @@ time_celltype_gene_dot <- function(dat, title, gene, exp_max = 3.2, max_pct_exp 
 }
 
 #WT Ifng and Ifngr plots
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/wt_ifng_dot.pdf", width = 9, height = 6)
-time_celltype_gene_dot(wt_chimeric_mock,  title = 'WT Ifng Expression', gene = 'Ifng', max_pct_exp = 55)
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/wt_ifng_dot.pdf", width = 12, height = 6)
+time_celltype_gene_dot(wt_chimeric_mock,  title = 'WT Ifng Expression', gene = 'Ifng', max_pct_exp = 55,
+                       maxDotSize = 11, plotTextSize = 6)
 dev.off()
 
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/wt_ifngr1_dot.pdf", width = 9, height = 6)
-time_celltype_gene_dot(wt_chimeric_mock,  title = 'WT Ifngr1 Expression', gene = 'Ifngr1', exp_max = 9.5)
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/wt_ifngr1_dot.pdf", width = 12, height = 6)
+time_celltype_gene_dot(wt_chimeric_mock,  title = 'WT Ifngr1 Expression', gene = 'Ifngr1', exp_max = 9.5,
+                       maxDotSize = 11, plotTextSize = 6)
 dev.off()
 
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/wt_ifngr2_dot.pdf", width = 9, height = 6)
-time_celltype_gene_dot(wt_chimeric_mock,  title = 'WT Ifngr2 Expression', gene = 'Ifngr2', exp_max = 8)
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/wt_ifngr2_dot.pdf", width = 12, height = 6)
+time_celltype_gene_dot(wt_chimeric_mock,  title = 'WT Ifngr2 Expression', gene = 'Ifngr2', exp_max = 8,
+                       maxDotSize = 11, plotTextSize = 6)
 dev.off()
 
 #Ips Ifng and Ifngr plots
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/ips_ifng_dot.pdf", width = 9, height = 6)
-time_celltype_gene_dot(ips_chimeric_mock,  title = 'IPS Ifng Expression', gene = 'Ifng',  max_pct_exp = 55)
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/ips_ifng_dot.pdf", width = 12, height = 6)
+time_celltype_gene_dot(ips_chimeric_mock,  title = 'IPS Ifng Expression', gene = 'Ifng',  max_pct_exp = 55,
+                       maxDotSize = 11, plotTextSize = 6)
 dev.off()
 
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/ips_ifngr1_dot.pdf", width = 9, height = 6)
-time_celltype_gene_dot(ips_chimeric_mock,  title = 'IPS Ifngr1 Expression', gene = 'Ifngr1', exp_max = 9.5)
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/ips_ifngr1_dot.pdf", width = 12, height = 6)
+time_celltype_gene_dot(ips_chimeric_mock,  title = 'IPS Ifngr1 Expression', gene = 'Ifngr1', exp_max = 9.5,
+                       maxDotSize = 11, plotTextSize = 6)
 dev.off()
 
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/ips_ifngr2_dot.pdf", width = 9, height = 6)
-time_celltype_gene_dot(ips_chimeric_mock,  title = 'IPS Ifngr2 Expression', gene = 'Ifngr2', exp_max = 8)
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_chemokine_fig_plots/ips_ifngr2_dot.pdf", width = 12, height = 6)
+time_celltype_gene_dot(ips_chimeric_mock,  title = 'IPS Ifngr2 Expression', gene = 'Ifngr2', exp_max = 8,
+                       maxDotSize = 11, plotTextSize = 6)
 dev.off()
 
 #ips chimeric seems to have unique nk cell infiltration
@@ -582,11 +591,21 @@ chimeric_mock_wt_infected <- subset(chimeric_mock_wt, Treatment == 'rChLGTV')
 chimeric_mock_wt_infected_resident <- subset(chimeric_mock_wt_infected, manualAnnotation %in% resident_celltypes)
 chimeric_mock_wt_infected_infiltrating<- subset(chimeric_mock_wt_infected, manualAnnotation %in% infiltrating_celltypes)
 DotPlot(chimeric_mock_wt_infected_resident, features = paste0('Socs', c('1', '2', '3', '4' ,'5', '6', '7')), 
-                    group.by = 'time_celltype', scale = FALSE)+
-  theme(panel.grid.major = element_line(colour = "lightgrey"))
+                    group.by = 'celltype_time', scale = FALSE)+
+  theme(panel.grid.major = element_line(colour = "lightgrey"),
+        axis.text.x = element_text(angle = 45, vjust = 0.6))
 
 DotPlot(chimeric_mock_wt_infected_infiltrating, features = paste0('Socs', c('1', '2', '3', '4' ,'5', '6', '7')), 
         group.by = 'time_celltype', scale = FALSE)+
   theme(panel.grid.major = element_line(colour = "lightgrey"))
+
+#Socs in IPS
+chimeric_mock_IPS_infected <- subset(chimeric_mock_ips, Treatment == 'rChLGTV')
+chimeric_mock_IPS_infected_resident <- subset(chimeric_mock_IPS_infected, manualAnnotation %in% resident_celltypes)
+chimeric_mock_IPS_infected_infiltrating<- subset(chimeric_mock_IPS_infected, manualAnnotation %in% infiltrating_celltypes)
+DotPlot(chimeric_mock_IPS_infected_resident, features = paste0('Socs', c('1', '2', '3', '4' ,'5', '6', '7')), 
+        group.by = 'celltype_time', scale = FALSE)+
+  theme(panel.grid.major = element_line(colour = "lightgrey"),
+        axis.text.x = element_text(angle = 45, vjust = 0.6))
 
 
