@@ -7,6 +7,7 @@ library(celldex)
 library(scran)
 library(GSEABase)
 library(AUCell)
+library(gridExtra)
 
 #Source function
 source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
@@ -29,129 +30,184 @@ scDat <- lapply(outputDirs, FUN = function(x){
 })
 
 scDatSeu <-  lapply(scDat, FUN = function(x){
-  CreateSeuratObject(counts = x, project = "hupAnalysis", min.cells = 3, min.features = 200)
+  CreateSeuratObject(counts = x, project = "hupAnalysis", min.cells = 3, min.features = 300)
 })
 
-for(i in 1: length(scDatSeu)){
-  scDatSeu[[i]]$ind <- metaData[i,]$X
-  scDatSeu[[i]]$new_genotype <- metaData[i,]$new_genotype
-  scDatSeu[[i]]$treatment <- metaData[i,]$treatment
-  scDatSeu[[i]]$infected <- metaData[i,]$infected
-}
+#Merge for v5 ingtegration
+toMerge <- c(scDatSeu[[2]], scDatSeu[[3]], scDatSeu[[4]],
+             scDatSeu[[5]], scDatSeu[[6]], scDatSeu[[7]])
 
-scDatSeu <-  lapply(scDatSeu, FUN = function(x){
-  x[["percent.mt"]] <- PercentageFeatureSet(x, pattern = "^mt-")
-  x
-})
+#Merge data before integration
+scDatObj <- merge(scDatSeu[[1]], y = toMerge, 
+                        add.cell.ids = paste0('seuObj', seq(1,7)), project = "single_nuclei")
 
-scDatSeu <-  lapply(scDatSeu, FUN = function(x){
-  x <- subset(x, subset = nFeature_RNA > 100 & nFeature_RNA < 3500 & percent.mt < 15)
-  x
-})
 
-scDatSeu <-  lapply(scDatSeu, FUN = function(x){
-  x <-NormalizeData(x)
-  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
-  all.genes <- rownames(x)
-  x <- ScaleData(x, features = all.genes)
-  x <- RunPCA(x, features = VariableFeatures(object = x))
-})
 
-features <- SelectIntegrationFeatures(object.list = scDatSeu)
-anchors <- FindIntegrationAnchors(object.list = scDatSeu, anchor.features = features)
+#Label mitochondrial gene expression
+scDatObj[["percent.mt"]] <- PercentageFeatureSet(scDatObj, pattern = "^mt-")
 
-scCombined <- IntegrateData(anchorset = anchors)
+#Look at data features
+Idents(scDatObj) <- "all"  #Stops violin plot from grouping by seurat cluster
+VlnPlot(scDatObj, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+        ncol = 3, pt.size = 0) 
 
-# Run the standard workflow for visualization and clustering
-scCombined <- ScaleData(scCombined, verbose = FALSE)
-scCombined <- RunPCA(scCombined, verbose = FALSE)
-ElbowPlot(scCombined, ndims = 30)
-scCombined <- FindNeighbors(scCombined, reduction = "pca", dims = 1:30)
-scCombined <- FindClusters(scCombined, resolution = 0.5)
-scCombined <- RunUMAP(scCombined, reduction = "pca", dims = 1:30)
-DimPlot(scCombined)
 
-scCombined <- JoinLayers(scCombined, assay = 'RNA')
+ggplot(scDatObj[[]], aes(x = 1, y = nFeature_RNA))+
+  geom_violin() +
+  geom_hline(yintercept = 300)
+
+get_library_labels <- do.call(rbind, stringr::str_split(string = rownames(scDatObj[[]]), pattern = '_'))
+lib_labels <- get_library_labels[,1]
+scDatObj$library <- lib_labels
+metaData$library = paste0('seuObj', seq(1:7))
+scDatObj[[]] <-  left_join(scDatObj[[]], metaData, by = 'library')
+
+#Remove likely contamination/doublets. should have low mito reads since this is nuclei
+scDatObj<- subset(scDatObj, subset = nFeature_RNA > 100 & nFeature_RNA < 5000 & percent.mt < 10)
+
+#Run through data processing and visualization before integration
+scDatObj <- NormalizeData(scDatObj)
+scDatObj <- FindVariableFeatures(scDatObj)
+scDatObj <- ScaleData(scDatObj)
+scDatObj <- RunPCA(scDatObj)
+ElbowPlot(scDatObj, ndims = 50)
+scDatObj <- FindNeighbors(scDatObj, dims = 1:30, reduction = "pca")
+
+#Don't think resolution here matters since we rerun findclusters post integration. Tried with multiple
+scDatObj <- FindClusters(scDatObj, resolution = 2, cluster.name = "unintegrated_clusters") 
+scDatObj <- RunUMAP(scDatObj, dims = 1:30, reduction = "pca", reduction.name = "umap.unintegrated")
+DimPlot(scDatObj)
+
+#Integrate data
+#choosing integration method - rpca fastest, cca takes long
+scDatObj_int <- IntegrateLayers(object = scDatObj, method = RPCAIntegration,
+                                      orig.reduction = "pca",  new.reduction = "integrated.rpca", 
+                                      verbose = TRUE)
+
+#re-join layers after integration
+scDatObj_int[["RNA"]] <- JoinLayers(scDatObj_int[["RNA"]])
+ElbowPlot(scDatObj_int, ndims = 30)
+scDatObj_int <- FindNeighbors(scDatObj_int, reduction = "integrated.rpca", dims = 1:20)
+scDatObj_int <- FindClusters(scDatObj_int, resolution = 1)
+scDatObj_int <- RunUMAP(scDatObj_int, dims = 1:20, reduction = "integrated.rpca", 
+                              reduction.name = "umap.integrated")
+
+#Visualize post integration
+intUMAP <- DimPlot(scDatObj_int, reduction = "umap.integrated", group.by = c("seurat_clusters"), label = TRUE)+
+  NoLegend()+
+  ggtitle('Integrated UMAP')
+unIntUmap <- DimPlot(scDatObj_int, reduction = "umap.unintegrated", group.by = c("seurat_clusters"), label = TRUE)+
+  NoLegend()+
+  ggtitle('Unintegrated UMAP')
+
+grid.arrange(intUMAP, unIntUmap, ncol=2)
 
 #remove cells with both sex genes
-sexGenes <- scCombined[['RNA']]$data[c('Xist', 'Eif2s3y'),]
+sexGenes <- scDatObj_int[['RNA']]$data[c('Xist', 'Eif2s3y'),]
 sexGenePresence <- colSums(sexGenes > 0)
-scCombined$sexGenePresence <- case_when(sexGenePresence == 0 ~ 'None',
+scDatObj_int$sexGenePresence <- case_when(sexGenePresence == 0 ~ 'None',
                                                 sexGenePresence == 1 ~ 'One',
                                                 sexGenePresence == 2 ~ 'Two')
 
-table(scCombined$sexGenePresence)
-scCombined <- subset(scCombined, sexGenePresence != 'Two')
+table(scDatObj_int$sexGenePresence)
+scDatObj_int$sexGenePresence <- subset(scDatObj_int$sexGenePresence, sexGenePresence != 'Two')
 
-#SaveSeuratRds(scCombined, './LGTVscCombined.rds')
+#SaveSeuratRds(scDatObj_int, './LGTVscCombined.rds')
 
 
 ##############Begin analysis##############
 
-
 ###########Cell annotation##############
-DefaultAssay(sn_integrated_dat) <- "RNA"
-DimPlot(sn_integrated_dat, label = TRUE)
+
+#Integrated assay for finding celltypes
+DimPlot(sn_integrated_dat, label = TRUE, reduction = 'umap.integrated')
 
 #Ex neurons
-FeaturePlot(sn_integrated_dat, 'Slc17a7')
-FeaturePlot(sn_integrated_dat, 'Sv2b')
-FeaturePlot(sn_integrated_dat, 'Arpp21')
+FeaturePlot(sn_integrated_dat, 'Slc17a7', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Sv2b', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Arpp21', reduction = 'umap.integrated')
 
 #in neurons
-FeaturePlot(sn_integrated_dat, 'Gad1')
-FeaturePlot(sn_integrated_dat, 'Dlx6os1')
+FeaturePlot(sn_integrated_dat, 'Gad1', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Dlx6os1', reduction = 'umap.integrated')
+
+#Microglia
+FeaturePlot(sn_integrated_dat, 'Csf1r', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Tmem119', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'P2ry12', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Cx3cr1', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Itgam', reduction = 'umap.integrated')
 
 #microglia/monocytes
-FeaturePlot(sn_integrated_dat, 'Ctss')
-FeaturePlot(sn_integrated_dat, 'Cx3cr1')
-FeaturePlot(sn_integrated_dat, 'Csf1r')
+FeaturePlot(sn_integrated_dat, 'Ctss', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Cx3cr1', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Csf1r', reduction = 'umap.integrated')
+
+#Macrophage/monocyte markers
+FeaturePlot(sn_integrated_dat, 'Ptprc', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Ccr2', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Lyz2', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Ccr2', reduction = 'umap.integrated')
 
 #Astrocytes
-FeaturePlot(sn_integrated_dat, 'Aqp4')
-FeaturePlot(sn_integrated_dat, 'Rorb')
-FeaturePlot(sn_integrated_dat, 'Fgfr3')
-FeaturePlot(sn_integrated_dat, 'Gfap')
+FeaturePlot(sn_integrated_dat, 'Aqp4', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Rorb', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Fgfr3', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Gfap', reduction = 'umap.integrated')
 
 #oligo
-FeaturePlot(sn_integrated_dat, 'Mag')
-FeaturePlot(sn_integrated_dat, 'Mog')
-FeaturePlot(sn_integrated_dat, 'Plp1')
+FeaturePlot(sn_integrated_dat, 'Mag', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Mog', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Plp1', reduction = 'umap.integrated')
 
 #OPC
-FeaturePlot(sn_integrated_dat, 'Pdgfra')
-FeaturePlot(sn_integrated_dat, 'Vcan')
+FeaturePlot(sn_integrated_dat, 'Pdgfra', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Vcan', reduction = 'umap.integrated')
 
 #VLMCs
-FeaturePlot(sn_integrated_dat, 'Dcn')
-FeaturePlot(sn_integrated_dat, 'Col1a1')
+FeaturePlot(sn_integrated_dat, 'Dcn', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Col1a1', reduction = 'umap.integrated')
 
 #Pericytes
-FeaturePlot(sn_integrated_dat, 'Abcc9')
-FeaturePlot(sn_integrated_dat, 'Pdgfrb')
-FeaturePlot(sn_integrated_dat, 'Vtn')
+FeaturePlot(sn_integrated_dat, 'Abcc9', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Pdgfrb', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Vtn', reduction = 'umap.integrated')
 
 #ChP
-FeaturePlot(sn_integrated_dat, 'Ttr')
-FeaturePlot(sn_integrated_dat, 'Aqp1')
+FeaturePlot(sn_integrated_dat, 'Ttr', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Aqp1', reduction = 'umap.integrated')
+
+#Endothelial cells
+#brain endo marker Pglyrp1 from https://www.sciencedirect.com/science/article/pii/S0092867420300623
+FeaturePlot(sn_integrated_dat, 'Flt1', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Cd93', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Vwf', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Cldn5', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Pglyrp1', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Emcn', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Pecam1', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Adgrl4', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Slco1a4', reduction = 'umap.integrated')
 
 #Label cells
 sn_integrated_dat$manualAnnotation <- 
-  case_when(sn_integrated_dat$seurat_clusters %in% c(1) ~ 'Oligo',
-            sn_integrated_dat$seurat_clusters %in% c(13) ~ 'OPC',
-            sn_integrated_dat$seurat_clusters %in% c(14, 12, 19) ~ 'In Neurons',
-            sn_integrated_dat$seurat_clusters %in% c(6,7, 9, 4, 17, 20, 16, 0, 5, 10, 8, 18, 22, 15) ~ 'Ex Neurons',
-            sn_integrated_dat$seurat_clusters %in% c(3) ~ 'Micro/MO',
-            sn_integrated_dat$seurat_clusters %in% c(2) ~ 'Astrocytes',
-            sn_integrated_dat$seurat_clusters %in% c(26) ~ 'ChP',
-            sn_integrated_dat$seurat_clusters %in% c(21) ~ 'VLMCs',
-            .default = 'unknown') 
+  case_when(sn_integrated_dat$seurat_clusters %in% c(2, 12, 30) ~ 'Oligo',
+            sn_integrated_dat$seurat_clusters %in% c(16) ~ 'OPC',
+            sn_integrated_dat$seurat_clusters %in% c(18, 10, 8) ~ 'In Neurons',
+            sn_integrated_dat$seurat_clusters %in% c(1, 5, 6, 7, 9, 25, 28, 13, 27, 23, 15, 14, 4,
+                                                     17, 26) ~ 'Ex Neurons',
+            sn_integrated_dat$seurat_clusters %in% c(3, 21) ~ 'Micro/MO',
+            sn_integrated_dat$seurat_clusters %in% c(0) ~ 'Astrocytes',
+            sn_integrated_dat$seurat_clusters %in% c() ~ 'ChP',
+            sn_integrated_dat$seurat_clusters %in% c() ~ 'VLMCs',
+            sn_integrated_dat$seurat_clusters %in% c(24) ~ 'Endothelial',
+            .default = 'unknown')
 
 
 #Look at other variables
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
 pdf("~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/celltype_umap.pdf", width = 8, height = 6)
-DimPlot(sn_integrated_dat, group.by =   'manualAnnotation', cols = newCols)
+DimPlot(sn_integrated_dat, group.by =   'manualAnnotation', cols = newCols, reduction = 'umap.integrated')
 dev.off()
 
 DimPlot(sn_integrated_dat, group.by = 'treatment')
@@ -191,6 +247,7 @@ sn_integrated_dat_wt$infected <- factor(sn_integrated_dat_wt$infected)
 sn_wt_bulk <- createPseudoBulk(sn_integrated_dat_wt, variables = c('infected', 'manualAnnotation'))
 sn_wt_bulk <- DESeq(sn_wt_bulk)
 resultsNames(sn_wt_bulk)
+
 infected_vs_uninfected <- results(sn_wt_bulk, name="infected_TRUE_vs_FALSE")
 infected_vs_uninfected_upregulated <- subset(infected_vs_uninfected, padj < 0.01 & log2FoldChange > 1)
 infected_vs_uninfected_upregulated
@@ -200,6 +257,15 @@ infected_vs_uninfected_up_paths<- gprofiler2::gost(query = rownames(infected_vs_
 infected_vs_uninfected_up_paths$result[infected_vs_uninfected_up_paths$result$source == 'KEGG',]
 infected_vs_uninfected_up_paths$result[infected_vs_uninfected_up_paths$result$source == 'GO:MF',]
 infected_vs_uninfected_up_paths$result[infected_vs_uninfected_up_paths$result$source == 'GO:BP',]
+
+#Barplot pathways
+infected_vs_uninfected_up_paths$result[infected_vs_uninfected_up_paths$result$term_name %in% 
+                                   c('Apoptosis', 'TNF signaling pathway', 'cytokine production',
+                                     'response to cytokine', 'cell death',
+                                     'necroptotic process', 'Regulation of necroptotic cell death'),] %>% 
+  ggplot(aes(x = -log10(p_value), y = term_name, fill = source))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  ggtitle('Single nuclei data upregulated in infection')
 
 #Downregulated genes too
 
