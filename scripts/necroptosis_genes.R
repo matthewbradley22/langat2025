@@ -43,6 +43,9 @@ wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV')
 
 #regress out ISGs for plotting
 wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5, regress = TRUE, regressVars = c('Ifit2', 'Ifit3', 'Rsad2', 'Tnf'))
+
+#No regressing out variables yet
+wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5, regress = FALSE, regressVars = c('Ifit2', 'Ifit3', 'Rsad2', 'Tnf'))
 ElbowPlot(wt_cerebrum_day5, ndims = 40)
 wt_cerebrum_day5 <- prepUmapSeuratObj(wt_cerebrum_day5, nDims = 20, reductionName = 'wt.cerebrum.umap')
 
@@ -67,7 +70,8 @@ infiltrating_celltypes <- c("T cells", 'Macrophage/Monocytes', 'Nk cells', 'Gran
 #Split by treatment
 wt_cerebrum_day5_resident <- subset(wt_cerebrum_day5, manualAnnotation %in% resident_celltypes)
 wt_cerebrum_day5_infil <- subset(wt_cerebrum_day5, manualAnnotation %in% infiltrating_celltypes)
-#Not sure that this actually works, cannot visualize both celltype and gene well
+
+#Necroptosis gene expressions across celltype and gene
 celltype_treatment_necroptosis_scores <- list()
 for(i in 1:length(necroptosis)){
   avg_data <- AverageExpression(wt_cerebrum_day5_resident, necroptosis[i], group.by = 'treatment_celltype', assay = 'RNA', slot = 'data')$RNA
@@ -173,15 +177,42 @@ treatment_markers[pyroptosis,]
 
 #Look at differentially expressed pathways from MAST results
 #Upregulated in infection
+
 upregulated_infection <- subset(treatment_markers, avg_log2FC > 1 & p_val_adj < 0.01 & cluster == 'rLGTV')
 
-upregulated_infection_paths <- gprofiler2::gost(query = rownames(upregulated_infection), organism = 'mmusculus', evcodes = TRUE)
+#Set high p value threshold to see all pathways
+upregulated_infection_paths <- gprofiler2::gost(query = rownames(upregulated_infection), organism = 'mmusculus', evcodes = TRUE,
+                                                user_threshold = 1)
+
 upregulated_infection_paths$result[upregulated_infection_paths$result$source == 'KEGG',]
 upregulated_infection_paths$result[upregulated_infection_paths$result$source == 'GO:MF',]
 upregulated_infection_paths$result[upregulated_infection_paths$result$source == 'GO:BP',]
 
+#beginning of possible cell death pathway names, doing partial names to match pathways
+paths_to_match <- c("apopt", "pyrop", "necrop", "ferrop", 'autopha', 'cuprop')
+upregulated_infection_paths$result[grep(paste(paths_to_match,collapse="|"), 
+     upregulated_infection_paths$result$term_name, ignore.case = TRUE),]$term_name %>% sort()
 
-#Are any of these significant DEGs? Create pseuTRUE#Are any of these significant DEGs? Create pseudobulk object and check significance
+sig_pathways <- upregulated_infection_paths$result[upregulated_infection_paths$result$p_value < 0.05,]
+sig_pathways[grep(paste(paths_to_match,collapse="|"), 
+                  sig_pathways$term_name, ignore.case = TRUE),]$term_name %>% sort()
+
+#Barplot of cell death pathway p values
+pathways_to_plot <- upregulated_infection_paths$result[upregulated_infection_paths$result$term_name %in%
+                                                         c('Apoptosis', 'autophagy', 'Necroptosis', 
+                                                           'pyroptotic inflammatory response', 'Pyroptosis',
+                                                           'ferroptosis', 'Ferroptosis', 'necroptotic process',
+                                                           'positive regulation of apoptotic process'),]
+pathways_to_plot <- pathways_to_plot[pathways_to_plot$source %in% c('GO:BP', 'KEGG', 'REAC', 'cell death') &
+                                       #Removing one apoptosis pathway, keeping one that better matches our list
+                                       #(and has lower p value, but will look into genes to make sure it's actually meaningful)
+                                       (pathways_to_plot$term_name != 'Apoptosis' | pathways_to_plot$source != 'REAC'),]
+ggplot(pathways_to_plot, aes(x = term_name, y = -log10(p_value), fill = source, color = source))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  geom_hline(yintercept = -log10(0.01), linetype= 2)+
+  coord_flip()
+
+#Are any of these significant DEGs? Create pseudobulk object and check significance
 wt_cerebrum_day5_resident_bulk <- createPseudoBulk(wt_cerebrum_day5_resident, c('Treatment', 'manualAnnotation'))
 wt_cerebrum_day5_resident_bulk <- DESeq(wt_cerebrum_day5_resident_bulk)
 resultsNames(wt_cerebrum_day5_resident_bulk)
@@ -204,6 +235,9 @@ downregulated_infection_paths <- gprofiler2::gost(query = rownames(downregulated
 downregulated_infection_paths$result[downregulated_infection_paths$result$source == 'KEGG',]
 downregulated_infection_paths$result[downregulated_infection_paths$result$source == 'GO:MF',]
 downregulated_infection_paths$result[downregulated_infection_paths$result$source == 'GO:BP',]
+
+#Look at relevant pathways by celltype
+
 
 ###################Infiltrating cell analysis###################
 ################################################################

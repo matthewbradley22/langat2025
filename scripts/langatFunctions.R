@@ -44,7 +44,8 @@ prepSeuratObj <- function(obj, regress = FALSE, regressVars = NULL){
   obj <- NormalizeData(obj)
   obj <- FindVariableFeatures(obj)
   if(!regress){
-    obj <- ScaleData(obj)
+    all.genes <- rownames(obj)
+    obj <- ScaleData(obj,  features = all.genes)
   }
   if(regress){
     obj <- ScaleData(obj, vars.to.regress = c(regressVars), features = rownames(obj))

@@ -411,8 +411,42 @@ for(i in 1:length(colnames(isg_evg_exp$RNA))){
 }
 isg_evg_exp
 
-####################################OtherGenes###########################################################
-#Other gene markers
+#Look at a few isg markers without addModuleScore and see celtype differences in lgtv vs pbs
+#Could make dotplot with gene on x axis, celltype y axis, and fill by difference of lgtv vs pbs
+lgtv_pbs_gene_comparison <- function(dat, celltypes, gene){
+  for(i in 1:length(celltypes)){
+    current_celltype = subset(dat, manualAnnotation == celltypes[i])
+    print(celltypes[i])
+    print(AverageExpression(current_celltype, features = gene, group.by = 'Treatment'))
+  }
+}
+
+isgs_to_plot <- c('Rsad2', 'Ifitm1', 'Ifitm3', 'Ifit1', 'Ifit2', 'Isg15')
+for(i in 1:length(isgs_to_plot)){
+  gene = isgs_to_plot[i]
+  avg_exp <- AverageExpression(wt, features = gene, group.by = 'time_treatment_celltype')
+  avg_exp_df <- as.data.frame(t(as.matrix(avg_exp$RNA)))
+  avg_exp_df$id = rownames(avg_exp_df)
+  avg_exp_df <- tidyr::extract(avg_exp_df, into = c('timepoint_treatment', 'celltype'), col = 'id', regex = '(.+)-(.+)')
+  gene_heatmap <- ggplot(avg_exp_df, aes_string(x = 'timepoint_treatment', y = 'celltype', fill = gene))+
+    geom_tile()+
+    theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+    scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                          values = c(1.0,0.65,0.3,0))+
+    ggtitle(gene)
+  print(gene_heatmap)
+  }
+
+wt[['RNA']]$data[isgs_to_plot,]
+
+lgtv_pbs_gene_comparison(wt, celltypes = c('Astrocytes', 'Microglia', 'Choroid Plexus'), gene = 'Ifit2')
+
+wt_cerebrum_pbs <- subset(wt_cerebrum, Treatment == 'PBS')
+wt_cerebrum_chlgtv <- subset(wt_cerebrum, Treatment == 'rChLGTV')
+
+
+##############################Other Marker Genes#########################################
+#########################################################################################
 
 #IFN genes
 ifn_genes <- rownames(ParseSeuratObj_int[['RNA']]$data)[grep('Ifn', rownames(ParseSeuratObj_int[['RNA']]$data))]

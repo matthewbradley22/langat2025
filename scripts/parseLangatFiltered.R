@@ -44,6 +44,7 @@ countDats <- list(ParseSeuratObj[['RNA']]$counts.1, ParseSeuratObj[['RNA']]$coun
                   ParseSeuratObj[['RNA']]$counts.5, ParseSeuratObj[['RNA']]$counts.6,
                   ParseSeuratObj[['RNA']]$counts.7, ParseSeuratObj[['RNA']]$counts.8)
 
+#Check for presence of interferons
 ifnCounts <- list()
 for(i in 1:length(countDats)){
   countDat = countDats[[i]]
@@ -53,6 +54,7 @@ for(i in 1:length(countDats)){
 }
 ifnCountDat <- do.call(rbind, ifnCounts)
 write.csv(ifnCountDat, "~/Documents/ÖverbyLab/ifnCountDat.csv")
+
 #Label mitochondrial gene expression
 ParseSeuratObj[["percent.mt"]] <- PercentageFeatureSet(ParseSeuratObj, pattern = "^mt-")
 
@@ -159,6 +161,7 @@ ParseSeuratObj <- ScaleData(ParseSeuratObj)
 ParseSeuratObj <- RunPCA(ParseSeuratObj)
 ElbowPlot(ParseSeuratObj, ndims = 50)
 ParseSeuratObj <- FindNeighbors(ParseSeuratObj, dims = 1:30, reduction = "pca")
+
 #Don't think resolution here matters since we rerun findclusters post integration. Tried with multiple
 ParseSeuratObj <- FindClusters(ParseSeuratObj, resolution = 2, cluster.name = "unintegrated_clusters") 
 ParseSeuratObj <- RunUMAP(ParseSeuratObj, dims = 1:30, reduction = "pca", reduction.name = "umap.unintegrated")

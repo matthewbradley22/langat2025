@@ -56,8 +56,22 @@ ggplot(ccl12_dat, aes(x = timepoint, y = celltype, color = avg.exp, size = pct.e
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,3))+
   scale_size_continuous(range = c(1,6))+
-  theme_bw()
-table(chimeric_wt_infected$Timepoint, chimeric_wt_infected$manualAnnotation)
+  theme_bw()+
+  ggtitle('WT rChLGTV Ccl12 Expression')
+
+table(chimeric_wt_infected$Timepoint, chimeric_wt_infected$manualAnnotation) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = newCols)+
+  theme_classic()+
+  theme(axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
+  xlab('')+
+  ggtitle('WT rChLGTV cell proportions')+
+  ylab('Proportion of cells')
 
 #Ccl chemokines, wt mock#Ccl chemokines, wt mockFALSE
 DotPlot(chimeric_wt_mock, ccl_chemokines, group.by = 'Timepoint', scale = FALSE)+
