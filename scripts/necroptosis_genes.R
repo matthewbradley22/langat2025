@@ -160,19 +160,35 @@ split_names <- stringr::str_split_fixed(wt_cerebrum_day5_resident_nScores$id, "-
 colnames(split_names) <- c('treatment', 'celltype')
 wt_cerebrum_day5_resident_nScores <- cbind(wt_cerebrum_day5_resident_nScores, split_names)
 
+#Only plot celltypes with enough cells in infected
+relevant_celltypes <- table(wt_cerebrum_day5_resident$Treatment, wt_cerebrum_day5_resident$manualAnnotation) %>% 
+  as.data.frame() %>% 
+  dplyr::filter(Var1 == 'rLGTV' & Freq > 30) 
+
+#Get list of celltypes with enough cells
+celltypes_over_30 <- relevant_celltypes$Var2
+
 #Differences between treatment and pbs avg expression for each gene
-pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/Necroptosis_scores.pdf', height = 5, width = 8)
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/resident_necroptosis_scores.pdf', height = 5, width = 8)
 wt_cerebrum_day5_resident_nScores %>%
   dplyr::group_by(gene, celltype) %>%
   dplyr::mutate(exp_change = avg_exp - dplyr::first(avg_exp)) %>% 
-  dplyr::filter(treatment == 'rLGTV') %>% 
+  dplyr::filter(treatment == 'rLGTV' & celltype %in% celltypes_over_30) %>% 
   ggplot(aes(x = gene, y = celltype, fill = exp_change))+
   geom_tile()+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","blue"),
                        values = c(1, 0.7,0.2,0.05,-0.2),
                        limits = c(-0.45, 10))+
   ggtitle("Necroptosis gene LGTV - PBS difference")+
-  geom_text(aes(label=round(exp_change, digits = 2)))
+  geom_text(aes(label=round(exp_change, digits = 2)), size = 6) +
+  theme(axis.text = element_text(size = 16),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 16),
+        panel.grid= element_blank(),
+        panel.background = element_rect(fill = 'white', colour = 'white'),
+        axis.ticks = element_blank())+
+  ylab('')+
+  xlab('')
 dev.off()
 
 #Line plots showing difference
@@ -189,20 +205,38 @@ for(i in 1:length(necroptosis)){
 
 
 #check cell counts for each group
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/wt_resident_celltype_props.pdf', height = 5, width = 8)
 table(wt_cerebrum_day5_resident$Treatment, wt_cerebrum_day5_resident$manualAnnotation)%>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
   scale_fill_manual(values = newCols[c(1,3,4,5,7,9,10,11,13,14)])+
-  theme_classic()
+  theme_classic()+
+  ylab('Cell type proportions')+
+  xlab('') +
+  theme(axis.text = element_text(size= 16),
+        axis.title = element_text(size= 16),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16))+
+  guides(fill=guide_legend(title="cell type"))
+dev.off()
 
 #total counts, rather than proportions
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/wt_resident_celltype_counts.pdf', height = 5, width = 8)
 table(wt_cerebrum_day5_resident$Treatment, wt_cerebrum_day5_resident$manualAnnotation)%>% 
   as.data.frame() %>% 
   ggplot(aes(x = Var1, y = Freq, fill = Var2))+
   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
   scale_fill_manual(values = newCols[c(1,3,4,5,7,9,10,11,13,14)])+
-  theme_classic()
+  theme_classic()+
+  ylab('Cell type counts')+
+  xlab('') +
+  theme(axis.text = element_text(size= 16),
+        axis.title = element_text(size= 16),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16))+
+  guides(fill=guide_legend(title="cell type"))
+dev.off()
 
 #Same thing for pyroptosis genes
 celltype_treatment_pyroptosis_scores <- list()
@@ -219,17 +253,28 @@ colnames(split_names) <- c('treatment', 'celltype')
 wt_cerebrum_day5_resident_pScores <- cbind(wt_cerebrum_day5_resident_pScores, split_names)
 
 #Differences between treatment and pbs avg expression for each gene
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/resident_pyroptosis_scores.pdf', height = 5, width = 8)
 wt_cerebrum_day5_resident_pScores %>%
   dplyr::group_by(gene, celltype) %>%
   dplyr::mutate(exp_change = avg_exp - dplyr::first(avg_exp)) %>% 
-  dplyr::filter(treatment == 'rLGTV') %>% 
+  dplyr::filter(treatment == 'rLGTV' & celltype %in% celltypes_over_30) %>% 
   ggplot(aes(x = gene, y = celltype, fill = exp_change))+
   geom_tile()+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","blue"),
                        values = c(1, 0.7,0.2,0.09,-0.1),
                        limits = c(-1, 10))+
   ggtitle("Pyroptosis gene LGTV - PBS difference")+
-  geom_text(aes(label=round(exp_change, digits = 2)))
+  geom_text(aes(label=round(exp_change, digits = 2)), size = 3) +
+  theme(axis.text = element_text(size = 16),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 16),
+        axis.text.x = element_text(angle = 45, vjust = 0.5),
+        panel.grid= element_blank(),
+        panel.background = element_rect(fill = 'white', colour = 'white'),
+        axis.ticks = element_blank())+
+  ylab('')+
+  xlab('')
+dev.off()
 
 #Line plots showing difference
 for(i in 1:length(pyroptosis)){
@@ -244,12 +289,59 @@ for(i in 1:length(pyroptosis)){
 }
 
 #Infiltrating cell proportions
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/wt_infiltrating_celltype_props.pdf', height = 5, width = 8)
 table(wt_cerebrum_day5_infil$Treatment, wt_cerebrum_day5_infil$manualAnnotation)%>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
-  scale_fill_manual(values = newCols[c(1,3,4,5,7,9,10,11,13,14)])+
+  scale_fill_manual(values = newCols[c(2, 6, 8, 12, 15)])+
   theme_classic()
+dev.off()
+
+#Total counts
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/wt_infiltrating_celltype_counts.pdf', height = 5, width = 8)
+table(wt_cerebrum_day5_infil$Treatment, wt_cerebrum_day5_infil$manualAnnotation)%>% 
+  as.data.frame() %>% 
+  ggplot(aes(x = Var1, y = Freq, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = newCols[c(2, 6, 8, 12, 15)])+
+  theme_classic()+
+  ylab('Cell type counts')+
+  xlab('') +
+  theme(axis.text = element_text(size= 16),
+        axis.title = element_text(size= 16),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16))+
+  guides(fill=guide_legend(title="cell type"))
+dev.off()
+
+#Necroptosis and pyroptosis scores by celltype and treatment (addModuleScore then just dotplot)
+wt_cerebrum_day5_resident <- AddModuleScore(wt_cerebrum_day5_resident, features = list(necroptosis), name = 'necroptosis')
+wt_cerebrum_day5_resident <- AddModuleScore(wt_cerebrum_day5_resident, features = list(pyroptosis), name = 'pyroptosis')
+
+necroptosis_dot_dat <- DotPlot(wt_cerebrum_day5_resident, features = 'necroptosis1', group.by = 'treatment_celltype')$data
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/celltype_necroptosis_scores.pdf', height = 5, width = 8)
+necroptosis_dot_dat %>% tidyr::extract(col = id, regex = '(.+)_(.+)', into = c('treatment', 'celltype')) %>% 
+  dplyr::filter(celltype %in% celltypes_over_30) %>% 
+  ggplot(aes(x = treatment, y = celltype, fill = avg.exp))+
+  geom_tile()+
+  ggtitle('Necroptosis score')+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","blue"),
+                       values = c(1, 0.7,0.2,0.05,-0.2),
+                       limits = c(-0.15, 1))+
+  geom_text(aes(label=round(avg.exp, digits = 2)), size = 8)+
+  theme(axis.text = element_text(size = 16),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 16),
+        plot.title = element_text(size = 18),
+        panel.grid= element_blank(),
+        panel.background = element_rect(fill = 'white', colour = 'white'),
+        axis.ticks = element_blank())+
+  ylab('')+
+  xlab('')
+dev.off()
+
 
 #Use MAST to test for differences
 treatment_markers <- FindAllMarkers(wt_cerebrum_day5_resident, group.by = 'Treatment', test.use = 'MAST', 
