@@ -8,6 +8,8 @@ library(RColorBrewer)
 library(tidyr)
 library(stringr)
 library(gprofiler2)
+library(msigdbr)
+library(fgsea)
 source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
 
 #Load data
@@ -21,6 +23,7 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
         cols = newCols)
 ParseSeuratObj_int$time_treatment <- paste(ParseSeuratObj_int$Timepoint, ParseSeuratObj_int$Treatment, sep = '_')
 ParseSeuratObj_int$treatment_celltype <- paste(ParseSeuratObj_int$Treatment, ParseSeuratObj_int$manualAnnotation, sep = '_')
+
 #Gene lists
 necroptosis <- c('Tnf', 'Tnfrsf1a', 'Ripk2', 'Mlkl', 'Ripk1', 'Ripk3')
 pyroptosis <- c('Gsdmc', 'Nlrp3', 'Aim2', 'Gsdmd', 'Il18', 'Il1b', 'Casp9', 'Casp8', 'Casp6', 'Casp3', 'Casp4', 'Casp1')
@@ -47,7 +50,7 @@ wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5, regress = TRUE, regressVars 
 #No regressing out variables yet
 wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5, regress = FALSE, regressVars = c('Ifit2', 'Ifit3', 'Rsad2', 'Tnf'))
 ElbowPlot(wt_cerebrum_day5, ndims = 40)
-wt_cerebrum_day5 <- prepUmapSeuratObj(wt_cerebrum_day5, nDims = 20, reductionName = 'wt.cerebrum.umap')
+wt_cerebrum_day5 <- prepUmapSeuratObj(wt_cerebrum_day5, nDims = 20, reductionName = 'wt.cerebrum.umap', num_neighbors = 30L)
 
 DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', label = TRUE)
 DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'Treatment')
@@ -202,15 +205,48 @@ pathways_to_plot <- upregulated_infection_paths$result[upregulated_infection_pat
                                                          c('Apoptosis', 'autophagy', 'Necroptosis', 
                                                            'pyroptotic inflammatory response', 'Pyroptosis',
                                                            'ferroptosis', 'Ferroptosis', 'necroptotic process',
-                                                           'positive regulation of apoptotic process'),]
-pathways_to_plot <- pathways_to_plot[pathways_to_plot$source %in% c('GO:BP', 'KEGG', 'REAC', 'cell death') &
-                                       #Removing one apoptosis pathway, keeping one that better matches our list
-                                       #(and has lower p value, but will look into genes to make sure it's actually meaningful)
-                                       (pathways_to_plot$term_name != 'Apoptosis' | pathways_to_plot$source != 'REAC'),]
+                                                           'positive regulation of apoptotic process', 'cell death'),]
+pathways_to_plot <- pathways_to_plot[pathways_to_plot$source %in% c('GO:BP', 'KEGG'),]
+
 ggplot(pathways_to_plot, aes(x = term_name, y = -log10(p_value), fill = source, color = source))+
   geom_bar(stat = 'identity', position = 'dodge')+
   geom_hline(yintercept = -log10(0.01), linetype= 2)+
   coord_flip()
+
+#Look at relevant pathways by celltype
+pathway_dotplot_dat <- pathways_to_plot[,c('term_name', 'intersection')]
+pathway_dotplot_dat_usable <- list()
+for(i in 1:nrow(pathway_dotplot_dat)){
+  current_path <- pathway_dotplot_dat[i,]
+  gene_list = stringr::str_split(current_path$intersection, pattern = ',') 
+  pathway_dotplot_dat_usable[i] = gene_list
+  names(pathway_dotplot_dat_usable)[i] = current_path$term_name
+}
+
+#Add module scores for plotting to seurat object
+for(i in 1:length(pathway_dotplot_dat_usable)){
+  wt_cerebrum_day5_resident <- AddModuleScore(wt_cerebrum_day5_resident, 
+                                                              features = list(pathway_dotplot_dat_usable[[i]]),
+                                              name = gsub(" ", "_", names(pathway_dotplot_dat_usable)[i]))
+}
+
+wt_cerebrum_day5_resident[[]] %>% dplyr::group_by(manualAnnotation, Treatment) %>% 
+  dplyr:: summarise(across(cell_death1:Necroptosis1, ~ mean(.x, na.rm = TRUE))) %>% 
+  tidyr::pivot_longer(cols = c(!c(manualAnnotation, Treatment)), names_to = 'pathway', values_to = 'meanExp') %>% 
+  dplyr::group_by(manualAnnotation, pathway) %>% 
+  dplyr::mutate(path_diff = meanExp - meanExp[Treatment == 'PBS']) %>% 
+  dplyr::filter(Treatment == 'rLGTV' & pathway != 'ferroptosis1' & pathway != 'Ferroptosis1') %>% 
+  dplyr::mutate(pathway = case_when(pathway == 'cell_death1'~ 'cell death',
+                                    pathway == 'Apoptosis1'~ 'apoptosis',
+                                    pathway == 'positive_regulation_of_apoptotic_process1'~ 'positive regulation apoptosis',
+                                    pathway == 'pyroptotic_inflammatory_response1'~ 'pyroptotic inflammation',
+                                    pathway == 'autophagy1'~ 'autophagy',
+                                    pathway == 'Necroptosis1'~ 'necroptosis',
+                                    .default = pathway)) %>% 
+  ggplot(aes(x = pathway, y = manualAnnotation, fill = path_diff))+
+  geom_tile()+
+  scale_fill_gradient2(low = '#3DB9FF', mid = 'white', high = 'red', midpoint = 0)+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.6))
 
 #Are any of these significant DEGs? Create pseudobulk object and check significance
 wt_cerebrum_day5_resident_bulk <- createPseudoBulk(wt_cerebrum_day5_resident, c('Treatment', 'manualAnnotation'))
@@ -236,7 +272,51 @@ downregulated_infection_paths$result[downregulated_infection_paths$result$source
 downregulated_infection_paths$result[downregulated_infection_paths$result$source == 'GO:MF',]
 downregulated_infection_paths$result[downregulated_infection_paths$result$source == 'GO:BP',]
 
-#Look at relevant pathways by celltype
+#Also look at pathways with fgsea, maybe best and can include custom lists.
+#But think I won't go with gsea as we have plenty of highly significant degs
+#for enrichment analyses
+
+#Molecular signatures database
+all_gene_sets <- msigdbr(species = "Mus musculus", db_species = "MM")
+
+mouse_gene_sets <- all_gene_sets %>%
+  split(x = .$gene_symbol, f = .$gs_name)
+
+#Gene lists from email
+anti_apoptosis <- c("Bcl2", "Bcl2l1", 'Bcl2l2', 'Bag1', 'Bag2', 'Bag3', 'Bag4')
+pro_apoptosis <- c('Apaf1', 'Casp9', 'Casp8', 'Bax', 'Bak',
+                   'Bid', 'Bad', 'Bim', 'Bcl10', 'Bik',
+                   'Blk', 'Fas', 'Fasl', 'Tnfrsf1a', 'Tnf', 'Tyro3',
+                   'Axl', 'Mertk', 'Tnfsf10', 'Tnfrsf10b', 'Casp3', 'Casp6', 'Casp7')
+
+#Also lists Ferritin, Fth1? Ftl1? Think the map genes are right, should double check though
+ferroptosis <- c('Gpx4', 'Acsl4', 'Ptgs2', 'Slc39a14', 'Prnp', 'Steap3', 'Vdac2', 'Vdac3', 'Alox15', 'Atf3')
+autophagy <- c('Atg3', 'Atg5', 'Atg7', 'Atg10', 'Atg12', 'Atg13', 'Atg14', 'Ulk1', 'Becn1',
+               'Ambra1', 'Map1lc3a', 'Map1lc3a')
+cuproptosis <- c('Fdx1', 'Lias', 'Lipt1', 'Dld', 'Dlat', 'Pdha1', 'Pdhb', 'Mtf1',
+                 'Gls', 'Cdkn2a', 'Atp7b', 'Slc31a1', 'Atp7a', 'Dlst', 'Dbt', 'Gcsh')
+
+mouse_gene_sets$custom_necroptosis <- necroptosis
+mouse_gene_sets$custom_pyrooptosis <- pyroptosis
+mouse_gene_sets$custom_pro_apoptosis <- pro_apoptosis
+mouse_gene_sets$custom_pro_ferroptosis <- ferroptosis
+mouse_gene_sets$custom_autophagy <- autophagy
+mouse_gene_sets$custom_cuproptosis <- cuproptosis
+
+treatment_markers_sorted <- treatment_markers %>% dplyr::filter(cluster == 'rLGTV') %>% dplyr::arrange(desc(avg_log2FC)) 
+treatment_markers_sorted_logfcs <- treatment_markers_sorted$avg_log2FC
+names(treatment_markers_sorted_logfcs) <- rownames(treatment_markers_sorted)
+
+GSEAres <- fgsea(pathways = mouse_gene_sets, # List of gene sets to check
+                 stats = treatment_markers_sorted_logfcs,
+                 scoreType = 'pos', # in this case we have both pos and neg rankings. if only pos or neg, set to 'pos', 'neg'
+                 minSize = 5,
+                 maxSize = 500) 
+
+GSEAres[grep('custom', GSEAres$pathway, ignore.case = TRUE),] %>% 
+  dplyr::arrange(padj)
+
+
 
 
 ###################Infiltrating cell analysis###################

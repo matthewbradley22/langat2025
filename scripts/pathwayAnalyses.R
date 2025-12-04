@@ -29,7 +29,7 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 dev.off()
 
 #Molecular signatures database
-all_gene_sets <- msigdbr(species = "Mus musculus")
+all_gene_sets <- msigdbr(species = "Mus musculus", db_species = "MM")
 
 mouse_gene_sets <- all_gene_sets %>%
   split(x = .$gene_symbol, f = .$gs_name)

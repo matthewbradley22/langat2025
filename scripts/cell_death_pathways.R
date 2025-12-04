@@ -13,6 +13,7 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 ParseSeuratObj_int$treatment_celltype <- paste(ParseSeuratObj_int$Treatment, ParseSeuratObj_int$manualAnnotation, sep = '_')
 
 #Gene lists from email
+
 anti_apoptosis <- c("Bcl2", "Bcl2l1", 'Bcl2l2', 'Bag1', 'Bag2', 'Bag3', 'Bag4')
 pro_apoptosis <- c('Apaf1', 'Casp9', 'Casp8', 'Bax', 'Bak',
                    'Bid', 'Bad', 'Bim', 'Bcl10', 'Bik',
