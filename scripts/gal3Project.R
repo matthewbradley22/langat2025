@@ -1,3 +1,6 @@
+#Need to organize this and the cell_death_pathways.R script
+#there is not an isg regressed umap created in cell_death_pathways.R that should just be done here for organization
+
 #Packages and functions
 library(gridExtra)
 library(ggpubr)
@@ -27,7 +30,10 @@ length(false_macs_to_remove)
 ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, invert = TRUE)
 
 #Create all subsets that will be used
-wt_cerebrum_day5 <- subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT' & Timepoint == 'Day 5')
+#Subset to same cells as in gal3 project
+wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
+                              Genotype == 'WT' & (Timepoint == 'Day 5' | Treatment == 'PBS'))
+
 immune <- subset(wt_cerebrum_day5, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
                                                       'T cells', 'Granulocytes', 'Nk cells'))
 wt_cerebrum_day5_mock <- subset(wt_cerebrum_day5, Treatment == ('PBS'))
@@ -42,7 +48,7 @@ macrophages_wt_infected <- subset(wt_cerebrum_day5_infected, manualAnnotation %i
 #ReUMAP
 wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5)
 ElbowPlot(wt_cerebrum_day5, ndims = 40)
-wt_cerebrum_day5 <- prepUmapSeuratObj(wt_cerebrum_day5, nDims = 20, reductionName = 'wt.cerebrum.umap')
+wt_cerebrum_day5 <- prepUmapSeuratObj(wt_cerebrum_day5, nDims = 20, reductionName = 'wt.cerebrum.umap',  num_neighbors = 30L)
 
 DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', label = TRUE)
 wt_cerebrum_day5$manualAnnotation <- factor(wt_cerebrum_day5$manualAnnotation)
@@ -186,6 +192,7 @@ ElbowPlot(immune_wt_mock, ndims = 40)
 immune_wt_mock <- prepUmapSeuratObj(immune_wt_mock, nDims = 20, reductionName = 'wt.immune.mock.umap')
 
 DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', label = TRUE)
+DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', label = FALSE, group.by = 'Timepoint')
 
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_cerebrum_day5.pdf',
     width = 7, height = 5)
@@ -228,14 +235,22 @@ table(wt_cerebrum_day5_infected$manualAnnotation)
 
 immune_wt_infected <- prepSeuratObj(immune_wt_infected)
 ElbowPlot(immune_wt_infected, ndims = 40)
-immune_wt_infected <- prepUmapSeuratObj(immune_wt_infected, nDims = 20, reductionName = 'wt.immune.infected.umap')
+immune_wt_infected <- prepUmapSeuratObj(immune_wt_infected, nDims = 20, reductionName = 'wt.immune.infected.umap', 
+                                        num_neighbors = 20L)
 
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', label = TRUE)
 
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_wt_infected_day5_umap.pdf',
     width = 8, height = 6)
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
-         cols = c(newCols[[2]], newCols[[6]], newCols[[8]], newCols[[9]], newCols[[12]], newCols[[15]]))
+         cols = c(newCols[[2]], newCols[[6]], newCols[[8]], newCols[[9]], newCols[[12]], newCols[[15]]))+
+  ggtitle('Immune WT Infected UMAP')+
+  xlab('Umap 1')+
+  ylab('Umap 2')+  
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank())
 dev.off()
 
 #Microglia

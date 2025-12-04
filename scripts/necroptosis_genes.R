@@ -44,23 +44,95 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, i
 wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
                               Genotype == 'WT' & (Timepoint == 'Day 5' | Treatment == 'PBS'))
 
-#regress out ISGs for plotting
-wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5, regress = TRUE, regressVars = c('Ifit2', 'Ifit3', 'Rsad2', 'Tnf'))
+#View top isgs to regress out when plotting
+isg_markers <- FindMarkers(wt_cerebrum_day5, group.by = 'Treatment', only.pos = TRUE, test.use = 'MAST',
+                           ident.1 = 'rLGTV')
+head(isg_markers, n = 30)
+
+isg_markers_to_regress <- c('Ifi209', 'Ifi204', 'Ifit2', 'Rsad2',
+'Slfn4', 'Parp14', 'Ifi213', 'Slfn8',
+'Ifih1', 'Nlrc5', 'Ifit3', 'Cxcl10', 'Ifi207',
+'Ifi211', 'Irf7', 'Isg15')
+
+wt_cerebrum_day5 <- AddModuleScore(wt_cerebrum_day5, features = list(isg_markers_to_regress), name = 'top_isgs_exp')
 
 #No regressing out variables yet
-wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5, regress = FALSE, regressVars = c('Ifit2', 'Ifit3', 'Rsad2', 'Tnf'))
+wt_cerebrum_day5 <- prepSeuratObj(wt_cerebrum_day5, regress = FALSE)
 ElbowPlot(wt_cerebrum_day5, ndims = 40)
 wt_cerebrum_day5 <- prepUmapSeuratObj(wt_cerebrum_day5, nDims = 20, reductionName = 'wt.cerebrum.umap', num_neighbors = 30L)
 
+#regress out ISGs for plotting. Using top degs from previous (not genes that are not found to be isgs elsewhere)
+wt_cerebrum_day5_isgs_regressed <- prepSeuratObj(wt_cerebrum_day5, regress = TRUE, regressVars = 'top_isgs_exp1')
+ElbowPlot(wt_cerebrum_day5_isgs_regressed, ndims = 40)
+wt_cerebrum_day5_isgs_regressed <- prepUmapSeuratObj(wt_cerebrum_day5_isgs_regressed, nDims = 20, reductionName = 'wt.cerebrum.umap', num_neighbors = 20L)
+
+#UMAP without isgs regressed
 DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', label = TRUE)
-DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'Treatment')
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_project_umap_byTreatment.pdf',
+    width = 7, height = 5)
+DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'Treatment')+
+  xlab('Umap1')+
+  ylab('Umap1')+
+  theme(axis.ticks = element_blank(),
+        axis.text=element_blank(),
+        legend.text=element_text(size=17))+
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank())
+dev.off()
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_project_umap.pdf',
+    width = 7, height = 5)
 DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'manualAnnotation', cols = newCols)+
   ggtitle("WT Cerebrum Day 5")+
   xlab('Umap1')+
   ylab('Umap1')+
   theme(axis.ticks = element_blank(),
         axis.text=element_blank(),
-        legend.text=element_text(size=17))
+        legend.text=element_text(size=17))+
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank())
+dev.off()
+
+
+#UMAP with top isgs regressed
+DimPlot(wt_cerebrum_day5_isgs_regressed, reduction = 'wt.cerebrum.umap', label = TRUE)
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_project_umap_byTreatment_isgs_regressed.pdf',
+    width = 7, height = 5)
+DimPlot(wt_cerebrum_day5_isgs_regressed, reduction = 'wt.cerebrum.umap', group.by = 'Treatment')+
+  ggtitle("Treatment - some ISGs regressed")+
+  xlab('Umap1')+
+  ylab('Umap1')+
+  theme(axis.ticks = element_blank(),
+        axis.text=element_blank(),
+        legend.text=element_text(size=17))+
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank())
+dev.off()
+
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_project_isgs_regressed_umap.pdf',
+    width = 7, height = 5)
+DimPlot(wt_cerebrum_day5_isgs_regressed, reduction = 'wt.cerebrum.umap', group.by = 'manualAnnotation', cols = newCols)+
+  ggtitle("WT Cerebrum Day 5 - some ISGs regressed out")+
+  xlab('Umap1')+
+  ylab('Umap1')+
+  theme(axis.ticks = element_blank(),
+        axis.text=element_blank(),
+        legend.text=element_text(size=17))+
+  xlab('Umap 1')+
+  ylab('Umap 2')+  
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank())
+dev.off()
 
 #Want to do resident cells separate from infiltrating, so make lists here
 resident_celltypes <- c('Astrocytes', 'Oligodendrocytes', 'Microglia', 'Endothelial', 'Choroid Plexus',
@@ -89,6 +161,7 @@ colnames(split_names) <- c('treatment', 'celltype')
 wt_cerebrum_day5_resident_nScores <- cbind(wt_cerebrum_day5_resident_nScores, split_names)
 
 #Differences between treatment and pbs avg expression for each gene
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/Necroptosis_scores.pdf', height = 5, width = 8)
 wt_cerebrum_day5_resident_nScores %>%
   dplyr::group_by(gene, celltype) %>%
   dplyr::mutate(exp_change = avg_exp - dplyr::first(avg_exp)) %>% 
@@ -100,6 +173,7 @@ wt_cerebrum_day5_resident_nScores %>%
                        limits = c(-0.45, 10))+
   ggtitle("Necroptosis gene LGTV - PBS difference")+
   geom_text(aes(label=round(exp_change, digits = 2)))
+dev.off()
 
 #Line plots showing difference
 for(i in 1:length(necroptosis)){
@@ -118,6 +192,14 @@ for(i in 1:length(necroptosis)){
 table(wt_cerebrum_day5_resident$Treatment, wt_cerebrum_day5_resident$manualAnnotation)%>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = newCols[c(1,3,4,5,7,9,10,11,13,14)])+
+  theme_classic()
+
+#total counts, rather than proportions
+table(wt_cerebrum_day5_resident$Treatment, wt_cerebrum_day5_resident$manualAnnotation)%>% 
+  as.data.frame() %>% 
+  ggplot(aes(x = Var1, y = Freq, fill = Var2))+
   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
   scale_fill_manual(values = newCols[c(1,3,4,5,7,9,10,11,13,14)])+
   theme_classic()
@@ -242,6 +324,7 @@ wt_cerebrum_day5_resident[[]] %>% dplyr::group_by(manualAnnotation, Treatment) %
                                     pathway == 'pyroptotic_inflammatory_response1'~ 'pyroptotic inflammation',
                                     pathway == 'autophagy1'~ 'autophagy',
                                     pathway == 'Necroptosis1'~ 'necroptosis',
+                                    pathway == 'necroptotic_process1'~ 'necroptotic process',
                                     .default = pathway)) %>% 
   ggplot(aes(x = pathway, y = manualAnnotation, fill = path_diff))+
   geom_tile()+
