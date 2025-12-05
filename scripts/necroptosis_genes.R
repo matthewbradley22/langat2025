@@ -319,18 +319,19 @@ dev.off()
 wt_cerebrum_day5_resident <- AddModuleScore(wt_cerebrum_day5_resident, features = list(necroptosis), name = 'necroptosis')
 wt_cerebrum_day5_resident <- AddModuleScore(wt_cerebrum_day5_resident, features = list(pyroptosis), name = 'pyroptosis')
 
-necroptosis_dot_dat <- DotPlot(wt_cerebrum_day5_resident, features = 'necroptosis1', group.by = 'treatment_celltype')$data
+necroptosis_heat_dat <- wt_cerebrum_day5_resident[[]] %>% dplyr::group_by(treatment_celltype) %>% 
+  dplyr::summarise(avg_exp = mean(necroptosis1))
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/celltype_necroptosis_scores.pdf', height = 5, width = 8)
-necroptosis_dot_dat %>% tidyr::extract(col = id, regex = '(.+)_(.+)', into = c('treatment', 'celltype')) %>% 
+necroptosis_heat_dat %>% tidyr::extract(col = treatment_celltype, regex = '(.+)_(.+)', into = c('treatment', 'celltype')) %>% 
   dplyr::filter(celltype %in% celltypes_over_30) %>% 
-  ggplot(aes(x = treatment, y = celltype, fill = avg.exp))+
+  ggplot(aes(x = treatment, y = celltype, fill = avg_exp))+
   geom_tile()+
   ggtitle('Necroptosis score')+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","blue"),
                        values = c(1, 0.7,0.2,0.05,-0.2),
-                       limits = c(-0.15, 1))+
-  geom_text(aes(label=round(avg.exp, digits = 2)), size = 8)+
+                       limits = c(-0.15, 0.5))+
+  geom_text(aes(label=round(avg_exp, digits = 2)), size = 8)+
   theme(axis.text = element_text(size = 16),
         legend.text = element_text(size = 12),
         legend.title = element_text(size = 16),
@@ -342,9 +343,35 @@ necroptosis_dot_dat %>% tidyr::extract(col = id, regex = '(.+)_(.+)', into = c('
   xlab('')
 dev.off()
 
+#Only use heat_dat, dot_dat actually uses mean of expm1 values as default rather than just mean. Leaving here as reminder
+pyroptosis_dot_dat <- DotPlot(wt_cerebrum_day5_resident, features = 'pyroptosis1', group.by = 'treatment_celltype')$data
+pyroptosis_heat_dat <- wt_cerebrum_day5_resident[[]] %>% dplyr::group_by(treatment_celltype) %>% 
+  dplyr::summarise(avg_exp = mean(pyroptosis1))
+
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/celltype_pyroptosis_scores.pdf', height = 5, width = 8)
+pyroptosis_heat_dat %>% tidyr::extract(col = treatment_celltype, regex = '(.+)_(.+)', into = c('treatment', 'celltype')) %>% 
+  dplyr::filter(celltype %in% celltypes_over_30) %>% 
+  ggplot(aes(x = treatment, y = celltype, fill = avg_exp))+
+  geom_tile()+
+  ggtitle('Pyroptosis score')+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","blue"),
+                       values = c(1, 0.7,0.2,0.05,-0.2),
+                       limits = c(-0.15, 0.5))+
+  geom_text(aes(label=round(avg_exp, digits = 2)), size = 8)+
+  theme(axis.text = element_text(size = 16),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 16),
+        plot.title = element_text(size = 18),
+        panel.grid= element_blank(),
+        panel.background = element_rect(fill = 'white', colour = 'white'),
+        axis.ticks = element_blank())+
+  ylab('')+
+  xlab('')
+dev.off()
 
 #Use MAST to test for differences
-treatment_markers <- FindAllMarkers(wt_cerebrum_day5_resident, group.by = 'Treatment', test.use = 'MAST', 
+treatment_markers <- FindMarkers(wt_cerebrum_day5_resident, group.by = 'Treatment', test.use = 'MAST', ident.1 = 'rLGTV',
                                     only.pos = TRUE)
 treatment_markers[necroptosis,]
 treatment_markers[pyroptosis,]
@@ -355,7 +382,7 @@ treatment_markers[pyroptosis,]
 #Look at differentially expressed pathways from MAST results
 #Upregulated in infection
 
-upregulated_infection <- subset(treatment_markers, avg_log2FC > 1 & p_val_adj < 0.01 & cluster == 'rLGTV')
+upregulated_infection <- subset(treatment_markers, avg_log2FC > 1 & p_val_adj < 0.01)
 
 #Set high p value threshold to see all pathways
 upregulated_infection_paths <- gprofiler2::gost(query = rownames(upregulated_infection), organism = 'mmusculus', evcodes = TRUE,
@@ -382,10 +409,12 @@ pathways_to_plot <- upregulated_infection_paths$result[upregulated_infection_pat
                                                            'positive regulation of apoptotic process', 'cell death'),]
 pathways_to_plot <- pathways_to_plot[pathways_to_plot$source %in% c('GO:BP', 'KEGG'),]
 
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/gprofiler_path_barplot.pdf', height = 5, width = 8)
 ggplot(pathways_to_plot, aes(x = term_name, y = -log10(p_value), fill = source, color = source))+
   geom_bar(stat = 'identity', position = 'dodge')+
   geom_hline(yintercept = -log10(0.01), linetype= 2)+
   coord_flip()
+dev.off()
 
 #Look at relevant pathways by celltype
 pathway_dotplot_dat <- pathways_to_plot[,c('term_name', 'intersection')]
@@ -404,12 +433,17 @@ for(i in 1:length(pathway_dotplot_dat_usable)){
                                               name = gsub(" ", "_", names(pathway_dotplot_dat_usable)[i]))
 }
 
-wt_cerebrum_day5_resident[[]] %>% dplyr::group_by(manualAnnotation, Treatment) %>% 
+celltypes_with_150 <- table(wt_cerebrum_day5_resident$manualAnnotation) %>% as.data.frame() %>% 
+  dplyr::filter(Freq > 150)
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/gprofiler_paths_byCelltype.pdf', height = 5, width = 8)
+wt_cerebrum_day5_resident[[]] %>% dplyr::filter(manualAnnotation %in% celltypes_with_150$Var1) %>% 
+  dplyr::group_by(manualAnnotation, Treatment) %>% 
   dplyr:: summarise(across(cell_death1:Necroptosis1, ~ mean(.x, na.rm = TRUE))) %>% 
   tidyr::pivot_longer(cols = c(!c(manualAnnotation, Treatment)), names_to = 'pathway', values_to = 'meanExp') %>% 
   dplyr::group_by(manualAnnotation, pathway) %>% 
   dplyr::mutate(path_diff = meanExp - meanExp[Treatment == 'PBS']) %>% 
-  dplyr::filter(Treatment == 'rLGTV' & pathway != 'ferroptosis1' & pathway != 'Ferroptosis1') %>% 
+  dplyr::filter(Treatment == 'rLGTV' & !pathway %in% c('ferroptosis1', 'Ferroptosis1', 'necroptotic_process1')) %>% 
   dplyr::mutate(pathway = case_when(pathway == 'cell_death1'~ 'cell death',
                                     pathway == 'Apoptosis1'~ 'apoptosis',
                                     pathway == 'positive_regulation_of_apoptotic_process1'~ 'positive regulation apoptosis',
@@ -421,7 +455,13 @@ wt_cerebrum_day5_resident[[]] %>% dplyr::group_by(manualAnnotation, Treatment) %
   ggplot(aes(x = pathway, y = manualAnnotation, fill = path_diff))+
   geom_tile()+
   scale_fill_gradient2(low = '#3DB9FF', mid = 'white', high = 'red', midpoint = 0)+
-  theme(axis.text.x = element_text(angle = 45, vjust = 0.6))
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.6, size = 12),
+        axis.text.y = element_text(size = 16))+
+  xlab("")+
+  ylab("")+
+  ggtitle('LGTV - PBS average score')
+dev.off()
+
 
 #Are any of these significant DEGs? Create pseudobulk object and check significance
 wt_cerebrum_day5_resident_bulk <- createPseudoBulk(wt_cerebrum_day5_resident, c('Treatment', 'manualAnnotation'))
@@ -496,7 +536,9 @@ GSEAres[grep('custom', GSEAres$pathway, ignore.case = TRUE),] %>%
 
 ###################Infiltrating cell analysis###################
 ################################################################
-wt_cerebrum_day5_infiltrating <- subset(wt_cerebrum_day5, manualAnnotation %in% infiltrating_celltypes)
+
+#Will subtract average pbs resident score from infiltrating scores
+wt_cerebrum_day5_infiltrating <- subset(wt_cerebrum_day5, manualAnnotation %in% infiltrating_celltypes | Treatment == 'PBS')
 
 #Compare infiltrating to resident pseudobulk
 wt_cerebrum_day5[[]] <- wt_cerebrum_day5[[]] %>% dplyr::mutate(cell_class = case_when(manualAnnotation %in% resident_celltypes ~ 'residential',
@@ -534,18 +576,40 @@ split_names <- str_split_fixed(wt_cerebrum_day5_infil_nScores$id, "-", n = 2)
 colnames(split_names) <- c('treatment', 'celltype')
 wt_cerebrum_day5_infil_nScores <- cbind(wt_cerebrum_day5_infil_nScores, split_names)
 
-#Differences between treatment and pbs avg expression for each gene
+#subtract avg pbs resident from infiltrating
+pbs_resident_avg <- dplyr::filter(wt_cerebrum_day5_infil_nScores, treatment == 'PBS' & celltype %in% resident_celltypes)
+pbs_resident_avg <- pbs_resident_avg %>% dplyr::group_by(gene) %>% dplyr::summarise(mean_pbs_exp = mean(avg_exp))
+
+#Check which cells have high enough expression to keep in
+cells_with_enough <- table(wt_cerebrum_day5_infiltrating$Treatment, wt_cerebrum_day5_infiltrating$manualAnnotation) %>% 
+  as.data.frame() %>% 
+  dplyr::filter(Var1 == 'rLGTV' & Freq > 30) 
+celltypes_with_enough <- cells_with_enough$Var2
+
+#Differences between treatment and pbs avg Var2#Differences between treatment and pbs avg expression for each gene
 #So few pbs cells that this doesn't make sense, just report avg expression
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/infiltrating_necroptosis_scores.pdf', height = 5, width = 8)
 wt_cerebrum_day5_infil_nScores %>%
   dplyr::group_by(gene, celltype) %>%
-  dplyr::mutate(exp_change = avg_exp - dplyr::first(avg_exp)) %>% 
-  dplyr::filter(treatment == 'rLGTV') %>% 
+  dplyr::left_join(pbs_resident_avg, by = 'gene') %>% 
+  dplyr::mutate(exp_change = avg_exp - mean_pbs_exp) %>% 
+  dplyr::filter(treatment == 'rLGTV' & celltype %in% celltypes_with_enough) %>% 
   ggplot(aes(x = gene, y = celltype, fill = exp_change))+
   geom_tile()+
-  scale_fill_gradientn(colors = c("purple", "white", "orange", "red"),
-                       values = scales::rescale(c(-0.2, 0, 1, 2)))+
-  ggtitle("Necroptosis gene LGTV - PBS difference")+
-  geom_text(aes(label=round(exp_change, digits = 2)))
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                                   values = c(1, 0.7,0.2,0),
+                                   limits = c(-0.01, 5))+
+  ggtitle("Necroptosis gene LGTV - resident PBS average")+
+  geom_text(aes(label=round(exp_change, digits = 2)), size = 6) +
+  theme(axis.text = element_text(size = 16),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 16),
+        panel.grid= element_blank(),
+        panel.background = element_rect(fill = 'white', colour = 'white'),
+        axis.ticks = element_blank())+
+  ylab('')+
+  xlab('')
+dev.off()
 
 wt_cerebrum_day5_infil_nScores %>% 
   dplyr::filter(treatment == 'rLGTV') %>% 
@@ -570,17 +634,36 @@ split_names <- str_split_fixed(wt_cerebrum_day5_infil_pScores$id, "-", n = 2)
 colnames(split_names) <- c('treatment', 'celltype')
 wt_cerebrum_day5_infil_pScores <- cbind(wt_cerebrum_day5_infil_pScores, split_names)
 
+#subtract avg pbs resident from infiltrating
+pbs_resident_avg_pyrop <- dplyr::filter(wt_cerebrum_day5_infil_pScores, treatment == 'PBS' & celltype %in% resident_celltypes)
+pbs_resident_avg_pyrop <- pbs_resident_avg_pyrop %>% dplyr::group_by(gene) %>% dplyr::summarise(mean_pbs_exp = mean(avg_exp))
+
+
 #Differences between treatment and pbs avg expression for each gene
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_death_pathways/infiltrating_pyroptosis_scores.pdf', height = 5, width = 10)
 wt_cerebrum_day5_infil_pScores %>%
   dplyr::group_by(gene, celltype) %>%
-  dplyr::mutate(exp_change = avg_exp - dplyr::first(avg_exp)) %>% 
-  dplyr::filter(treatment == 'rLGTV') %>% 
-  ggplot(aes(x = gene, y = celltype, fill = exp_change))+
+  dplyr::left_join(pbs_resident_avg_pyrop, by = 'gene') %>% 
+  dplyr::mutate(exp_change = avg_exp - mean_pbs_exp) %>% 
+  dplyr::filter(treatment == 'rLGTV' & celltype %in% celltypes_with_enough) %>% 
+  ggplot(aes(x = gene, y = celltype, fill = log(exp_change + 1)))+
   geom_tile()+
-  scale_fill_gradientn(colors = c("purple", "white", "orange", "red"),
-                       values = scales::rescale(c(-0.2, 0, 1, 2)))+
-  ggtitle("Pyroptosis gene LGTV - PBS difference")+
-  geom_text(aes(label=round(exp_change, digits = 2)))
+  scale_fill_gradientn(colours = rev(c("#F03C0C","#F57456","#FFB975", 'white', "blue")),
+                      # values = c(1, 0.7,0.1, 0.001,  -0.01),
+                      rescaler = ~ scales::rescale_mid(.x, mid = 1.4),
+                       limits = c(-0.9, 5))+
+  ggtitle("Pyroptosis gene LGTV - resident PBS average")+
+  geom_text(aes(label=round(log(exp_change+1), digits = 2)), size = 4) +
+  theme(axis.text = element_text(size = 16),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 16),
+        panel.grid= element_blank(),
+        panel.background = element_rect(fill = 'white', colour = 'white'),
+        axis.ticks = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 0.8))+
+  ylab('')+
+  xlab('')
+dev.off()
 
 wt_cerebrum_day5_infil_pScores %>% 
   dplyr::filter(treatment == 'rLGTV') %>% 

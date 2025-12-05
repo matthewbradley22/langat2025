@@ -49,6 +49,7 @@ colnames(interferonDat) = c("pathway", "pval", "padj", "log2err",  "ES" ,  "NES"
 
 #Several gene sets to try with:
 mouse_gene_sets[grep('INTERFERON' , names(mouse_gene_sets))]
+
 #Want to try at least REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES and HALLMARK_INTERFERON_ALPHA_RESPONSE ad
 #REACTOME_INTERFERON_ALPHA_BETA_SIGNALING
 
