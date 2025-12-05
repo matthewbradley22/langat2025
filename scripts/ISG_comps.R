@@ -66,7 +66,7 @@ wt_cerebellum <- subset(wt, Organ == 'Cerebellum')
 #Violin plot separated by genotype and treatment
 chimeric_mock$genotype_treatment <- factor(chimeric_mock$genotype_treatment, levels = c('WT_PBS', 'WT_rChLGTV', 'IPS1_PBS', 'IPS1_rChLGTV'))
 pdf('~/Documents/ÖverbyLab/scPlots/ISG_chimeric_vln_ips.pdf', width = 7, height = 4)
-VlnPlot(chimeric_mock, features = 'ISG_score1', group.by = 'genotype_treatment', split.by = 'Timepoint',
+VlnPlot(chimeric_mock, features = 'ISG_score1', group.by = 'genotype_treatment', split.by = 'Timepoint', 
         pt.size = 0)+
   ggtitle('ISG Module Scores')
 dev.off()
