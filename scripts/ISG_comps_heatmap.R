@@ -8,6 +8,9 @@ library(tidyr)
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
 
+#Load in single nuclei data
+sn_integrated_dat <- LoadSeuratRds('~/Documents/ÖverbyLab/single_nuclei_proj/LGTVscCombined.rds')
+sn_integrated_dat_wt <- subset(sn_integrated_dat, new_genotype %in% c('wt', 'wt (same)')) #only wt for gal 3 project
 
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
@@ -30,6 +33,8 @@ chimeric_mock <- subset(ParseSeuratObj_int, Treatment != 'rLGTV')
 chimeric_mock_infected <- subset(ParseSeuratObj_int, Treatment == 'rChLGTV')
 chimeric_mock_mock <- subset(ParseSeuratObj_int, Treatment == 'PBS')
 
+#Split sn data by infection for plotting
+
 #Subset to cell types with at least 100 cells
 infected_cells_meeting_min <- table(chimeric_mock_infected$manualAnnotation) %>% as.data.frame() %>% dplyr::filter(Freq > 100) %>% 
   dplyr::pull(Var1)
@@ -48,7 +53,7 @@ chemokines <- c('Ccl7', 'Ccl2', 'Ccl12', 'Ccl4', 'Ccl3', 'Ccl5',
 #Create function for genotype by gene heatmaps faceted by cell type
 #Copying seurat scaling strategy - find mean first then scale log1p. Found in seurat visualization github code
 #Split by infiltrating and resident?
-faceted_geno_heatmap <- function(dat, genes, main = ''){
+faceted_geno_heatmap <- function(dat, genes, main = '', geno_column = NULL){
   #Get expression data
   gene_data <- FetchData(object = dat, vars = genes, layer = "data") %>% 
     rownames_to_column(var = 'cell_id') %>% 
@@ -57,15 +62,15 @@ faceted_geno_heatmap <- function(dat, genes, main = ''){
   #Create metadata dataframe
   cell_metadata <- dat[[]] %>% rownames_to_column(var = 'cell_id')
   
-  gene_plot_data <- dplyr::left_join(dplyr::select(cell_metadata, c(cell_id, Genotype, manualAnnotation, Treatment)), 
+  gene_plot_data <- dplyr::left_join(dplyr::select(cell_metadata, c(cell_id, !!sym(geno_column), manualAnnotation, Treatment)), 
                                      gene_data, by = 'cell_id')
   #Create faceted heatmap
-  gene_plot <- gene_plot_data %>% dplyr::group_by(manualAnnotation, Genotype, gene) %>% 
+  gene_plot <- gene_plot_data %>% dplyr::group_by(manualAnnotation, !!sym(geno_column), gene) %>% 
     dplyr::summarise(avg_expression = mean(expression)) %>% 
     dplyr::group_by(gene) %>% 
     dplyr::mutate(scaled_expression = scale(log1p(avg_expression))[,1]) %>% 
     dplyr::arrange(gene) %>% 
-    ggplot(aes(x = Genotype, y = gene, fill = scaled_expression))+
+    ggplot(aes(x = !!sym(geno_column), y = gene, fill = scaled_expression))+
     geom_tile()+
     facet_wrap(~manualAnnotation, nrow = 1)+
     theme(strip.background = element_blank(), strip.placement = "outside",
@@ -82,11 +87,11 @@ faceted_geno_heatmap <- function(dat, genes, main = ''){
 }
 
 pdf('~/Documents/ÖverbyLab/scPlots/chemokine_heatmap_infected.pdf', width = 14, height = 7)
-faceted_geno_heatmap(chimeric_mock_infected, genes = chemokines)
+faceted_geno_heatmap(dat = chimeric_mock_infected, genes = chemokines, geno_column = "Genotype")
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/chemokine_heatmap_mock.pdf', width = 14, height = 7)
-faceted_geno_heatmap(chimeric_mock_mock, genes = chemokines)
+faceted_geno_heatmap(chimeric_mock_mock, genes = chemokines,  geno_column = 'Genotype')
 dev.off()
 
 
