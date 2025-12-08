@@ -465,6 +465,17 @@ dev.off()
 
 macMarkers <- FindAllMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
                              test.use = 'MAST')
+macMarkers_6 <- FindMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
+                             test.use = 'MAST', ident.1 = 6)
+macMarkers_1 <- FindMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
+                            test.use = 'MAST', ident.1 = 1)
+#Look at difference between large and small cluster
+macMarkers_0 <- FindMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA',
+                            test.use = 'MAST', ident.1 = 0, ident.2 = 6)
+
+View(macMarkers_6)
+View(macMarkers_1)
+View(macMarkers_0)
 #mac_timeMarkers <- FindMarkers(macrophages_wt_infected, only.pos = TRUE, assay = 'RNA', group.by = 'Timepoint', ident.1 ='Day 5',
       #                       test.use = 'MAST')
 
@@ -488,24 +499,16 @@ for(i in 1:length(unique(macMarkers$cluster))){
 head(pathway_result_list[[5]]$term_name, n = 20)
 
 #Specific genes of interest
-#CLuster 7
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Ccr7') #m1 marker
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Stat4') 
 
-#Cluster 10, BAMs
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Mrc1') #Border associated marker
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Apoe') #Border associated marker
-
-#Clusetr 4 mhc
+#Clusetr 6 mhc - M1?
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'H2-Ab1') 
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cd74') 
 FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'H2-Eb1') 
 
-#Cluster 0
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cxcl2') #neutrophil recruitment/inflammatory response
+#Cluster 1 - M2?
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Trib1') 
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Il18') 
 
-#Cluster 9
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Mef2c') #M1 marker?
 
 #Compare Lgals3+ and - macrophages
 macrophages_wt_infected$lgals_presence <- ifelse(FetchData(object = macrophages_wt_infected, vars = c("Lgals3")) > 0, 1, 0)
@@ -521,11 +524,24 @@ lgal_marker_path$result %>% as.data.frame() %>% dplyr::filter(intersection_size 
 macrophages_wt_infected[['RNA']]$counts %>% t() %>% write.csv(file = './data/wt_infected_macrophages.csv', row.names = TRUE)
 
 #I think this doesn't work well becaues mapMy has almost no monocytes to map to
-wt_infected_macro_mapMY <- read_csv("/Users/matthewbradley/Documents/ÖverbyLab/data/wt_infected_macrophagescsv_mapMy/wt_infected_macrophagescsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1761034702698.csv", 
+wt_infected_macro_mapMY <- readr::read_csv("/Users/matthewbradley/Documents/ÖverbyLab/data/wt_infected_macrophagescsv_mapMy/wt_infected_macrophagescsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1761034702698.csv", 
                            skip = 4)
+#Plot mapymy to see monocytes
+macrophages_wt_infected$cell_id = colnames(macrophages_wt_infected)
+temp_macrophages_wt_infected_labeled <- macrophages_wt_infected
+temp_macrophages_wt_infected_labeled[[]] <- macrophages_wt_infected[[]] %>% left_join(wt_infected_macro_mapMY, by = 'cell_id')
+DimPlot(temp_macrophages_wt_infected_labeled, reduction = 'wt.infected.mac.umap', group.by = 'subclass_name')
+rm(temp_macrophages_wt_infected_labeled)
+#monocyte vs macrophage genes
+#Monocytes
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Ccr2') 
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Ly6c2')
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Cd14') #classically in both but higher in monocytes
 
-#interesting genes
-FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Nav3') 
+#Macrophages
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Kynu') 
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Itga4') 
+
 
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/infected_macs_Adgre1.pdf',
     width = 7, height = 5)
