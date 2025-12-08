@@ -38,10 +38,23 @@ immune <- subset(wt_cerebrum_day5, manualAnnotation %in% c('Microglia', 'Macroph
                                                       'T cells', 'Granulocytes', 'Nk cells'))
 wt_cerebrum_day5_mock <- subset(wt_cerebrum_day5, Treatment == ('PBS'))
 wt_cerebrum_day5_infected <- subset(wt_cerebrum_day5, Treatment == ('rLGTV'))
-immune_wt_mock <- subset(wt_cerebrum_day5_mock, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
-                                                                   'T cells', 'Granulocytes', 'Nk cells'))
-immune_wt_infected <- subset(wt_cerebrum_day5_infected, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
-                                                                           'T cells', 'Granulocytes', 'Nk cells'))
+
+#Don't include extreme low low cell counts here
+immune_wt_mock <- subset(wt_cerebrum_day5_mock, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 
+                                                                   'T cells', 'B Cells'))#No Granulocytes, , Nk cells
+
+#Not enough neurons here
+resident_wt_mock <- subset(wt_cerebrum_day5_mock, !manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
+                                                                        'T cells', 'Granulocytes', 'Nk cells', 'unknown',
+                                                                        'Neurons'))
+immune_wt_infected <- subset(wt_cerebrum_day5_infected, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 
+                                                                           'T cells', 'Granulocytes', 'Nk cells')) #'B Cells',
+
+#remove celltypes with low counts as well as infiltrating
+resident_wt_infected <- subset(wt_cerebrum_day5_infected, !manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
+                                                                                'T cells', 'Granulocytes', 'Nk cells', 'unknown',
+                                                                                'Choroid Plexus', 'Muscle cells', 'Neurons',
+                                                                                'Oligodendrocytes', 'Pericytes'))
 macrophages_wt_mock <- subset(wt_cerebrum_day5_mock, manualAnnotation %in% c('Macrophage/Monocytes'))
 macrophages_wt_infected <- subset(wt_cerebrum_day5_infected, manualAnnotation %in% c('Macrophage/Monocytes'))
 
@@ -81,13 +94,21 @@ barDat <- wt_cerebrum_day5[[]] %>% dplyr::group_by(Treatment, manualAnnotation) 
 barDat %>% dplyr::filter(manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes'))
 
 order <- subset(barDat, Treatment == 'PBS')
-barDat$manualAnnotation = factor(barDat$manualAnnotation, levels = levels(factor(wt_cerebrum_day5$manualAnnotation)))
+barDat$manualAnnotation = factor(barDat$manualAnnotation, levels = c("Astrocytes", "Choroid Plexus", "Endothelial", 
+                                                                    'Ependymal','Immature Neurons', 'Muscle cells',
+                                                                    'Neurons','Oligodendrocytes', 'Pericytes',
+                                                                    'Microglia','Macrophage/Monocytes','B Cells',
+                                                                    'Granulocytes', 'Nk cells', 'T cells', 'unknown'))
+
+#Reorder level colors to match above cell order
+newCols_order <- match(levels(barDat$manualAnnotation), levels(factor(ParseSeuratObj_int$manualAnnotation)))
+newCols_reordered <- newCols[newCols_order]
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_cerebrum_day5_cell_prop_bar.pdf", width = 8, height = 6)
 barDat %>% ggplot(aes(x = Treatment, y = prop, fill = manualAnnotation))+
   geom_bar(stat = 'identity', position = 'stack')+
   theme(text = element_text(size = 23))+
-  scale_fill_manual(values = newCols)+
+  scale_fill_manual(values = newCols_reordered)+
   guides(fill=guide_legend(title="Cell Type"))
 dev.off()
 
@@ -117,21 +138,83 @@ dev.off()
 
 DimPlot(immune, reduction = 'immune.umap', group.by = 'Treatment')
 
-#Dotplot
-pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_feature_dotplot.pdf", width = 9, height = 6)
-DotPlot(immune, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
+#Dotplots of key genes
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_feature_dotplot_infected.pdf", width = 9, height = 6)
+DotPlot(immune_wt_infected, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
                              'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
         group.by = 'manualAnnotation')+
-  scale_color_gradient2(low = 'blue', mid = 'white', high = 'red')+
-  scale_size(range = c(2, 10))+
+  scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', limits = c(-2,2.5),
+                        labels = c(-1, 0, 1,2),
+                        breaks = c(-1, 0, 1,2))+
+  scale_size(range = c(2, 10), breaks = c(0, 25, 50, 75, 100))+
    theme(axis.text.x = element_text(angle = 45, vjust = 0.7))+
   theme(legend.position = "bottom",
         legend.justification = "center",
         legend.direction = "horizontal",
         legend.title = element_text(hjust = 0.3),
         legend.spacing.x = unit(2, "cm"))+
-  guides(size = guide_legend(title.position = "top", title = 'Percent Expressed'),
-         color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression'))
+  guides(size = guide_legend(title.position = "top", title = 'Percent Expressed', order = 1),
+         color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression'))+
+  ggtitle('Infected: immune cells')
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_feature_dotplot_mock.pdf", width = 9, height = 6)
+DotPlot(immune_wt_mock, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
+                                         'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
+        group.by = 'manualAnnotation')+
+  scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', labels = c(-1, 0, 1, 2),
+                        breaks = c(-1, 0, 1, 2), , limits = c(-2,2.5))+
+  #Dot sizes hardly change when max limit set to 100 because actual max is 95
+  #(This can be confusing because default legend bar goes up to 75 so it can seem as if max is 75 and dots should change)
+  scale_size(range = c(2, 10), limits = c(0,100))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.7))+
+  theme(legend.position = "bottom",
+        legend.justification = "center",
+        legend.direction = "horizontal",
+        legend.title = element_text(hjust = 0.3),
+        legend.spacing.x = unit(2, "cm"))+
+  guides(size = guide_legend(title.position = "top", title = 'Percent Expressed', order = 1),
+         color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression'))+
+  ggtitle('Mock: immune cells')+
+  labs(caption = 'Only microglia and macrophages > 100 cells. 47 B cells, 48 T cells')
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/resident_feature_dotplot_infected.pdf", width = 9, height = 6)
+#No Ccr3 expression
+DotPlot(resident_wt_infected, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
+                                     'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
+        group.by = 'manualAnnotation')+
+  scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', labels = c(-1, 0, 1,2),
+                        breaks = c(-1, 0, 1,2), , limits = c(-2,2.5))+
+  scale_size(range = c(2, 10), limits = c(0,100))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.7))+
+  theme(legend.position = "bottom",
+        legend.justification = "center",
+        legend.direction = "horizontal",
+        legend.title = element_text(hjust = 0.3),
+        legend.spacing.x = unit(2, "cm"))+
+  guides(size = guide_legend(title.position = "top", title = 'Percent Expressed', order = 2),
+         color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression'))+
+  ggtitle('Infected: resident cells')+
+  labs(caption = 'Only 39 Ependymal, 53 endothelial, 72 astrocytes')
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/resident_feature_dotplot_mock.pdf", width = 9, height = 6)
+DotPlot(resident_wt_mock, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
+                                           'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
+        group.by = 'manualAnnotation')+
+  scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', labels = c(-1, 0, 1,2),
+                        breaks = c(-1, 0, 1,2), limits = c(-2,2.5))+
+  scale_size(range = c(2, 10), limits = c(0,100))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.7))+
+  theme(legend.position = "bottom",
+        legend.justification = "center",
+        legend.direction = "horizontal",
+        legend.title = element_text(hjust = 0.3),
+        legend.spacing.x = unit(2, "cm"))+
+  guides(size = guide_legend(title.position = "top", title = 'Percent Expressed', order = 2),
+         color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression'))+
+  ggtitle('Mock: resident cells')
 dev.off()
 
 #Feature plot of immune cells relevant genes 
