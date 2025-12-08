@@ -8,6 +8,7 @@ library(scran)
 library(GSEABase)
 library(AUCell)
 library(gridExtra)
+library(readr)
 
 #Source function
 source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
@@ -121,6 +122,7 @@ scDatObj_int$sexGenePresence <- subset(scDatObj_int$sexGenePresence, sexGenePres
 
 #Integrated assay for finding celltypes
 DimPlot(sn_integrated_dat, label = TRUE, reduction = 'umap.integrated')
+DimPlot(sn_integrated_dat, label = FALSE, reduction = 'umap.integrated', group.by = 'infected')
 
 #Ex neurons
 FeaturePlot(sn_integrated_dat, 'Slc17a7', reduction = 'umap.integrated')
@@ -129,6 +131,7 @@ FeaturePlot(sn_integrated_dat, 'Arpp21', reduction = 'umap.integrated')
 
 #in neurons
 FeaturePlot(sn_integrated_dat, 'Gad1', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Gad2', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Dlx6os1', reduction = 'umap.integrated')
 
 #Microglia
@@ -189,13 +192,66 @@ FeaturePlot(sn_integrated_dat, 'Pecam1', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Adgrl4', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Slco1a4', reduction = 'umap.integrated')
 
+#NK cells 
+#This paper supp table 2 also has some https://academic.oup.com/bioinformatics/article/38/3/785/6390798
+FeaturePlot(sn_integrated_dat, 'Nkg7', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Klrd1', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Ncr1', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Klrb1b', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Clnk', reduction = 'umap.integrated')
+
+
+#Ependymal cells
+#Markers from here https://www.frontiersin.org/journals/cellular-neuroscience/articles/10.3389/fncel.2021.703951/full
+#And panglao and from here https://ars.els-cdn.com/content/image/1-s2.0-S1534580723000035-gr1.jpg
+FeaturePlot(sn_integrated_dat, 'Cfap54', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Nnat', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Mia', reduction = 'umap.integrated')
+
+
+#Load data into mapmycells to check
+clust22 <- subset(sn_integrated_dat, seurat_clusters == 22)
+clust22[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/single_nuclei_proj/mapMyCellsData/clust22.csv', row.names = TRUE)
+
+clust19 <- subset(sn_integrated_dat, seurat_clusters == 19)
+clust19[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/single_nuclei_proj/mapMyCellsData/clust19.csv', row.names = TRUE)
+
+clust11 <- subset(sn_integrated_dat, seurat_clusters == 11)
+clust11[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/single_nuclei_proj/mapMyCellsData/clust11.csv', row.names = TRUE)
+
+#From allen brain atlas mapping
+cluster22Map <- readr::read_csv("~/Documents/ÖverbyLab/single_nuclei_proj/mapMyCellsData/clust22_snData_mapMy/clust22csv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1764931715314.csv", 
+                         skip = 4)
+table(cluster22Map$class_name)
+neuron_labels <- cluster22Map %>% dplyr::select(cell_id, class_name) %>% 
+  dplyr::mutate(neu_type = case_when(grepl('GABA', class_name) ~ 'In Neurons',
+                                     grepl('Glut', class_name) ~ 'Ex Neurons',
+                                     .default = 'unknown'))
+
+cluster19Map <- readr::read_csv("~/Documents/ÖverbyLab/single_nuclei_proj/mapMyCellsData/clust19_snData_mapMy/clust19csv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1764940170384.csv", 
+                                skip = 4)
+table(cluster19Map$class_name)
+neuron_labels_19 <- cluster19Map %>% dplyr::select(cell_id, class_name) %>% 
+  dplyr::mutate(neu_type = case_when(grepl('GABA', class_name) ~ 'In Neurons',
+                                     grepl('Glut', class_name) ~ 'Ex Neurons',
+                                     .default = 'unknown'))
+
+cluster11Map <- readr::read_csv("~/Documents/ÖverbyLab/single_nuclei_proj/mapMyCellsData/clust11_snData_mapMy/clust11csv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1765206280627.csv", 
+                                skip = 4)
+table(cluster11Map$class_name)
+neuron_labels_11 <- cluster11Map %>% dplyr::select(cell_id, class_name) %>% 
+  dplyr::mutate(neu_type = case_when(grepl('GABA', class_name) ~ 'In Neurons',
+                                     grepl('Glut', class_name) ~ 'Ex Neurons',
+                                     grepl('Astro', class_name) ~ 'Astrocytes',
+                                     .default = 'unknown'))
+
 #Label cells
 sn_integrated_dat$manualAnnotation <- 
   case_when(sn_integrated_dat$seurat_clusters %in% c(2, 12, 30) ~ 'Oligo',
             sn_integrated_dat$seurat_clusters %in% c(16) ~ 'OPC',
-            sn_integrated_dat$seurat_clusters %in% c(18, 10, 8) ~ 'In Neurons',
+            sn_integrated_dat$seurat_clusters %in% c(18, 10, 8, 19) ~ 'In Neurons',
             sn_integrated_dat$seurat_clusters %in% c(1, 5, 6, 7, 9, 25, 28, 13, 27, 23, 15, 14, 4,
-                                                     17, 26) ~ 'Ex Neurons',
+                                                     17, 26, 11) ~ 'Ex Neurons',
             sn_integrated_dat$seurat_clusters %in% c(3, 21) ~ 'Micro/MO',
             sn_integrated_dat$seurat_clusters %in% c(0) ~ 'Astrocytes',
             sn_integrated_dat$seurat_clusters %in% c() ~ 'ChP',
@@ -203,6 +259,11 @@ sn_integrated_dat$manualAnnotation <-
             sn_integrated_dat$seurat_clusters %in% c(24) ~ 'Endothelial',
             .default = 'unknown')
 
+sn_integrated_dat$manualAnnotation[neuron_labels$cell_id] = neuron_labels$neu_type
+sn_integrated_dat$manualAnnotation[neuron_labels_19$cell_id] = neuron_labels_19$neu_type
+sn_integrated_dat$manualAnnotation[neuron_labels_11$cell_id] = neuron_labels_11$neu_type
+
+#SaveSeuratRds(sn_integrated_dat, './LGTVscCombined.rds')
 
 #Look at other variables
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
