@@ -140,7 +140,7 @@ DimPlot(immune, reduction = 'immune.umap', group.by = 'Treatment')
 
 #Dotplots of key genes
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_feature_dotplot_infected.pdf", width = 9, height = 6)
-DotPlot(immune_wt_mock, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
+DotPlot(immune_wt_infected, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
                              'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
         group.by = 'manualAnnotation')+
   scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', limits = c(-2,2.5),
