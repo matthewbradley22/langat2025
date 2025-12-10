@@ -8,6 +8,7 @@ library(gt)
 library(ggrepel)
 library(purrr)
 library(forcats)
+source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
@@ -19,13 +20,20 @@ ParseSeuratObj_int$time_celltype <-  paste(ParseSeuratObj_int$Timepoint, ParseSe
 ParseSeuratObj_int$celltype_time <-  paste(ParseSeuratObj_int$manualAnnotation, ParseSeuratObj_int$Timepoint, sep = '_')
 ParseSeuratObj_int$time_treatment_celltype <-  paste(ParseSeuratObj_int$Timepoint, ParseSeuratObj_int$Treatment, ParseSeuratObj_int$manualAnnotation, 
                                                      sep = '_')
- 
+#Subset data for umap without lgtv
+chimeric_mock <- subset(ParseSeuratObj_int, Treatment != 'rLGTV')
+chimeric_mock <- prepSeuratObj(chimeric_mock)
+ElbowPlot(chimeric_mock, ndims = 40)
+chimeric_mock <- prepUmapSeuratObj(chimeric_mock, nDims = 20, reductionName = 'no_lgtv_umap', resolution_value = 0.8)
+DimPlot(chimeric_mock, reduction = 'no_lgtv_umap')
+DimPlot(chimeric_mock, reduction = 'no_lgtv_umap', group.by = 'Treatment')
+
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
 newCols[11] =  '#FF8AEF'
 
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/main_umap.pdf", height = 6, width = 9)
-DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/main_umap_noLGTV.pdf", height = 6, width = 9)
+DimPlot(chimeric_mock, label = FALSE, group.by = 'manualAnnotation', reduction = 'no_lgtv_umap',
         cols = newCols)+
   theme(axis.ticks = element_blank(),
         axis.text=element_blank(),
@@ -54,7 +62,7 @@ all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
 #Look at select isg in cells
 ParseSeuratObj_int = AddModuleScore(ParseSeuratObj_int, features = list(all_ISGs_type1), name = 'ISG_score',
                                     slot = 'data', assay = 'RNA') 
-chimeric_mock <- subset(ParseSeuratObj_int, Treatment != 'rLGTV')
+
 chimeric_mock$genotype_treatment <- paste(chimeric_mock$Genotype, chimeric_mock$Treatment, sep = '_')
 
 #Subset by genotype for plotting later

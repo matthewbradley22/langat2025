@@ -54,6 +54,9 @@ astro_sig_markers <- astro_infected_markers %>% dplyr::filter(avg_log2FC > 1 & p
 astro_marker_paths <- gprofiler2::gost(query = rownames(astro_sig_markers), organism = 'mmusculus', evcodes = TRUE)
 astro_marker_paths$result
 
+#Look into path 558 - seems to be evidence of signalling
+astro_marker_paths$result[astro_marker_paths$result$source == 'KEGG',]
+
 #Plot markers - overall, a lot of clear ISGs
 #Irf1/8 paper https://pmc.ncbi.nlm.nih.gov/articles/PMC4821649/
 FeaturePlot(astrocytes, features = 'Irf1', reduction = 'astrocytes_umap')

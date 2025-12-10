@@ -39,13 +39,18 @@ createPseudoBulk <- function(data, variables){
 }
 
 #Reprocess a subset seurat object (rerun normalizing, scaling etc...)
-prepSeuratObj <- function(obj, regress = FALSE, regressVars = NULL){
+prepSeuratObj <- function(obj, regress = FALSE, regressVars = NULL, use_all_genes = FALSE){
   #Rerun through data processing and visualization
   obj <- NormalizeData(obj)
   obj <- FindVariableFeatures(obj)
   if(!regress){
     all.genes <- rownames(obj)
-    obj <- ScaleData(obj,  features = all.genes)
+    if(use_all_genes){
+      obj <- ScaleData(obj, features = all.genes)
+    }
+    else{
+      obj <- ScaleData(obj)
+    }
   }
   if(regress){
     obj <- ScaleData(obj, vars.to.regress = c(regressVars), features = rownames(obj))
