@@ -53,7 +53,10 @@ xenium_5k_genes[grep('P2ry12', xenium_5k_genes$gene_name, ignore.case = TRUE),]#
 xenium_5k_genes[grep('Cx3cr1', xenium_5k_genes$gene_name, ignore.case = TRUE),]
 xenium_5k_genes[grep('Cd74', xenium_5k_genes$gene_name, ignore.case = TRUE),] #No Cd74
 xenium_5k_genes[grep('Klra2', xenium_5k_genes$gene_name, ignore.case = TRUE),]#No Klra2
-
-
+xenium_5k_genes[grep('Ptprc', xenium_5k_genes$gene_name, ignore.case = TRUE),]
+xenium_5k_genes[grep('Ccr2', xenium_5k_genes$gene_name, ignore.case = TRUE),]
+xenium_5k_genes[grep('Lyz2', xenium_5k_genes$gene_name, ignore.case = TRUE),] #No lyz2
+xenium_5k_genes[grep('Mag', xenium_5k_genes$gene_name, ignore.case = TRUE),] 
+xenium_5k_genes[grep('Mog', xenium_5k_genes$gene_name, ignore.case = TRUE),] 
 
 

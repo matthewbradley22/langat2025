@@ -10,6 +10,8 @@ ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaInt
 ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
 ParseSeuratObj_int$manualAnnotation[ParseSeuratObj_int$manualAnnotation == 'Macrophage/Monocytes'] = 'Macro/Mono'
 
+#Create new column for use in pseudobulk later
+ParseSeuratObj_int$Treatment_celltype <- paste(ParseSeuratObj_int$Treatment, ParseSeuratObj_int$manualAnnotation, sep = '_')
 
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
@@ -82,3 +84,40 @@ DotPlot(astrocytes, features = c('Ccl2', 'Ccl7', 'Ccl12', 'Ccl4',
 
 table(astrocytes$geno_timepoint_treatment)
 FeaturePlot(astrocytes, features = 'Ccl3', reduction = 'astrocytes_umap')
+
+
+#Pseudobulk comparison of celltype number of degs between infected and uninfected - split between genotypes to reduce time
+#Also check without pseudobulk to see if major changes
+ParseSeuratObj_int_bulk <- createPseudoBulk(ParseSeuratObj_int, variables = c('Genotype', 'Treatment_celltype', 'Timepoint', 'Organ'))
+
+ParseSeuratObj_int_bulk <- DESeq(ParseSeuratObj_int_bulk)
+
+resultsNames(ParseSeuratObj_int_bulk)
+
+#Non pseudobulk version
+celltypes <- unique(ParseSeuratObj_int$manualAnnotation)
+num_markers_df <- data.frame(celltype = celltypes, degs_lgtv_pbs = 0, degs_chlgtv_pbs = 0)
+
+#Need to split by genotype
+for(i in 1:length(celltypes)){
+  cur_celltype = celltypes[i]
+  marker_ident_1 <- paste('PBS', cur_celltype, sep = '_')
+  marker_ident_2 <- paste('rLGTV', cur_celltype, sep = '_')
+  marker_ident_3 <- paste('rChLGTV', cur_celltype, sep = '_')
+  sig_markers <- FindMarkers(ParseSeuratObj_int, group.by = 'Treatment_celltype', ident.1 = marker_ident_1, ident.2 = marker_ident_2, 
+                             test.use = 'MAST') %>% 
+    dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01)
+  sig_markers_ch <- FindMarkers(ParseSeuratObj_int, group.by = 'Treatment_celltype', ident.1 = marker_ident_1, ident.2 = marker_ident_3,
+                                test.use = 'MAST') %>% 
+    dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01)
+  num_markers_df[num_markers_df$celltype == cur_celltype,][,2] = nrow(sig_markers)
+  num_markers_df[num_markers_df$celltype == cur_celltype,][,3] = nrow(sig_markers_ch)
+  print(paste("Done with cell type", cur_celltype))
+}
+
+
+
+
+
+
+
