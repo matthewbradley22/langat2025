@@ -12,6 +12,8 @@ ParseSeuratObj_int$manualAnnotation[ParseSeuratObj_int$manualAnnotation == 'Macr
 
 #Create new column for use in pseudobulk later
 ParseSeuratObj_int$Treatment_celltype <- paste(ParseSeuratObj_int$Treatment, ParseSeuratObj_int$manualAnnotation, sep = '_')
+#Add extra column for umap plot
+ParseSeuratObj_int$geno_timepoint_treatment = paste(ParseSeuratObj_int$Genotype, ParseSeuratObj_int$Timepoint, ParseSeuratObj_int$Treatment)
 
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
@@ -33,13 +35,17 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'Treatment', reduction = '
 #Start looking at overall astrocyte degs, then split by group
 astrocytes <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes')
 
-#Recluster astrocytes
-astrocytes <- prepSeuratObj(astrocytes)
-ElbowPlot(astrocytes, ndims = 40)
-astrocytes <- prepUmapSeuratObj(astrocytes, nDims = 20, reductionName = 'astrocytes_umap')
+#Get some other celltpyes for some deg comparisons
+endothelial <- subset(ParseSeuratObj_int, manualAnnotation == 'Endothelial')
+ependymal <- subset(ParseSeuratObj_int, manualAnnotation == 'Ependymal')
+microglia <- subset(ParseSeuratObj_int, manualAnnotation == 'Microglia')
 
-#Add extra column for umap plot
-astrocytes$geno_timepoint_treatment = paste(astrocytes$Genotype, astrocytes$Timepoint, astrocytes$Treatment)
+#Recluster astrocytes
+astrocytes <- prepSeuratObj(astrocytes, use_all_genes = TRUE)
+ElbowPlot(astrocytes, ndims = 40)
+astrocytes <- prepUmapSeuratObj(astrocytes, nDims = 20, reductionName = 'astrocytes_umap', resolution_value = 0.8)
+
+#UMAPs
 DimPlot(astrocytes, reduction = 'astrocytes_umap')
 astrocytes$infection_group <- ifelse(astrocytes$Treatment %in% c('rChLGTV', 'rLGTV'), 'infected', 'uninfected')
 DimPlot(astrocytes, reduction = 'astrocytes_umap', group.by = 'infection_group')
@@ -79,11 +85,23 @@ FeaturePlot(astrocytes, features = 'Ccl2', reduction = 'astrocytes_umap')
 #'Cxcl10' should also be plotted but drowns out other features
 DotPlot(astrocytes, features = c('Ccl2', 'Ccl7', 'Ccl12', 'Ccl4',
                                  'Ccl3', 'Ccl5', 'Cxcl9',
-                                 'Cxcr3', 'Ccr1', scale = FALSE), 
-        scale = FALSE, group.by = 'geno_timepoint_treatment')
+                                 'Cxcr3', 'Ccr1'), scale = FALSE,
+        group.by = 'geno_timepoint_treatment')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.8))
+
+#Look at other celltypes to compare
+DotPlot(ependymal, features = c('Ccl2', 'Ccl7', 'Ccl12', 'Ccl4',
+                                 'Ccl3', 'Ccl5', 'Cxcl9',
+                                 'Cxcr3', 'Ccr1'), scale = FALSE,
+        group.by = 'geno_timepoint_treatment')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.8))
 
 table(astrocytes$geno_timepoint_treatment)
 FeaturePlot(astrocytes, features = 'Ccl3', reduction = 'astrocytes_umap')
+
+
+#########Look at number of degs by celltype############
+#######################################################
 
 
 #Pseudobulk comparison of celltype number of degs between infected and uninfected - split between genotypes to reduce time
@@ -96,24 +114,68 @@ resultsNames(ParseSeuratObj_int_bulk)
 
 #Non pseudobulk version
 celltypes <- unique(ParseSeuratObj_int$manualAnnotation)
-num_markers_df <- data.frame(celltype = celltypes, degs_lgtv_pbs = 0, degs_chlgtv_pbs = 0)
+genotypes <- unique(ParseSeuratObj_int$Genotype)
+num_markers_df <- data.frame(celltype = rep(celltypes,2), genotype = rep(genotypes, each = length(celltypes)),
+                             degs_lgtv_pbs = 0, degs_chlgtv_pbs = 0)
 
 #Need to split by genotype
-for(i in 1:length(celltypes)){
-  cur_celltype = celltypes[i]
-  marker_ident_1 <- paste('PBS', cur_celltype, sep = '_')
-  marker_ident_2 <- paste('rLGTV', cur_celltype, sep = '_')
-  marker_ident_3 <- paste('rChLGTV', cur_celltype, sep = '_')
-  sig_markers <- FindMarkers(ParseSeuratObj_int, group.by = 'Treatment_celltype', ident.1 = marker_ident_1, ident.2 = marker_ident_2, 
-                             test.use = 'MAST') %>% 
-    dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01)
-  sig_markers_ch <- FindMarkers(ParseSeuratObj_int, group.by = 'Treatment_celltype', ident.1 = marker_ident_1, ident.2 = marker_ident_3,
-                                test.use = 'MAST') %>% 
-    dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01)
-  num_markers_df[num_markers_df$celltype == cur_celltype,][,2] = nrow(sig_markers)
-  num_markers_df[num_markers_df$celltype == cur_celltype,][,3] = nrow(sig_markers_ch)
-  print(paste("Done with cell type", cur_celltype))
+for(i in 1:length(genotypes)){
+  cur_genotype = genotypes[i]
+  cur_genotype_dat <- subset(ParseSeuratObj_int, Genotype == cur_genotype)
+  for(j in 1:length(celltypes)){
+    cur_celltype = celltypes[j]
+    marker_ident_1 <- paste('PBS', cur_celltype, sep = '_')
+    marker_ident_2 <- paste('rLGTV', cur_celltype, sep = '_')
+    marker_ident_3 <- paste('rChLGTV', cur_celltype, sep = '_')
+    sig_markers_lgtv <- FindMarkers(cur_genotype_dat, group.by = 'Treatment_celltype', ident.1 = marker_ident_1, ident.2 = marker_ident_2, 
+                               test.use = 'MAST') %>% 
+      dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01)
+    sig_markers_ch <- FindMarkers(cur_genotype_dat, group.by = 'Treatment_celltype', ident.1 = marker_ident_1, ident.2 = marker_ident_3,
+                                  test.use = 'MAST') %>% 
+      dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01)
+    num_markers_df[num_markers_df$celltype == cur_celltype & num_markers_df$genotype == cur_genotype,]['degs_lgtv_pbs'] = nrow(sig_markers_lgtv)
+    num_markers_df[num_markers_df$celltype == cur_celltype & num_markers_df$genotype == cur_genotype,]['degs_chlgtv_pbs'] = nrow(sig_markers_ch)
+    print(paste("Done with", cur_celltype))
+  }
 }
+
+write.csv(num_markers_df, '~/Documents/ÖverbyLab/single_cell_degs_per_celltype.csv', row.names = FALSE)
+
+
+#Validate some of results to make sure function worked properly
+#Seems to be working
+wt_dat <- subset(ParseSeuratObj_int, Genotype == 'WT')
+ips_dat <- subset(ParseSeuratObj_int, Genotype == 'IPS1')
+#WT astrocytes
+lgtv_astro_sig_markers <- FindMarkers(wt_dat, group.by = 'Treatment_celltype', ident.1 = 'PBS_Astrocytes', ident.2 = 'rLGTV_Astrocytes', 
+            test.use = 'MAST')
+lgtv_astro_sig_markers %>% dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01) %>% nrow() == num_markers_df[num_markers_df$celltype == 'Astrocytes' &
+                                                                                                                num_markers_df$genotype == 'WT',]['degs_lgtv_pbs']
+
+#IPS astrocytes
+ips_chlgtv_astro_sig_markers <- FindMarkers(ips_dat, group.by = 'Treatment_celltype', ident.1 = 'PBS_Astrocytes', ident.2 = 'rChLGTV_Astrocytes', 
+                                      test.use = 'MAST')
+ips_chlgtv_astro_sig_markers %>% dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01) %>% nrow() == num_markers_df[num_markers_df$celltype == 'Astrocytes' &
+                                                                                                                num_markers_df$genotype == 'IPS1',]['degs_chlgtv_pbs']
+
+#IPS t cells
+ips_chlgtv_tcell_sig_markers <- FindMarkers(ips_dat, group.by = 'Treatment_celltype', ident.1 = 'PBS_T cells', ident.2 = 'rChLGTV_T cells', 
+                                            test.use = 'MAST')
+ips_chlgtv_tcell_sig_markers %>% dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01) %>% nrow() == num_markers_df[num_markers_df$celltype == 'T cells' &
+                                                                                                                      num_markers_df$genotype == 'IPS1',]['degs_chlgtv_pbs']
+
+
+#Plot results
+num_markers_df <- read.csv('~/Documents/ÖverbyLab/single_cell_degs_per_celltype.csv')
+num_markers_df
+num_markers_df %>% tidyr::pivot_longer(cols = tidyr::starts_with('degs'), names_to = 'comp', values_to = 'num_degs') %>% 
+  ggplot(aes(x = celltype, y = num_degs, fill = comp))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  facet_wrap(~genotype)+
+  coord_flip()+
+  ggtitle('Total DEGs per celltype')
+
+
 
 
 
