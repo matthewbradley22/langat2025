@@ -3,6 +3,7 @@ library(RColorBrewer)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
+library(tibble)
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
@@ -19,7 +20,6 @@ table(sn_integrated_dat_wt$new_genotype, sn_integrated_dat_wt$genotype_same)
 sn_integrated_dat_wt_infected <- subset(sn_integrated_dat_wt, infected == TRUE)
 sn_integrated_dat_wt_mock_none <- subset(sn_integrated_dat_wt, infected == FALSE)
 
-
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
 newCols[11] =  '#FF8AEF'
@@ -33,6 +33,9 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
   ylab('Umap2')+
   guides(color=guide_legend(override.aes=list(size=8)))+
   ggtitle('')
+
+#Look at total rna captured from celltypes
+VlnPlot(ParseSeuratObj_int, features = 'nCount_RNA', group.by = 'manualAnnotation', pt.size = 0)
 
 #subset data (no LGTV)
 chimeric_mock <- subset(ParseSeuratObj_int, Treatment != 'rLGTV')
@@ -55,6 +58,7 @@ lgtv_ips <- subset(lgtv, Genotype == 'IPS1')
 #Subset to cell types with at least 100 cells
 infected_cells_meeting_min <- table(chimeric_mock_infected$manualAnnotation) %>% as.data.frame() %>% dplyr::filter(Freq > 100) %>% 
   dplyr::pull(Var1)
+
 #Don't need to remove any cell types from infection samples
 length(infected_cells_meeting_min)
 
@@ -98,6 +102,10 @@ interesting_genes_astrocytes <- factor(c('Cx3cl1', 'Il1b', 'Tnf', 'Il6', 'Il12',
                                   levels = c('Cx3cl1', 'Il1b', 'Tnf', 'Il6', 'Il12', 'Vegf',
                                              'Bdnf', 'Gdnf', 'Fgf2', 'Mmp2', 'Mmp9',
                                              'Pge2', 'S1p', 'Il10', 'Tgfb1'))
+
+#Astro sig markers from script 'scRNA_astrocyte_analysis.R'
+highest_upregulated_astrocytes = factor(rownames(astro_sig_markers)[1:15])
+
 #Genes of interest for astrocytes
 
 #Create function for genotype by gene heatmaps faceted by cell type
@@ -106,7 +114,7 @@ interesting_genes_astrocytes <- factor(c('Cx3cl1', 'Il1b', 'Tnf', 'Il6', 'Il12',
 faceted_geno_heatmap <- function(dat, genes, main = '', geno_column = NULL, returnData = FALSE){
   #Get expression data
   gene_data <- FetchData(object = dat, vars = genes, layer = "data") %>% 
-    rownames_to_column(var = 'cell_id') %>% 
+    tibble::rownames_to_column(var = 'cell_id') %>% 
     tidyr::pivot_longer(!cell_id, names_to = 'gene', values_to = 'expression')
   
   #Create metadata dataframe
@@ -215,10 +223,26 @@ faceted_geno_heatmap(dat = chimeric_mock_mock_ips, genes = interesting_genes_ast
                      main = 'Single cell: mock IPS')
 dev.off()
 
+#Plots of most significantly upregulated genes in astrocytes
+pdf('~/Documents/ÖverbyLab/scPlots/gene_heatmaps/astrocyteGenes_heatmap_infected_wt.pdf', width = 14, height = 7)
+faceted_geno_heatmap(dat = chimeric_mock_infected_wt, genes = highest_upregulated_astrocytes, geno_column = "Genotype",
+                     main = 'Single cell: infected WT')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/gene_heatmaps/astrocyteGenes_heatmap_infected_ips.pdf', width = 14, height = 7)
+faceted_geno_heatmap(dat = chimeric_mock_infected_ips, genes = highest_upregulated_astrocytes, geno_column = "Genotype",
+                     main = 'Single cell: infected IPS')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/gene_heatmaps/astrocyteGenes_heatmap_lgtv_wt.pdf', width = 14, height = 7)
+faceted_geno_heatmap(dat = lgtv_wt, genes = highest_upregulated_astrocytes, geno_column = "Genotype",
+                     main = 'Single cell: LGTV WT')
+dev.off()
+
 #Return data from function to compare directly celltypes
-chLGTV_ips_data <- faceted_geno_heatmap(dat = chimeric_mock_infected_ips, genes = chemokines, geno_column = "Genotype",
+chLGTV_ips_data <- faceted_geno_heatmap(dat = chimeric_mock_infected_ips, genes = highest_upregulated_astrocytes, geno_column = "Genotype",
                      main = 'Single cell: infected WT', returnData = TRUE)
-mock_ips_data <- faceted_geno_heatmap(dat = chimeric_mock_mock_ips, genes = chemokines,  geno_column = 'Genotype',
+mock_ips_data <- faceted_geno_heatmap(dat = chimeric_mock_mock_ips, genes = highest_upregulated_astrocytes,  geno_column = 'Genotype',
                      main = 'Single cell: mock WT', returnData = TRUE)
 
 left_join(chLGTV_ips_data, mock_ips_data, by = c('manualAnnotation', 'Genotype', 'gene'), suffix = c('_infected', '_mock')) %>% 
@@ -243,6 +267,7 @@ left_join(chLGTV_ips_data, mock_ips_data, by = c('manualAnnotation', 'Genotype',
 day5_cells = subset(ParseSeuratObj_int, Timepoint == 'Day 5' & Treatment == 'rChLGTV')
 faceted_geno_heatmap(dat = day5_cells, genes = chemokines,  geno_column = 'Genotype',
                      main = '')
+
 #Testing scale funciton to copy it
 test_scaling <- DotPlot(chimeric_mock, features  = chemokines, group.by = 'manualAnnotation')$data
 test_scaling %>% dplyr::arrange(features.plot) %>% 
