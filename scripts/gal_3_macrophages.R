@@ -33,7 +33,7 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, i
 wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
                               Genotype == 'WT' & (Timepoint == 'Day 5' | Treatment == 'PBS'))
 
-#For figure after imaging figures - goig to see what searates day 5 from day 3 and 4 macs 
+#For figure after imaging figures - going to see what separates day 5 from day 3 and 4 macs 
 #Earlier figures only focus on day 5 LGTV
 wt_cerebrum_macrophages <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
                                      Genotype == 'WT' & manualAnnotation == 'Macrophage/Monocytes')
@@ -127,4 +127,6 @@ FeaturePlot(macrophages_wt_infected, features = 'ecm_score1', reduction = 'wt.in
 cytokine_score <- c('Ccl6', 'Ccl24', 'Cxcl1', 'Cxcl2', 'Pf4', 'Cxcl13', 'Cxcl12', 'Cxcl16', 'Il6', 'Ccr2', 'Il2rg', 'Csf1r', 'Tnfrsf1b')
 macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(cytokine_score), name = 'cytokine_score')
 FeaturePlot(macrophages_wt_infected, features = 'cytokine_score1', reduction = 'wt.infected.mac.umap') 
+
+#Migratory markers
 

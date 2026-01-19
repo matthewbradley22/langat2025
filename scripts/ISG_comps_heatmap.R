@@ -123,7 +123,7 @@ faceted_geno_heatmap <- function(dat, genes, main = '', geno_column = NULL, retu
   gene_plot_data <- dplyr::left_join(dplyr::select(cell_metadata, c(cell_id, !!sym(geno_column), manualAnnotation)), 
                                      gene_data, by = 'cell_id')
   
-  #Doing mean of exponential (expm1) because values are logged. Also how DotPlot function does it
+  #Doing mean of exponential (expm1) because values are logged. Also how Seurat's DotPlot function does it
   final_plot_data <- gene_plot_data %>% dplyr::group_by(manualAnnotation, !!sym(geno_column), gene) %>% 
     dplyr::summarise(avg_expression = mean(expm1(x = expression))) %>% 
     dplyr::group_by(gene) %>% 

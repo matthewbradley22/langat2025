@@ -55,6 +55,67 @@ DimPlot(astrocytes, reduction = 'astrocytes_umap', group.by = 'Timepoint')
 DimPlot(astrocytes, reduction = 'astrocytes_umap', group.by = 'geno_timepoint_treatment', cols = newCols)
 table(astrocytes$infection_group, astrocytes$Genotype)
 
+#Astrocyte markers
+astrocytes$time_treatment <- paste(astrocytes$Timepoint, astrocytes$Treatment, sep = '_')
+ips_astrocytes <- subset(astrocytes, Genotype == 'IPS1' & Treatment != 'rLGTV')
+ips_astrocytes_cerebrum <- subset(ips_astrocytes, Organ == 'Cerebrum')
+wt_astrocytes <- subset(astrocytes, Genotype == 'WT' & Treatment != 'rLGTV')
+wt_astrocytes_cerebrum <- subset(wt_astrocytes,  Organ == 'Cerebrum')
+
+ips_astrocytes_cerebrum_markers <- FindAllMarkers(ips_astrocytes_cerebrum, only.pos = TRUE, test.use = 'MAST',
+                                                group.by = 'time_treatment')
+wt_astrocytes_cerebrum_markers <- FindAllMarkers(wt_astrocytes_cerebrum, only.pos = TRUE, test.use = 'MAST',
+                                                  group.by = 'time_treatment')
+
+ips_astro_cerebrum_top10 <- ips_astrocytes_cerebrum_markers %>%
+  group_by(cluster) %>%
+  dplyr::filter(p_val_adj < 0.01 & pct.1 > 0.05) %>% 
+  slice_head(n = 6) %>%
+  ungroup()
+
+#Need to make it so genes do not repeat
+wt_astro_cerebrum_top10 <- wt_astrocytes_cerebrum_markers %>%
+  group_by(cluster) %>%
+  dplyr::filter(p_val_adj < 0.01 & pct.1 > 0.05) %>% 
+  dplyr::arrange(p_val_adj) 
+
+wt_astro_cerebrum_top10 <- wt_astro_cerebrum_top10[!duplicated(wt_astro_cerebrum_top10$gene),] %>% 
+  dplyr::group_by(cluster) %>% 
+  slice_head(n = 6)
+
+ips_astrocytes_cerebrum$time_treatment <- factor(ips_astrocytes_cerebrum$time_treatment, 
+                                                 levels = c("Day 3_PBS", "Day 5_PBS", "Day 3_rChLGTV", "Day 4_rChLGTV", "Day 5_rChLGTV"))
+wt_astrocytes_cerebrum$time_treatment <- factor(wt_astrocytes_cerebrum$time_treatment, 
+                                                 levels = c("Day 3_PBS", "Day 5_PBS", "Day 3_rChLGTV", "Day 4_rChLGTV", "Day 5_rChLGTV"))
+
+DoHeatmap(ips_astrocytes_cerebrum, features = ips_astro_cerebrum_top10$gene, group.by = 'time_treatment')+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
+                       values = c(1.0,0.7,0.4,0.35,-0.1),
+                       limits = c(-2.5, 5))+
+  ggtitle('IPS Cerebrum Astrocytes')+
+  theme(plot.title = element_text(size = 25))
+
+DoHeatmap(wt_astrocytes_cerebrum, features = wt_astro_cerebrum_top10$gene, group.by = 'time_treatment')+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
+                       values = c(1.0,0.7,0.4,0.35,-0.1),
+                       limits = c(-2.5, 5))+
+  ggtitle('WT Cerebrum Astrocytes')+
+  theme(plot.title = element_text(size = 25))
+
+
+
+#Also look at pseudobulk markers
+ips_astrocyte_bulk <- createPseudoBulk(ips_astrocytes, c('Timepoint', 'Organ', 'Treatment'))
+ips_astrocyte_bulk <- DESeq(ips_astrocyte_bulk)
+resultsNames(ips_astrocyte_bulk)
+ips_astrocyte_bulk_treatment_markers <- results(ips_astrocyte_bulk, name = 'Treatment_rChLGTV_vs_PBS') %>% 
+  as.data.frame() %>% dplyr::filter(padj < 0.01 & abs(log2FoldChange) > 1) %>% 
+  rownames_to_column(var = 'gene') %>% 
+  dplyr::arrange(padj) %>% dplyr::mutate(direction = ifelse(log2FoldChange > 0, 'up', 'down')) %>% 
+  dplyr::group_by(direction) %>% 
+  dplyr::slice_head(n = 10)
+
+
 #Look at markers
 astro_infected_markers <- FindMarkers(astrocytes, ident.1 = 'infected', group.by = 'infection_group',
                              test.use = 'MAST', only.pos = TRUE)
@@ -219,9 +280,23 @@ chlgtv <- subset(ParseSeuratObj_int, Treatment == 'rChLGTV')
 
 #pbs astro markers
 pbs_astro_markers <- FindMarkers(pbs, group.by = 'manualAnnotation', 
-                                 ident.1 = 'Astrocytes')
+                                 ident.1 = 'Astrocytes', test.use = 'MAST',
+                                 only.pos = TRUE)
 
+chlgtv_astro_markers <- FindMarkers(chlgtv, group.by = 'manualAnnotation', 
+                                 ident.1 = 'Astrocytes', test.use = 'MAST',
+                                 only.pos = TRUE)
 
+pbs_sig_markers <- pbs_astro_markers %>% dplyr::filter(avg_log2FC > 1 & p_val_adj < 0.01)
+chlgtv_sig_markers <- chlgtv_astro_markers %>% dplyr::filter(avg_log2FC > 1 & p_val_adj < 0.01)
+
+#Majority (94%) of degs from pbs remain in chimeric 
+length(intersect(rownames(pbs_sig_markers), rownames(chlgtv_sig_markers)))/nrow(pbs_sig_markers)
+length(intersect(rownames(pbs_sig_markers), rownames(chlgtv_sig_markers)))/nrow(chlgtv_sig_markers) #Only 62% other way
+
+markers_only_chlgtv <- chlgtv_sig_markers[!rownames(chlgtv_sig_markers) %in% rownames(pbs_sig_markers),]
+markers_only_chlgtv_paths <- gprofiler2::gost(query = rownames(markers_only_chlgtv), organism = 'mmusculus', evcodes = TRUE)
+markers_only_chlgtv_paths$result[21:30,]
 
 
 
