@@ -12,6 +12,7 @@ ParseSeuratObj_int$manualAnnotation[ParseSeuratObj_int$manualAnnotation == 'Macr
 
 #Create new column for use in pseudobulk later
 ParseSeuratObj_int$Treatment_celltype <- paste(ParseSeuratObj_int$Treatment, ParseSeuratObj_int$manualAnnotation, sep = '_')
+
 #Add extra column for umap plot
 ParseSeuratObj_int$geno_timepoint_treatment = paste(ParseSeuratObj_int$Genotype, ParseSeuratObj_int$Timepoint, ParseSeuratObj_int$Treatment)
 
@@ -34,11 +35,6 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'Treatment', reduction = '
 
 #Start looking at overall astrocyte degs, then split by group
 astrocytes <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes')
-
-#Get some other celltpyes for some deg comparisons
-endothelial <- subset(ParseSeuratObj_int, manualAnnotation == 'Endothelial')
-ependymal <- subset(ParseSeuratObj_int, manualAnnotation == 'Ependymal')
-microglia <- subset(ParseSeuratObj_int, manualAnnotation == 'Microglia')
 
 #Recluster astrocytes
 astrocytes <- prepSeuratObj(astrocytes, use_all_genes = TRUE)
@@ -88,20 +84,21 @@ ips_astrocytes_cerebrum$time_treatment <- factor(ips_astrocytes_cerebrum$time_tr
 wt_astrocytes_cerebrum$time_treatment <- factor(wt_astrocytes_cerebrum$time_treatment, 
                                                  levels = c("Day 3_PBS", "Day 5_PBS", "Day 3_rChLGTV", "Day 4_rChLGTV", "Day 5_rChLGTV"))
 
+tiff('~/Documents/ÖverbyLab/scPlots/ips_astro_cerebrum_time_heatmap.tiff', width = 1000, height = 600, res = 100)
 DoHeatmap(ips_astrocytes_cerebrum, features = ips_astro_cerebrum_top10$gene, group.by = 'time_treatment')+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                       values = c(1.0,0.7,0.4,0.35,-0.1),
-                       limits = c(-2.5, 5))+
+                       values = c(1.0,0.9,0.7,0.5,0))+
   ggtitle('IPS Cerebrum Astrocytes')+
-  theme(plot.title = element_text(size = 25))
+  theme(plot.title = element_text(size = 25, vjust = 3))
+dev.off()
 
+tiff('~/Documents/ÖverbyLab/scPlots/wt_astro_cerebrum_time_heatmap.tiff', width = 1000, height = 600, res = 100)
 DoHeatmap(wt_astrocytes_cerebrum, features = wt_astro_cerebrum_top10$gene, group.by = 'time_treatment')+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
-                       values = c(1.0,0.7,0.4,0.35,-0.1),
-                       limits = c(-2.5, 5))+
+                       values = c(1.0,0.7,0.7,0.5,0))+
   ggtitle('WT Cerebrum Astrocytes')+
-  theme(plot.title = element_text(size = 25))
-
+  theme(plot.title = element_text(size = 25, vjust = 3))
+dev.off()
 
 
 #Also look at pseudobulk markers

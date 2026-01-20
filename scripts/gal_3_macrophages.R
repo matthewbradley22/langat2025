@@ -42,9 +42,11 @@ macrophages_wt_infected <- subset(wt_cerebrum_macrophages, Treatment == 'rLGTV')
 #Prepare UMAP for macrophages
 macrophages_wt_infected <- prepSeuratObj(macrophages_wt_infected)
 ElbowPlot(macrophages_wt_infected, ndims = 40)
+
 #Higher num neighbors for fewer clusters
 macrophages_wt_infected <- prepUmapSeuratObj(macrophages_wt_infected, nDims = 20, reductionName = 'wt.infected.mac.umap',
                                              resolution_value = 0.8)
+
 DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = TRUE, group.by = 'seurat_clusters',
         label.size = 6)+
   ggtitle('WT Infected Macrophages')
@@ -129,4 +131,64 @@ macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = li
 FeaturePlot(macrophages_wt_infected, features = 'cytokine_score1', reduction = 'wt.infected.mac.umap') 
 
 #Migratory markers
+ccl_chemokines <- rownames(wt_cerebrum_macrophages[['RNA']]$data)[grepl('Ccl', rownames(wt_cerebrum_macrophages[['RNA']]$data))]
+DotPlot(wt_cerebrum_macrophages, features = ccl_chemokines, group.by = 'Timepoint', scale = FALSE)+
+  theme(axis.text.x = element_text(angle = 90))
+
+DotPlot(wt_cerebrum_macrophages, features = c('Sell', 'Itgam', 'Tnf', 'Ccr1', 'Ccr2', 'Ccr9', 'Cx3cr1', 'Il10', 'Il18'), 
+        group.by = 'Timepoint', scale = FALSE)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Markers from https://www.mdpi.com/1422-0067/25/22/12078#The_Characteristics_of_M%CF%86s
+#Only look at day 5
+wt_cerebrum_macrophages_day5 <-  subset(wt_cerebrum_macrophages, Timepoint == 'Day 5')
+
+#Prepare UMAP for macrophages
+wt_cerebrum_macrophages_day5 <- prepSeuratObj(wt_cerebrum_macrophages_day5)
+ElbowPlot(wt_cerebrum_macrophages_day5, ndims = 40)
+
+#Higher num neighbors for fewer clusters
+wt_cerebrum_macrophages_day5 <- prepUmapSeuratObj(wt_cerebrum_macrophages_day5, nDims = 20, reductionName = 'day5_macs_wt',
+                                             resolution_value = 0.8)
+
+DimPlot(wt_cerebrum_macrophages_day5, reduction = 'day5_macs_wt')
+DimPlot(wt_cerebrum_macrophages_day5, reduction = 'day5_macs_wt', group.by = 'Treatment')
+
+#M1
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Tnf', 'Il1b', 'Il12a', 'Il23a', 'Nos2', 'Cd68', 'Cd80',
+                                                  'Cd86', 'Fcgr1', 'Fcgr2b', 'Fcgr3') , reduction = 'day5_macs_wt')
+
+#M2a
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Mrc1', 'Cd68', 'Cd163', 'Arg1', 'Il10', 'Tgfb1', 'Il1b') , reduction = 'day5_macs_wt')
+
+#M2b
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Cd86', 'Cd68', 'Mrc1', 'Il10',
+                                                       'Il1b', 'Il6', 'Tnf') , reduction = 'day5_macs_wt')
+
+#M2c
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Cd163', 'Cd68', 'Mrc1', 'Arg1',
+                                                       'Il10', 'Tgfb1') , reduction = 'day5_macs_wt')
+
+#M2d
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Cd68', 'Mrc1', 'Il10') , reduction = 'day5_macs_wt')
+
+#Other markers from paper
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Siglec1') , reduction = 'day5_macs_wt')
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('H2-Ab1', 'H2-Aa', 'H2-Eb1') , reduction = 'day5_macs_wt')
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Vegfa') , reduction = 'day5_macs_wt')
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Jak2') , reduction = 'day5_macs_wt')
+
+#Markers from https://pmc.ncbi.nlm.nih.gov/articles/PMC3666862/ (which looked at monocytes vs macrophages in humans)
+#Mac markers
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Selenop') , reduction = 'day5_macs_wt')
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('C1qc') , reduction = 'day5_macs_wt')
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Apoe') , reduction = 'day5_macs_wt')
+
+#Monocyte markers
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Dnm2') , reduction = 'day5_macs_wt')
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Ccr2') , reduction = 'day5_macs_wt')
+
+FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Itgb2') , reduction = 'day5_macs_wt')
+
+
 
