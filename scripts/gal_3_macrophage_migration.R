@@ -1,0 +1,96 @@
+#Need to organize this and the cell_death_pathways.R script
+#there is not an isg regressed umap created in cell_death_pathways.R that should just be done here for organization
+#Packages and functions
+library(gridExtra)
+library(ggpubr)
+library(Seurat)
+library(gprofiler2)
+source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
+
+#Load data
+ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
+ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
+
+#Check data
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
+newCols[11] =  '#FF8AEF'
+DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
+        cols = newCols)
+
+#Can run this to remove odd macrophage group, but need to create immune_wt_infected below first
+#write.csv(false_macrophages_toremove, "~/Documents/ÖverbyLab/false_macs_to_remove.csv")
+
+false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
+#or load in from csv
+false_macs_to_remove <- read.csv("~/Documents/ÖverbyLab/false_macs_to_remove.csv")[[2]]
+#should be 409 cells
+length(false_macs_to_remove)
+
+ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, invert = TRUE)
+
+
+#Create all subsets that will be used
+#Subset to same cells as in gal3 project, but keep all timepoints for now, rather than just day 5
+wt_cerebrum <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
+                              Genotype == 'WT')
+
+wt_cerebrum <- prepSeuratObj(wt_cerebrum)
+ElbowPlot(wt_cerebrum, ndims = 30)
+wt_cerebrum <- prepUmapSeuratObj(wt_cerebrum, nDims = 20, reductionName = 'wt_cerebrum', resolution_value = 1)
+
+DimPlot(wt_cerebrum, reduction = 'wt_cerebrum', group.by = 'manualAnnotation', cols = newCols)
+
+#Polarization stimulus genes from https://www.mdpi.com/1422-0067/25/22/12078 / https://doi.org/10.3390/ijms252212078
+polarization_stimulus_genes <- c('Ifng', 'Csf2', 'Il4', 'Il13', 'Il1b', 'Il10',
+                                 'Tgfb1', 'Csf3', 'Pf4')
+
+DotPlot(wt_cerebrum, features = polarization_stimulus_genes, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
+
+#Split and look by timepoint
+wt_cerebrum_day3 <- subset(wt_cerebrum, Treatment == 'rLGTV' & Timepoint == 'Day 3')
+wt_cerebrum_day4 <- subset(wt_cerebrum, Treatment == 'rLGTV' & Timepoint == 'Day 4')
+wt_cerebrum_day5 <- subset(wt_cerebrum, Treatment == 'rLGTV' & Timepoint == 'Day 5')
+
+#Only keep cell types with at least 50 cells
+day3_cells_with_enough <- c(table(wt_cerebrum_day3$manualAnnotation) %>% as.data.frame() %>% 
+  dplyr::filter(Freq > 50) %>% dplyr::select(Var1))$Var1
+wt_cerebrum_day3_dot_dat <- subset(wt_cerebrum_day3, manualAnnotation %in% day3_cells_with_enough)
+
+DotPlot(wt_cerebrum_day3_dot_dat, features = polarization_stimulus_genes, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,5))+
+  ggtitle('Day 3')
+
+day4_cells_with_enough <- c(table(wt_cerebrum_day4$manualAnnotation) %>% as.data.frame() %>% 
+                              dplyr::filter(Freq > 50) %>% dplyr::select(Var1))$Var1
+wt_cerebrum_day4_dot_dat <- subset(wt_cerebrum_day4, manualAnnotation %in% day4_cells_with_enough)
+
+DotPlot(wt_cerebrum_day4_dot_dat, features = polarization_stimulus_genes, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,5))+
+  ggtitle('Day 4')
+
+day5_cells_with_enough <- c(table(wt_cerebrum_day5$manualAnnotation) %>% as.data.frame() %>% 
+                              dplyr::filter(Freq > 50) %>% dplyr::select(Var1))$Var1
+wt_cerebrum_day5_dot_dat <- subset(wt_cerebrum_day5, manualAnnotation %in% day5_cells_with_enough)
+
+DotPlot(wt_cerebrum_day5_dot_dat, features = polarization_stimulus_genes, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,5))+
+  ggtitle('Day 5')
+
+#Which celltypes have enough cells for dotplots
+table(wt_cerebrum_day3$manualAnnotation)
+table(wt_cerebrum_day4$manualAnnotation)
+table(wt_cerebrum_day5$manualAnnotation)
+
