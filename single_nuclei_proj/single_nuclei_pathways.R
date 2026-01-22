@@ -1,4 +1,4 @@
-#Load libraries
+#Load libraries 
 library(dplyr)
 library(Seurat)
 library(ggplot2)
@@ -23,6 +23,7 @@ necroptosis <- c('Tnf', 'Tnfrsf1a', 'Ripk2', 'Mlkl', 'Ripk1', 'Ripk3')
 pyroptosis <- c('Gsdmc', 'Nlrp3', 'Aim2', 'Gsdmd', 'Il18', 'Il1b', 'Casp9', 'Casp8', 'Casp6', 'Casp3', 'Casp4', 'Casp1')
 
 #Add column for easier plotting later
+#Infected column matches up with new_inf column so good to use 
 sn_integrated_dat$treatment_celltype <- paste(sn_integrated_dat$infected, sn_integrated_dat$manualAnnotation)
 sn_integrated_dat$genotype_celltype <- paste(sn_integrated_dat$new_genotype, sn_integrated_dat$manualAnnotation)
 
@@ -221,6 +222,80 @@ ggplot(pathways_to_plot, aes(x = term_name, y = -log10(p_value), fill = source, 
   coord_flip()
 dev.off()
 
+#Chemokine expression
+#Copying previously written function faceted_geno_heatmap in ISG_comps_heatmap.R script
+
+ccl_chemokines <- rownames(sn_integrated_dat@assays$RNA$data)[grep('Ccl', rownames(sn_integrated_dat@assays$RNA$data))]
+cxcl_chemokines <- rownames(sn_integrated_dat@assays$RNA$data)[grep('Cxcl', rownames(sn_integrated_dat@assays$RNA$data))]
+
+cyto_data <- FetchData(object = sn_integrated_dat, vars = c(ccl_chemokines, cxcl_chemokines), layer = "data") %>% 
+  tibble::rownames_to_column(var = 'cell_id') %>% 
+  tidyr::pivot_longer(!cell_id, names_to = 'gene', values_to = 'expression')
+
+#Create metadata dataframe
+cell_metadata <- sn_integrated_dat[[]] %>% rownames_to_column(var = 'cell_id')
+
+gene_plot_data <- dplyr::left_join(dplyr::select(cell_metadata, c(cell_id, manualAnnotation, new_inf)), 
+                                   cyto_data, by = 'cell_id')
+
+#Doing mean of exponential (expm1) because values are logged. Also how Seurat's DotPlot function does it
+final_plot_data <- gene_plot_data %>% dplyr::group_by(manualAnnotation, new_inf, gene) %>% 
+  dplyr::summarise(avg_expression = mean(expm1(x = expression))) %>% 
+  dplyr::group_by(gene) %>% 
+  dplyr::mutate(scaled_expression = scale(log1p(avg_expression))[,1]) %>% 
+  dplyr::arrange(gene) %>% 
+  replace(is.na(.), 0) 
+
+final_plot_data %>% 
+  ggplot(aes(x = new_inf, y = factor(gene), fill = scaled_expression))+
+  geom_tile()+
+  facet_wrap(~manualAnnotation, nrow = 1)+
+  theme(strip.background = element_blank(), strip.placement = "outside",
+        strip.text.x = element_text(angle = 80),
+        strip.text = element_text(size=20),
+        axis.text.y = element_text(size=16))+
+  scale_x_discrete(position = "top") +
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
+                       values = c(1.0,0.7,0.4,0.35,-0.1),
+                       limits = c(-2.5, 5))+
+  ylab('')+
+  xlab('')+
+  ggtitle('Single Nuclei WT Chemokine Expression')
+
+#Look at just astrocytes
+sn_astrocytes <- subset(sn_integrated_dat, manualAnnotation == 'Astrocytes' & new_genotype %in% c('wt', 'wt (same)'))
+
+cyto_data_astro <- FetchData(object = sn_astrocytes, vars = c(ccl_chemokines, cxcl_chemokines), layer = "data") %>% 
+  tibble::rownames_to_column(var = 'cell_id') %>% 
+  tidyr::pivot_longer(!cell_id, names_to = 'gene', values_to = 'expression')
+
+sn_astrocytes <- prepSeuratObj(sn_astrocytes)
+ElbowPlot(sn_astrocytes, ndims = 40)
+sn_astrocytes <- prepUmapSeuratObj(sn_astrocytes, nDims = 15, reductionName = 'sn.astrocyte.umap')
+
+DimPlot(sn_astrocytes, reduction = 'sn.astrocyte.umap', group.by = 'new_inf')
+
+FeaturePlot(sn_astrocytes, reduction = 'sn.astrocyte.umap', features = 'Cxcl14')
+
+#Chemotaxis genes dotplot
+
+FeaturePlot(sn_integrated_dat_wt, features = ccl_chemokines, reduction = 'wt.umap.integrated')
+FeaturePlot(sn_integrated_dat_wt, features = cxcl_chemokines, reduction = 'wt.umap.integrated')
+FeaturePlot(sn_integrated_dat_wt, features = 'Cxcl10', reduction = 'wt.umap.integrated')
+
+
+DotPlot(sn_integrated_dat_wt, features = ccl_chemokines, group.by = 'treatment_celltype', scale = TRUE)+
+  theme(axis.text.x = element_text(angle = 90))
+DotPlot(sn_integrated_dat_wt, features = cxcl_chemokines, group.by = 'treatment_celltype', scale = TRUE)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Combine cxcl10 and select cl for plotting
+pdf('~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/select_chemokines_dotplot.pdf', width = 8, height = 6)
+DotPlot(sn_integrated_dat_wt, features = c('Ccl2',  'Ccl3', 'Ccl5', 'Ccl7', 'Ccl11', 'Ccl12', 'Cxcl10'), group.by = 'treatment_celltype', scale = TRUE)+
+  theme(axis.text.x = element_text(angle = 90))+
+  ylab('')+
+  xlab('')
+dev.off()
 
 
 

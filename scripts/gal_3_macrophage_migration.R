@@ -89,8 +89,67 @@ DotPlot(wt_cerebrum_day5_dot_dat, features = polarization_stimulus_genes, scale 
                         limits = c(0,5))+
   ggtitle('Day 5')
 
+#Also look at pbs
+pbs <- subset(wt_cerebrum, Treatment == 'PBS')
+
+pbs_cells_with_enough <- c(table(pbs$manualAnnotation) %>% as.data.frame() %>% 
+                              dplyr::filter(Freq > 50) %>% dplyr::select(Var1))$Var1
+pbs_dot_dat <- subset(pbs, manualAnnotation %in% pbs_cells_with_enough)
+
+DotPlot(pbs_dot_dat, features = polarization_stimulus_genes, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,5))+
+  ggtitle('PBS')
+
+
 #Which celltypes have enough cells for dotplots
 table(wt_cerebrum_day3$manualAnnotation)
 table(wt_cerebrum_day4$manualAnnotation)
 table(wt_cerebrum_day5$manualAnnotation)
+
+#Look at arrest/stop vs transmigration markers from https://academic.oup.com/view-large/3854487
+arrest_only_markers <- c('Vcam1', 'Ccr1')
+transmigration_only_markers <- c('Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99', 'Cd99l2', 'Cdh5', 'Epha1', 'Ephb1')
+all_arrest_markers <- c('Itgal', 'Itgb2', 'Itgam', 'Vcam1', 'Amica1', 'Selp', 'Ccr1')
+
+DotPlot(wt_cerebrum_day3_dot_dat, features = arrest_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,5))+
+  ggtitle('Day 3')
+
+DotPlot(wt_cerebrum_day3_dot_dat, features = transmigration_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,5))+
+  ggtitle('Day 3')
+
+#Look at main adhesion/integrin pairs from https://link.springer.com/article/10.1186/1742-2094-9-270
+#"During viral infection of the brain, we have found that recruitment of monocytes to the CNS is also VLA-4-dependent"
+adhesion_pairs <- c('Itga4', 'Itgal', 'Vcam1', 'Icam1')
+
+DotPlot(wt_cerebrum_day3_dot_dat, features = adhesion_pairs, scale = FALSE, group.by = 'manualAnnotation')+
+  ggtitle('Day 3')
+
+DotPlot(wt_cerebrum_day4_dot_dat, features = adhesion_pairs, scale = FALSE, group.by = 'manualAnnotation')+
+  ggtitle('Day 4')
+
+DotPlot(wt_cerebrum_day5_dot_dat, features = adhesion_pairs, scale = FALSE, group.by = 'manualAnnotation')+
+  ggtitle('Day 5')
+
+#Chemokine plots
+ccl_chemokines <- rownames(wt_cerebrum@assays$RNA$data)[grep('Ccl', rownames(wt_cerebrum@assays$RNA$data))]
+cxcl_chemokines <- rownames(wt_cerebrum@assays$RNA$data)[grep('Cxcl', rownames(wt_cerebrum@assays$RNA$data))]
+
+wt_cerebrum_day3 <- subset(wt_cerebrum, Timepoint == 'Day 3')
+
+
+
 

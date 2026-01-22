@@ -179,6 +179,8 @@ FeaturePlot(sn_integrated_dat, 'Vtn', reduction = 'umap.integrated')
 #ChP
 FeaturePlot(sn_integrated_dat, 'Ttr', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Aqp1', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Kl', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Clic6', reduction = 'umap.integrated')
 
 #Endothelial cells
 #brain endo marker Pglyrp1 from https://www.sciencedirect.com/science/article/pii/S0092867420300623
