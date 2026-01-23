@@ -28,7 +28,6 @@ length(false_macs_to_remove)
 
 ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, invert = TRUE)
 
-
 #Create all subsets that will be used
 #Subset to same cells as in gal3 project, but keep all timepoints for now, rather than just day 5
 wt_cerebrum <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
@@ -63,7 +62,7 @@ DotPlot(wt_cerebrum_day3_dot_dat, features = polarization_stimulus_genes, scale 
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,5))+
-  ggtitle('Day 3')
+  ggtitle('Day 3 LGTV')
 
 day4_cells_with_enough <- c(table(wt_cerebrum_day4$manualAnnotation) %>% as.data.frame() %>% 
                               dplyr::filter(Freq > 50) %>% dplyr::select(Var1))$Var1
@@ -87,7 +86,7 @@ DotPlot(wt_cerebrum_day5_dot_dat, features = polarization_stimulus_genes, scale 
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,5))+
-  ggtitle('Day 5')
+  ggtitle('Day 5 LGTV')
 
 #Also look at pbs
 pbs <- subset(wt_cerebrum, Treatment == 'PBS')
@@ -115,13 +114,14 @@ arrest_only_markers <- c('Vcam1', 'Ccr1')
 transmigration_only_markers <- c('Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99', 'Cd99l2', 'Cdh5', 'Epha1', 'Ephb1')
 all_arrest_markers <- c('Itgal', 'Itgb2', 'Itgam', 'Vcam1', 'Amica1', 'Selp', 'Ccr1')
 
+#Plot arrest and transmigration markers
 DotPlot(wt_cerebrum_day3_dot_dat, features = arrest_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,5))+
-  ggtitle('Day 3')
+  ggtitle('Day 3 Arrest Markers')
 
 DotPlot(wt_cerebrum_day3_dot_dat, features = transmigration_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
@@ -129,7 +129,41 @@ DotPlot(wt_cerebrum_day3_dot_dat, features = transmigration_only_markers, scale 
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,5))+
-  ggtitle('Day 3')
+  ggtitle('Day 3 Transmigration')
+
+DotPlot(wt_cerebrum_day4_dot_dat, features = arrest_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,5))+
+  ggtitle('Day 4 Arrest Markers')
+
+DotPlot(wt_cerebrum_day4_dot_dat, features = transmigration_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,5))+
+  ggtitle('Day 4 Transmigration')
+
+DotPlot(wt_cerebrum_day5_dot_dat, features = arrest_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,5))+
+  ggtitle('Day 5 Arrest Markers')
+
+DotPlot(wt_cerebrum_day5_dot_dat, features = transmigration_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,5))+
+  ggtitle('Day 5 Transmigration')
+
+
 
 #Look at main adhesion/integrin pairs from https://link.springer.com/article/10.1186/1742-2094-9-270
 #"During viral infection of the brain, we have found that recruitment of monocytes to the CNS is also VLA-4-dependent"
@@ -147,9 +181,59 @@ DotPlot(wt_cerebrum_day5_dot_dat, features = adhesion_pairs, scale = FALSE, grou
 #Chemokine plots
 ccl_chemokines <- rownames(wt_cerebrum@assays$RNA$data)[grep('Ccl', rownames(wt_cerebrum@assays$RNA$data))]
 cxcl_chemokines <- rownames(wt_cerebrum@assays$RNA$data)[grep('Cxcl', rownames(wt_cerebrum@assays$RNA$data))]
+wt_cerebrum$treatment_celltype <- paste(wt_cerebrum$Treatment, wt_cerebrum$manualAnnotation)
 
-wt_cerebrum_day3 <- subset(wt_cerebrum, Timepoint == 'Day 3')
+#Subset each timepoint of data to cell types with enough cells
+wt_cerebrum_day3_all <- subset(wt_cerebrum, Timepoint == 'Day 3')
+day3_all_cells_with_enough <- c(table(wt_cerebrum_day3_all$manualAnnotation) %>% as.data.frame() %>% 
+                              dplyr::filter(Freq > 75) %>% dplyr::select(Var1))$Var1
+wt_cerebrum_day3_all_dot_dat <- subset(wt_cerebrum_day3_all, manualAnnotation %in% day3_all_cells_with_enough)
 
+wt_cerebrum_day4_all <- subset(wt_cerebrum, Timepoint == 'Day 4')
+day4_all_cells_with_enough <- c(table(wt_cerebrum_day4_all$manualAnnotation) %>% as.data.frame() %>% 
+                                  dplyr::filter(Freq > 75) %>% dplyr::select(Var1))$Var1
+wt_cerebrum_day4_all_dot_dat <- subset(wt_cerebrum_day4_all, manualAnnotation %in% day4_all_cells_with_enough)
+
+wt_cerebrum_day5_all <- subset(wt_cerebrum, Timepoint == 'Day 5')
+day5_all_cells_with_enough <- c(table(wt_cerebrum_day5_all$manualAnnotation) %>% as.data.frame() %>% 
+                                  dplyr::filter(Freq > 75) %>% dplyr::select(Var1))$Var1
+wt_cerebrum_day5_all_dot_dat <- subset(wt_cerebrum_day5_all, manualAnnotation %in% day3_all_cells_with_enough)
+
+
+DotPlot(wt_cerebrum_day3_all_dot_dat, features = ccl_chemokines, group.by = 'treatment_celltype')+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  ylab('')+
+  xlab('')
+
+DotPlot(wt_cerebrum_day3_all_dot_dat, features = cxcl_chemokines, group.by = 'treatment_celltype')+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  ylab('')+
+  xlab('')
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/day3_allgal3_chemokine_dot.pdf', width = 8, height = 6)
+DotPlot(wt_cerebrum_day3_all_dot_dat, features = c('Ccl1', 'Ccl2', 'Ccl3', 'Ccl4', 'Ccl5',
+                                                   'Ccl6', 'Ccl7', 'Ccl8', 'Ccl9', 'Ccl10', 'Ccl11',
+                                                   'Cxcl10'), group.by = 'treatment_celltype', scale = FALSE)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  ylab('')+
+  xlab('')+
+  ggtitle('Day 3 Chemokines')+
+  scale_size_continuous(limits = c(0,100), range = c(0.01, 6))+
+  scale_color_gradient2(limits = c(0, 3.8), low = 'white', high = 'blue')
+dev.off()
+
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/day5_allgal3_chemokine_dot.pdf', width = 8, height = 6)
+DotPlot(wt_cerebrum_day5_all_dot_dat, features = c('Ccl1', 'Ccl2', 'Ccl3', 'Ccl4', 'Ccl5',
+                                                   'Ccl6', 'Ccl7', 'Ccl8', 'Ccl9', 'Ccl10', 'Ccl11',
+                                                   'Cxcl10'), group.by = 'treatment_celltype', scale = FALSE)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  ylab('')+
+  xlab('')+
+  ggtitle('Day 5 Chemokines')+
+  scale_size_continuous(limits = c(0,100), range = c(0.01, 5))+
+  scale_color_gradient2(limits = c(0, 3.8), low = 'white', high = 'blue')
+dev.off()
 
 
 

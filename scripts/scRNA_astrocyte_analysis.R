@@ -37,7 +37,8 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'Treatment', reduction = '
 astrocytes <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes')
 
 #Recluster astrocytes
-astrocytes <- prepSeuratObj(astrocytes, use_all_genes = TRUE)
+#This was true before so can switch to get old umap
+astrocytes <- prepSeuratObj(astrocytes, use_all_genes = FALSE)
 ElbowPlot(astrocytes, ndims = 40)
 astrocytes <- prepUmapSeuratObj(astrocytes, nDims = 20, reductionName = 'astrocytes_umap', resolution_value = 0.8)
 
@@ -46,7 +47,10 @@ DimPlot(astrocytes, reduction = 'astrocytes_umap')
 astrocytes$infection_group <- ifelse(astrocytes$Treatment %in% c('rChLGTV', 'rLGTV'), 'infected', 'uninfected')
 DimPlot(astrocytes, reduction = 'astrocytes_umap', group.by = 'infection_group')
 DimPlot(astrocytes, reduction = 'astrocytes_umap', group.by = 'Genotype')
-DimPlot(astrocytes, reduction = 'astrocytes_umap', group.by = 'Organ')
+DimPlot(astrocytes, reduction = 'astrocytes_umap', group.by = 'Organ')+
+  xlab('')+
+  ylab('')+
+  ggtitle('Astrocyte UMAP')
 DimPlot(astrocytes, reduction = 'astrocytes_umap', group.by = 'Timepoint')
 DimPlot(astrocytes, reduction = 'astrocytes_umap', group.by = 'geno_timepoint_treatment', cols = newCols)
 table(astrocytes$infection_group, astrocytes$Genotype)
@@ -295,5 +299,28 @@ markers_only_chlgtv <- chlgtv_sig_markers[!rownames(chlgtv_sig_markers) %in% row
 markers_only_chlgtv_paths <- gprofiler2::gost(query = rownames(markers_only_chlgtv), organism = 'mmusculus', evcodes = TRUE)
 markers_only_chlgtv_paths$result[21:30,]
 
+#Make UMAPs by organ
+astrocytes_cerebrum <- subset(astrocytes, Organ == 'Cerebrum')
+astrocytes_cerebellum <- subset(astrocytes, Organ == 'Cerebellum')
+
+#Recluster astrocytes
+astrocytes_cerebrum <- prepSeuratObj(astrocytes_cerebrum)
+ElbowPlot(astrocytes_cerebrum, ndims = 40)
+astrocytes_cerebrum <- prepUmapSeuratObj(astrocytes_cerebrum, nDims = 20, reductionName = 'astrocytes_cerebrum_umap', resolution_value = 0.8)
+
+DimPlot(astrocytes_cerebrum, reduction = 'astrocytes_cerebrum_umap', group.by = 'Genotype')+
+  ylab('')+
+  xlab('')+
+  ggtitle('Cerebrum Astrocytes')
+
+#Recluster astrocytes
+astrocytes_cerebellum <- prepSeuratObj(astrocytes_cerebellum)
+ElbowPlot(astrocytes_cerebellum, ndims = 40)
+astrocytes_cerebellum <- prepUmapSeuratObj(astrocytes_cerebellum, nDims = 20, reductionName = 'astrocytes_cerebellum_umap', resolution_value = 0.8)
+
+DimPlot(astrocytes_cerebellum, reduction = 'astrocytes_cerebellum_umap', group.by = 'Genotype')+
+  xlab('')+
+  ylab('')+
+  ggtitle('Cerebellum Astrocytes')
 
 
