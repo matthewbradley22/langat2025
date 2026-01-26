@@ -120,7 +120,7 @@ DotPlot(wt_cerebrum_day3_dot_dat, features = arrest_only_markers, scale = FALSE,
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
-                        limits = c(0,5))+
+                        limits = c(0,2.5))+
   ggtitle('Day 3 Arrest Markers')
 
 DotPlot(wt_cerebrum_day3_dot_dat, features = transmigration_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
@@ -128,7 +128,7 @@ DotPlot(wt_cerebrum_day3_dot_dat, features = transmigration_only_markers, scale 
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
-                        limits = c(0,5))+
+                        limits = c(0,2.5))+
   ggtitle('Day 3 Transmigration')
 
 DotPlot(wt_cerebrum_day4_dot_dat, features = arrest_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
@@ -136,7 +136,7 @@ DotPlot(wt_cerebrum_day4_dot_dat, features = arrest_only_markers, scale = FALSE,
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
-                        limits = c(0,5))+
+                        limits = c(0,2.5))+
   ggtitle('Day 4 Arrest Markers')
 
 DotPlot(wt_cerebrum_day4_dot_dat, features = transmigration_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
@@ -144,7 +144,7 @@ DotPlot(wt_cerebrum_day4_dot_dat, features = transmigration_only_markers, scale 
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
-                        limits = c(0,5))+
+                        limits = c(0,2.5))+
   ggtitle('Day 4 Transmigration')
 
 DotPlot(wt_cerebrum_day5_dot_dat, features = arrest_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
@@ -152,7 +152,7 @@ DotPlot(wt_cerebrum_day5_dot_dat, features = arrest_only_markers, scale = FALSE,
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
-                        limits = c(0,5))+
+                        limits = c(0,2.5))+
   ggtitle('Day 5 Arrest Markers')
 
 DotPlot(wt_cerebrum_day5_dot_dat, features = transmigration_only_markers, scale = FALSE, group.by = 'manualAnnotation')+
@@ -160,7 +160,7 @@ DotPlot(wt_cerebrum_day5_dot_dat, features = transmigration_only_markers, scale 
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
-                        limits = c(0,5))+
+                        limits = c(0,2.5))+
   ggtitle('Day 5 Transmigration')
 
 

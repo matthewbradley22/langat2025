@@ -220,19 +220,61 @@ DimPlot(wt_cerebrum_macrophages_day5, reduction = 'day5_macs_wt', group.by = 'Tr
 FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Tnf', 'Il1b', 'Il12a', 'Il23a', 'Nos2', 'Cd68', 'Cd80',
                                                   'Cd86', 'Fcgr1', 'Fcgr2b', 'Fcgr3') , reduction = 'day5_macs_wt')
 
+#Could subset to infected cells too for these
+DotPlot(wt_cerebrum_macrophages, features = c('Tnf', 'Il1b', 'Il12a', 'Il23a', 'Nos2', 'Cd68', 'Cd80',
+                                              'Cd86', 'Fcgr1', 'Fcgr2b', 'Fcgr3'), group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 90))
+
+#Mature macrophage signature per https://www.cell.com/article/S1074-7613(14)00235-0/fulltext . Maybe
+#transcripts expressed day 3 indicate divergence into macrophages leading to expression of genes like Nos2 above
+#Got to read this too https://www.nature.com/articles/ni.2419
+DotPlot(wt_cerebrum_macrophages, features = c('Mertk'), group.by = 'Timepoint', scale = FALSE) +
+       theme(axis.text.x = element_text(angle = 90))
+
 #M2a
 FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Mrc1', 'Cd68', 'Cd163', 'Arg1', 'Il10', 'Tgfb1', 'Il1b') , reduction = 'day5_macs_wt')
+
+DotPlot(wt_cerebrum_macrophages, features = c('Mrc1', 'Cd68', 'Cd163', 'Arg1', 'Il10', 'Tgfb1', 'Il1b'), group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 90))
+
 
 #M2b
 FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Cd86', 'Cd68', 'Mrc1', 'Il10',
                                                        'Il1b', 'Il6', 'Tnf') , reduction = 'day5_macs_wt')
 
+DotPlot(wt_cerebrum_macrophages, features = c('Cd86', 'Cd68', 'Mrc1', 'Il10',
+                                              'Il1b', 'Il6', 'Tnf'), group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 90))
+
 #M2c
 FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Cd163', 'Cd68', 'Mrc1', 'Arg1',
                                                        'Il10', 'Tgfb1') , reduction = 'day5_macs_wt')
 
+DotPlot(wt_cerebrum_macrophages, features = c('Cd163', 'Cd68', 'Mrc1', 'Arg1',
+                                              'Il10', 'Tgfb1'), group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 90))
+
 #M2d
 FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Cd68', 'Mrc1', 'Il10') , reduction = 'day5_macs_wt')
+
+DotPlot(wt_cerebrum_macrophages, features = c('Cd68', 'Mrc1', 'Il10'), group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 90))
+
+#Try dotplot with all above markers
+
+all_markers_sorted <- c('Il12a', 'Il23a', 'Nos2', 'Cd80', 'Fcgr1', 'Fcgr2b', 'Tnf', 'Il1b', 'Cd86',
+                        'Cd68', 'Il6', 'Mrc1', 'Cd163', 'Arg1', 'Il10', 'Tgfb1')
+
+#Match markers with which mac type they identify
+mac_sorted_type <- c('M1', 'M1', 'M1', 'M1', 'M1', 'M1', 'M1/M2', 'M1/M2', 'M1/M2', 'M1/M2', 'M1/M2', 'M2 - multiple', 'M2 - multiple',
+                     'M2 - multiple', 'M2 - multiple', 'M2 - multiple')
+mac_identifier_type_colors <- case_when(mac_sorted_type == 'M1'~ 'orange',
+                                        mac_sorted_type == 'M1/M2'~ 'green',
+                                        mac_sorted_type == 'M2 - multiple'~ 'darkred')
+
+DotPlot(wt_cerebrum_macrophages, features = all_markers_sorted, group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 90))+
+  geom_point(aes(size = pct.exp), color = rep(mac_identifier_type_colors, 3),  pch = 21) #pch > 20 lets you outline points
 
 #Other markers from paper
 FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Siglec1') , reduction = 'day5_macs_wt')
