@@ -91,11 +91,8 @@ featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim
 FeaturePlot(wt_cerebrum_macrophages, features = c('Slfn4', 'Ms4a8a', 'Clec4e', 'Itga4'), reduction = 'wt.infected.mac.umap')#Macrophage marker
 FeaturePlot(wt_cerebrum_macrophages, features = c('Ccl3', 'Ccl4', 'Il12b', 'Tnf'), reduction = 'wt.infected.mac.umap')
 
-plotList <- list(featurePlotLight('Slfn4', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 6),
-                 featurePlotLight('Ms4a8a', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 6),
-                 featurePlotLight('Clec4e', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 6),
-                 featurePlotLight('Itga4', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 6))
-
+plotList <- lapply(c('Slfn4', 'Ms4a8a', 'Clec4e', 'Itga4'), featurePlotLight, data = wt_cerebrum_macrophages, 
+                   reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 
 plotList <- list(featurePlotLight('Ccl3', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 6),
@@ -204,21 +201,43 @@ DotPlot(wt_cerebrum_macrophages, features = c('Sell', 'Itgam', 'Tnf', 'Ccr1', 'C
 #Markers from https://www.mdpi.com/1422-0067/25/22/12078#The_Characteristics_of_M%CF%86s
 #Only look at day 5
 wt_cerebrum_macrophages_day5 <-  subset(wt_cerebrum_macrophages, Timepoint == 'Day 5')
+wt_cerebrum_macrophages_day4 <-  subset(wt_cerebrum_macrophages, Timepoint == 'Day 4')
+wt_cerebrum_macrophages_day3 <-  subset(wt_cerebrum_macrophages, Timepoint == 'Day 3')
 
-#Prepare UMAP for macrophages
+#Prepare UMAP for macrophages at all time points
 wt_cerebrum_macrophages_day5 <- prepSeuratObj(wt_cerebrum_macrophages_day5)
 ElbowPlot(wt_cerebrum_macrophages_day5, ndims = 40)
-
-#Higher num neighbors for fewer clusters
 wt_cerebrum_macrophages_day5 <- prepUmapSeuratObj(wt_cerebrum_macrophages_day5, nDims = 20, reductionName = 'day5_macs_wt',
                                              resolution_value = 0.8)
+
+wt_cerebrum_macrophages_day4 <- prepSeuratObj(wt_cerebrum_macrophages_day4)
+ElbowPlot(wt_cerebrum_macrophages_day4, ndims = 40)
+wt_cerebrum_macrophages_day4 <- prepUmapSeuratObj(wt_cerebrum_macrophages_day4, nDims = 20, reductionName = 'day4_macs_wt',
+                                                  resolution_value = 0.8)
+
+wt_cerebrum_macrophages_day3 <- prepSeuratObj(wt_cerebrum_macrophages_day3)
+ElbowPlot(wt_cerebrum_macrophages_day3, ndims = 40)
+wt_cerebrum_macrophages_day3 <- prepUmapSeuratObj(wt_cerebrum_macrophages_day3, nDims = 15, reductionName = 'day3_macs_wt',
+                                                  resolution_value = 0.8)
 
 DimPlot(wt_cerebrum_macrophages_day5, reduction = 'day5_macs_wt')
 DimPlot(wt_cerebrum_macrophages_day5, reduction = 'day5_macs_wt', group.by = 'Treatment')
 
+DimPlot(wt_cerebrum_macrophages_day4, reduction = 'day4_macs_wt', group.by = 'Treatment' )
+DimPlot(wt_cerebrum_macrophages_day3, reduction = 'day3_macs_wt', group.by = 'Treatment')
+
 #M1
-FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Tnf', 'Il1b', 'Il12a', 'Il23a', 'Nos2', 'Cd68', 'Cd80',
-                                                  'Cd86', 'Fcgr1', 'Fcgr2b', 'Fcgr3') , reduction = 'day5_macs_wt')
+m1_genes = c('Tnf', 'Il1b', 'Il12a', 'Il23a', 'Nos2', 'Cd68', 'Cd80','Cd86', 'Fcgr1', 'Fcgr2b', 'Fcgr3')
+
+#M1 day 5
+plotList_m1_day5 <- lapply(m1_genes, featurePlotLight, data = wt_cerebrum_macrophages_day5, 
+                   reduction_choice = 'day5_macs_wt', maxLim = 6)
+do.call(ggarrange, c(plotList_m1_day5, common.legend = TRUE, legend = 'right'))
+
+#M1 day 4
+plotList_m1_day4 <- lapply(m1_genes, featurePlotLight, data = wt_cerebrum_macrophages_day4, 
+                           reduction_choice = 'day4_macs_wt', maxLim = 6)
+do.call(ggarrange, c(plotList_m1_day4, common.legend = TRUE, legend = 'right'))
 
 #Could subset to infected cells too for these
 DotPlot(wt_cerebrum_macrophages, features = c('Tnf', 'Il1b', 'Il12a', 'Il23a', 'Nos2', 'Cd68', 'Cd80',

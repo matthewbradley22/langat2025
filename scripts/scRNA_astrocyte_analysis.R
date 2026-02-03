@@ -57,6 +57,10 @@ table(astrocytes$infection_group, astrocytes$Genotype)
 
 #Astrocyte markers
 astrocytes$time_treatment <- paste(astrocytes$Timepoint, astrocytes$Treatment, sep = '_')
+
+#Change time_treatment so pbs is all combined for plotting and comparisons
+astrocytes$time_treatment <- ifelse(astrocytes$time_treatment == 'Day 5_PBS' | astrocytes$time_treatment == 'Day 3_PBS', 'PBS', astrocytes$time_treatment)
+
 ips_astrocytes <- subset(astrocytes, Genotype == 'IPS1' & Treatment != 'rLGTV')
 ips_astrocytes_cerebrum <- subset(ips_astrocytes, Organ == 'Cerebrum')
 wt_astrocytes <- subset(astrocytes, Genotype == 'WT' & Treatment != 'rLGTV')
@@ -67,54 +71,83 @@ ips_astrocytes_cerebrum_markers <- FindAllMarkers(ips_astrocytes_cerebrum, only.
 wt_astrocytes_cerebrum_markers <- FindAllMarkers(wt_astrocytes_cerebrum, only.pos = TRUE, test.use = 'MAST',
                                                   group.by = 'time_treatment')
 
-ips_astro_cerebrum_top10 <- ips_astrocytes_cerebrum_markers %>%
-  group_by(cluster) %>%
-  dplyr::filter(p_val_adj < 0.01 & pct.1 > 0.05) %>% 
-  slice_head(n = 6) %>%
-  ungroup()
+#For now only plotting genes from scale.data, otherwise have to use data slot which ruins heatmaps
+#can try later to manually scale from data slow
+genes_to_choose_from_ips <- rownames(ips_astrocytes_cerebrum[['RNA']]$scale.data)
+genes_to_plot_ips <- c()
+for(i in 1:length(unique(ips_astrocytes_cerebrum_markers$cluster))){
+  cur_dat <- ips_astrocytes_cerebrum_markers[ips_astrocytes_cerebrum_markers$cluster == unique(ips_astrocytes_cerebrum_markers$cluster)[i],]
+  cur_dat <- dplyr::arrange(cur_dat, p_val_adj)
+  cur_dat <- cur_dat[!cur_dat$gene %in% genes_to_plot_ips,]
+  cur_dat <- cur_dat[cur_dat$gene %in% genes_to_choose_from_ips,]
+  genes_to_plot_ips <- c(genes_to_plot_ips, head(cur_dat$gene, n = 15))
+}
 
-#Need to make it so genes do not repeat
-wt_astro_cerebrum_top10 <- wt_astrocytes_cerebrum_markers %>%
-  group_by(cluster) %>%
-  dplyr::filter(p_val_adj < 0.01 & pct.1 > 0.05) %>% 
-  dplyr::arrange(p_val_adj) 
-
-wt_astro_cerebrum_top10 <- wt_astro_cerebrum_top10[!duplicated(wt_astro_cerebrum_top10$gene),] %>% 
-  dplyr::group_by(cluster) %>% 
-  slice_head(n = 6)
+#Need to make it so genes do not repeat.
+genes_to_choose_from_wt <- rownames(wt_astrocytes_cerebrum[['RNA']]$scale.data)
+genes_to_plot_wt <- c()
+for(i in 1:length(unique(wt_astrocytes_cerebrum_markers$cluster))){
+  cur_dat <- wt_astrocytes_cerebrum_markers[wt_astrocytes_cerebrum_markers$cluster == unique(wt_astrocytes_cerebrum_markers$cluster)[i],]
+  cur_dat <- dplyr::arrange(cur_dat, p_val_adj)
+  cur_dat <- cur_dat[!cur_dat$gene %in% genes_to_plot_wt,]
+  cur_dat <- cur_dat[cur_dat$gene %in% genes_to_choose_from_wt,]
+  genes_to_plot_wt <- c(genes_to_plot_wt, head(cur_dat$gene, n = 15))
+}
 
 ips_astrocytes_cerebrum$time_treatment <- factor(ips_astrocytes_cerebrum$time_treatment, 
-                                                 levels = c("Day 3_PBS", "Day 5_PBS", "Day 3_rChLGTV", "Day 4_rChLGTV", "Day 5_rChLGTV"))
+                                                 levels = c("PBS", "Day 3_rChLGTV", "Day 4_rChLGTV", "Day 5_rChLGTV"))
 wt_astrocytes_cerebrum$time_treatment <- factor(wt_astrocytes_cerebrum$time_treatment, 
-                                                 levels = c("Day 3_PBS", "Day 5_PBS", "Day 3_rChLGTV", "Day 4_rChLGTV", "Day 5_rChLGTV"))
+                                                 levels = c("PBS", "Day 3_rChLGTV", "Day 4_rChLGTV", "Day 5_rChLGTV"))
 
-tiff('~/Documents/ÖverbyLab/scPlots/ips_astro_cerebrum_time_heatmap.tiff', width = 1000, height = 600, res = 100)
-DoHeatmap(ips_astrocytes_cerebrum, features = ips_astro_cerebrum_top10$gene, group.by = 'time_treatment')+
+tiff('~/Documents/ÖverbyLab/scPlots/ips_astro_cerebrum_time_heatmap.tiff', width = 900, height = 1100, res = 100)
+DoHeatmap(ips_astrocytes_cerebrum, features = genes_to_plot_ips, group.by = 'time_treatment')+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
                        values = c(1.0,0.9,0.7,0.5,0))+
   ggtitle('IPS Cerebrum Astrocytes')+
   theme(plot.title = element_text(size = 25, vjust = 3))
 dev.off()
 
-tiff('~/Documents/ÖverbyLab/scPlots/wt_astro_cerebrum_time_heatmap.tiff', width = 1000, height = 600, res = 100)
-DoHeatmap(wt_astrocytes_cerebrum, features = wt_astro_cerebrum_top10$gene, group.by = 'time_treatment')+
+tiff('~/Documents/ÖverbyLab/scPlots/wt_astro_cerebrum_time_heatmap.tiff', width = 900, height = 1100, res = 100)
+DoHeatmap(wt_astrocytes_cerebrum, features = genes_to_plot_wt, group.by = 'time_treatment')+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
                        values = c(1.0,0.7,0.7,0.5,0))+
   ggtitle('WT Cerebrum Astrocytes')+
   theme(plot.title = element_text(size = 25, vjust = 3))
 dev.off()
 
+#Loot at markers from above groups
+
+#PBS markers
+pbs_markers_ips <- ips_astrocytes_cerebrum_markers[ips_astrocytes_cerebrum_markers$cluster == 'PBS' & 
+                                  ips_astrocytes_cerebrum_markers$avg_log2FC > 1 & 
+                                    ips_astrocytes_cerebrum_markers$p_val_adj < 0.01,]
+pbs_paths <- gprofiler2::gost(query = rownames(pbs_markers_ips), organism = 'mmusculus', evcodes = TRUE)
+
+#Day 3 markers
+day_3_markers_ips <- ips_astrocytes_cerebrum_markers[ips_astrocytes_cerebrum_markers$cluster == 'Day 3_rChLGTV' & 
+                                                     ips_astrocytes_cerebrum_markers$avg_log2FC > 1 & 
+                                                     ips_astrocytes_cerebrum_markers$p_val_adj < 0.01,]
+day_3_paths <- gprofiler2::gost(query = rownames(day_3_markers_ips), organism = 'mmusculus', evcodes = TRUE)
+
+#Day 4 markers
+day_4_markers_ips <- ips_astrocytes_cerebrum_markers[ips_astrocytes_cerebrum_markers$cluster == 'Day 4_rChLGTV' & 
+                                                       ips_astrocytes_cerebrum_markers$avg_log2FC > 1 & 
+                                                       ips_astrocytes_cerebrum_markers$p_val_adj < 0.01,]
+day_4_paths <- gprofiler2::gost(query = rownames(day_4_markers_ips), organism = 'mmusculus', evcodes = TRUE)
+
 
 #Also look at pseudobulk markers
-ips_astrocyte_bulk <- createPseudoBulk(ips_astrocytes, c('Timepoint', 'Organ', 'Treatment'))
-ips_astrocyte_bulk <- DESeq(ips_astrocyte_bulk)
-resultsNames(ips_astrocyte_bulk)
+#Maybe use all astrocytes to create usable pseudobulk object
+ips_astrocyte_cerebrum_bulk <- createPseudoBulk(ips_astrocytes_cerebrum, c('time_treatment'), intercept = FALSE)
+ips_astrocyte_cerebrum_bulk <- DESeq(ips_astrocyte_cerebrum_bulk)
+resultsNames(ips_astrocyte_cerebrum_bulk)
 ips_astrocyte_bulk_treatment_markers <- results(ips_astrocyte_bulk, name = 'Treatment_rChLGTV_vs_PBS') %>% 
   as.data.frame() %>% dplyr::filter(padj < 0.01 & abs(log2FoldChange) > 1) %>% 
   rownames_to_column(var = 'gene') %>% 
   dplyr::arrange(padj) %>% dplyr::mutate(direction = ifelse(log2FoldChange > 0, 'up', 'down')) %>% 
   dplyr::group_by(direction) %>% 
   dplyr::slice_head(n = 10)
+
 
 
 #Look at markers

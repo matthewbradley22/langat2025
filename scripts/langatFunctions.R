@@ -6,7 +6,7 @@ library(DESeq2)
 #Pseudobulk info found here
 #https://hbctraining.github.io/Pseudobulk-for-scRNAseq/schedule/self-learning.html 
 
-createPseudoBulk <- function(data, variables){
+createPseudoBulk <- function(data, variables, intercept = TRUE){
   
   meta_columns <- variables
   meta <- data[[]] %>%
@@ -25,6 +25,8 @@ createPseudoBulk <- function(data, variables){
     dplyr::group_by(across(all_of(meta_columns))) %>% 
     dplyr::summarise('n_cells' = n())
   
+  #Need to make sure any underscores become dashes to count properly (think this is automatically done in AggregateExpression)
+  n_cells <- data.frame(apply(n_cells, 2, function(x) if(!is.numeric(x)) gsub("_", "-", x)))
   meta_bulk <- left_join(bulk[[]], n_cells)
   rownames(meta_bulk) <- meta_bulk$orig.ident
   bulk[[]] <- meta_bulk
@@ -32,7 +34,13 @@ createPseudoBulk <- function(data, variables){
   # Get count matrix
   cluster_counts <- FetchData(bulk, layer="counts", vars=rownames(bulk))
   
-  designForm <- reformulate(variables)
+  if(intercept){
+    designForm <- reformulate(variables)
+  }
+  else{
+    designForm <- reformulate(c('0',variables))
+  }
+  
   dds <- DESeqDataSetFromMatrix(t(cluster_counts),
                                 colData = bulk@meta.data,
                                 design = designForm)
