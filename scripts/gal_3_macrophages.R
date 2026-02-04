@@ -287,6 +287,15 @@ all_markers_sorted <- c('Il12a', 'Il23a', 'Nos2', 'Cd80', 'Fcgr1', 'Fcgr2b', 'Tn
 #Match markers with which mac type they identify
 mac_sorted_type <- c('M1', 'M1', 'M1', 'M1', 'M1', 'M1', 'M1/M2', 'M1/M2', 'M1/M2', 'M1/M2', 'M1/M2', 'M2 - multiple', 'M2 - multiple',
                      'M2 - multiple', 'M2 - multiple', 'M2 - multiple')
+
+all_surface_markers_sorted <-  c('Cd80', 'Fcgr2b', 'Fcgr1', 'Nos2', 'Il1r1', 'Tlr2', 'Tlr4', 'Cd86',
+                                 'Cd68', 'Mrc1', 'Cd163', 'Arg1', 'Cd81','Siglec1', 'Itgam', 'Vcam1',
+                                 'H2-Ab1', 'H2-Aa', 'H2-Eb1')
+
+all_cytokines_sorted <- c('Il12a', 'Il18', 'Il23a', 'Il1a', 'Nos2', 'Arg1', 'Tgfb1', 'Il1b', 'Tnf', 'Il6',
+                          'Il10', 'Ccl2', 'Ccl5', 'Ccl22', 'Vegfa')
+
+
 mac_identifier_type_colors <- case_when(mac_sorted_type == 'M1'~ 'orange',
                                         mac_sorted_type == 'M1/M2'~ 'green',
                                         mac_sorted_type == 'M2 - multiple'~ 'darkred')
@@ -294,6 +303,28 @@ mac_identifier_type_colors <- case_when(mac_sorted_type == 'M1'~ 'orange',
 DotPlot(wt_cerebrum_macrophages, features = all_markers_sorted, group.by = 'Timepoint', scale = FALSE) +
   theme(axis.text.x = element_text(angle = 90))+
   geom_point(aes(size = pct.exp), color = rep(mac_identifier_type_colors, 3),  pch = 21) #pch > 20 lets you outline points
+
+DotPlot(wt_cerebrum_macrophages, features = all_surface_markers_sorted, group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  ggtitle('Surface markers')+
+  coord_flip()
+
+DotPlot(wt_cerebrum_macrophages, features = all_cytokines_sorted, group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 90))+
+  ggtitle('Cytokines')
+
+#Markers from feb 4 meeting w anna
+monocyte_markers_feb4 <- c('Lyz2', 'Ctss', 'Fcgr1', 'Lgals3', 'Tyrobp', 'Aif1',
+                           'Ly6c2', 'Ccr2', 'S100a8', 'S100a9', 'Plac8')
+nonclassic_monocyte_markers_feb4 <- c('Cx3cr1', 'Nr4a1', 'Ifitm3', 'Ltb')
+
+DotPlot(wt_cerebrum_macrophages, features = monocyte_markers_feb4, group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 90))+
+  ggtitle('Monocyte markers')
+
+DotPlot(wt_cerebrum_macrophages, features = nonclassic_monocyte_markers_feb4, group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 90))+
+  ggtitle('Nonclassical monocyte markers')
 
 #Other markers from paper
 FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Siglec1') , reduction = 'day5_macs_wt')
