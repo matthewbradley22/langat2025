@@ -28,6 +28,10 @@ length(false_macs_to_remove)
 
 ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, invert = TRUE)
 
+#Check why t cells don't show up much for day 5 wt cerebrum
+wt <- subset(ParseSeuratObj_int, Genotype == 'WT')
+table(wt$Treatment, wt$manualAnnotation, wt$Timepoint)
+
 #Create all subsets that will be used
 #Subset to same cells as in gal3 project, but keep all timepoints for now, rather than just day 5
 wt_cerebrum <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
