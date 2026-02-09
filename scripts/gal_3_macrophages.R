@@ -54,15 +54,15 @@ ElbowPlot(wt_cerebrum_macrophages, ndims = 40)
 wt_cerebrum_macrophages <- prepUmapSeuratObj(wt_cerebrum_macrophages, nDims = 20, reductionName = 'wt.cerebrum.mac.umap',
                                              resolution_value = 0.8)
 
-DimPlot(wt_cerebrum_macrophages, reduction = 'wt.infected.mac.umap', label = TRUE, group.by = 'seurat_clusters',
+DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = TRUE, group.by = 'seurat_clusters',
         label.size = 6)+
   ggtitle('WT Infected Macrophages')
 
-DimPlot(wt_cerebrum_macrophages, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Timepoint',
+DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = FALSE, group.by = 'Timepoint',
         label.size = 6)+
   ggtitle('WT Infected Macrophages')
 
-DimPlot(wt_cerebrum_macrophages, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Treatment',
+DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = FALSE, group.by = 'Treatment',
         label.size = 6)+
   ggtitle('WT Infected Macrophages')
 
@@ -94,57 +94,57 @@ featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim
 }
 
 #Monocyte/macrophage markers from nat com paper https://www.nature.com/articles/s41467-023-37698-0#MOESM5
-FeaturePlot(wt_cerebrum_macrophages, features = c('Slfn4', 'Ms4a8a', 'Clec4e', 'Itga4'), reduction = 'wt.infected.mac.umap')#Macrophage marker
-FeaturePlot(wt_cerebrum_macrophages, features = c('Ccl3', 'Ccl4', 'Il12b', 'Tnf'), reduction = 'wt.infected.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = c('Slfn4', 'Ms4a8a', 'Clec4e', 'Itga4'), reduction = 'wt.cerebrum.mac.umap')#Macrophage marker
+FeaturePlot(wt_cerebrum_macrophages, features = c('Ccl3', 'Ccl4', 'Il12b', 'Tnf'), reduction = 'wt.cerebrum.mac.umap')
 
 plotList <- lapply(c('Slfn4', 'Ms4a8a', 'Clec4e', 'Itga4'), featurePlotLight, data = wt_cerebrum_macrophages, 
-                   reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+                   reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 
-plotList <- list(featurePlotLight('Ccl3', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 6),
-                 featurePlotLight('Ccl4', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 6),
-                 featurePlotLight('Il12b', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 6),
-                 featurePlotLight('Tnf', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 6))
+plotList <- list(featurePlotLight('Ccl3', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6),
+                 featurePlotLight('Ccl4', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6),
+                 featurePlotLight('Il12b', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6),
+                 featurePlotLight('Tnf', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6))
 
 do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 #Marker paper: https://pmc.ncbi.nlm.nih.gov/articles/PMC12362712/
 #Gene lists from supplementary table 1: Gene set scores
-FeaturePlot(wt_cerebrum_macrophages, features = 'Nos2', reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = 'Apoe', reduction = 'wt.infected.mac.umap') #Phagocytosis
-FeaturePlot(wt_cerebrum_macrophages, features = 'Mrc1', reduction = 'wt.infected.mac.umap') #bam marker/alternate activation
+FeaturePlot(wt_cerebrum_macrophages, features = 'Nos2', reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'Apoe', reduction = 'wt.cerebrum.mac.umap') #Phagocytosis
+FeaturePlot(wt_cerebrum_macrophages, features = 'Mrc1', reduction = 'wt.cerebrum.mac.umap') #bam marker/alternate activation
 
-FeaturePlot(wt_cerebrum_macrophages, features = 'Cxcl2', reduction = 'wt.infected.mac.umap') #Oxidative stress
-FeaturePlot(wt_cerebrum_macrophages, features = 'Prdx5', reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = 'Txn1', reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = 'Gsr', reduction = 'wt.infected.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'Cxcl2', reduction = 'wt.cerebrum.mac.umap') #Oxidative stress
+FeaturePlot(wt_cerebrum_macrophages, features = 'Prdx5', reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'Txn1', reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'Gsr', reduction = 'wt.cerebrum.mac.umap')
 
-FeaturePlot(wt_cerebrum_macrophages, features = 'H2-Aa', reduction = 'wt.infected.mac.umap') #Antigen presentation
-FeaturePlot(wt_cerebrum_macrophages, features = 'H2-Eb1', reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = 'H2-Ab1', reduction = 'wt.infected.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'H2-Aa', reduction = 'wt.cerebrum.mac.umap') #Antigen presentation
+FeaturePlot(wt_cerebrum_macrophages, features = 'H2-Eb1', reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'H2-Ab1', reduction = 'wt.cerebrum.mac.umap')
 
 #Complement cascade
-FeaturePlot(wt_cerebrum_macrophages, features = 'C1qc', reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = 'C1qb', reduction = 'wt.infected.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'C1qc', reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'C1qb', reduction = 'wt.cerebrum.mac.umap')
 
 #Other interesting genes
-FeaturePlot(wt_cerebrum_macrophages, features = 'F10', reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = 'Cd38', reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = 'Ccr1', reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = 'Socs3', reduction = 'wt.infected.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'F10', reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'Cd38', reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'Ccr1', reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'Socs3', reduction = 'wt.cerebrum.mac.umap')
 
 #Monocyte score
 monocyte_score_genes <- c('S100a4', 'Itgb7', 'Napsa', 'Cd300lg', 'Adora2b', 'Emb', 'Ly6c2', 'Ms4a4c', 'Fn1', 'Sell', 'Padi2', 'Lilra6', 
                           'Ccnb2', 'Galnt9', 'Upb1', 'Lmo1', 'F13a1', 'Ccr2', 'Gm15987', 'AI839979')
 select_monocyte_genes <- c('S100a4', 'Itgb7', 'Ly6c2', 'Sell', 'Ccr2')
 wt_cerebrum_macrophages <- AddModuleScore(wt_cerebrum_macrophages, features = list(monocyte_score_genes), name = 'monocyte_score')
-FeaturePlot(wt_cerebrum_macrophages, features = 'monocyte_score1', reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = select_monocyte_genes, reduction = 'wt.infected.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'monocyte_score1', reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = select_monocyte_genes, reduction = 'wt.cerebrum.mac.umap')
 
-plotList <- list(featurePlotLight('S100a4', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5),
-                 featurePlotLight('Itgb7', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5),
-                 featurePlotLight('Ly6c2', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5),
-                 featurePlotLight('Sell', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5),
-                 featurePlotLight('Ccr2', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5))
+plotList <- list(featurePlotLight('S100a4', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
+                 featurePlotLight('Itgb7', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
+                 featurePlotLight('Ly6c2', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
+                 featurePlotLight('Sell', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
+                 featurePlotLight('Ccr2', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5))
 
 do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 
@@ -152,16 +152,16 @@ do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 #Macrophage score
 macrophage_score_genes <- c('Adgre1', 'Csf1r', 'H2-Ab1', 'Cd68', 'Lyz2', 'Itgam', 'Mertk')
 wt_cerebrum_macrophages <- AddModuleScore(wt_cerebrum_macrophages, features = list(macrophage_score_genes), name = 'macrophage_score')
-FeaturePlot(wt_cerebrum_macrophages, features = 'macrophage_score1', reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = macrophage_score_genes, reduction = 'wt.infected.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = 'macrophage_score1', reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = macrophage_score_genes, reduction = 'wt.cerebrum.mac.umap')
 
-plotList <- list(featurePlotLight('Adgre1', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5),
-                 featurePlotLight('Csf1r', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5),
-                 featurePlotLight('H2-Ab1', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5),
-                 featurePlotLight('Cd68', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5),
-                 featurePlotLight('Lyz2', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5),
-                 featurePlotLight('Itgam', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5),
-                 featurePlotLight('Mertk', data = wt_cerebrum_macrophages, reduction_choice = 'wt.infected.mac.umap', maxLim = 5.5))
+plotList <- list(featurePlotLight('Adgre1', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
+                 featurePlotLight('Csf1r', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
+                 featurePlotLight('H2-Ab1', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
+                 featurePlotLight('Cd68', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
+                 featurePlotLight('Lyz2', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
+                 featurePlotLight('Itgam', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
+                 featurePlotLight('Mertk', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5))
 do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 
 #Other macrophage scores
@@ -169,7 +169,7 @@ do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 phagocytosis_score <- c('Aif1', 'Cd36', 'Coro1a', 'Ccr2', 'Cnn2', 'Cyba', 'Fcer1g', 'Fcgr1', 'Fcgr3', 'Gas6', 'Irf8', 'Il2rg', 'Itgb1', 
                         'Itgb2', 'Lrp1', 'Ncf4', 'Slc11a1', 'Pros1', 'Msr1', 'Thbs1', 'Tyrobp', 'Pycard', 'Cd209b', 'Trem2', 'Gsn', 'P2ry6', 'Myo1g')
 macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(phagocytosis_score), name = 'phagocytosis_score')
-FeaturePlot(macrophages_wt_infected, features = 'phagocytosis_score1', reduction = 'wt.infected.mac.umap')
+FeaturePlot(macrophages_wt_infected, features = 'phagocytosis_score1', reduction = 'wt.cerebrum.mac.umap')
 
 #Inflammatory response
 inflammatory_score <- c('Adam8', 'Aif1', 'Alox5', 'Alox5ap', 'Fabp4', 'Apoe', 'App', 'C1qa', 'Ciita', 'C3ar1', 'C5ar1', 'Cd14', 'Cd44', 'Cd68', 'Ccr2', 
@@ -177,23 +177,23 @@ inflammatory_score <- c('Adam8', 'Aif1', 'Alox5', 'Alox5ap', 'Fabp4', 'Apoe', 'A
 'Lrp1', 'Mif', 'Nfkb1', 'Slc11a1', 'Ptger4', 'Rel', 'Ccl6', 'Cxcl2', 'Thbs1', 'Tnfrsf1b', 'Tyrobp', 
 'Pik3cg', 'Cxcl13', 'Ccl24', 'Pf4', 'Pycard', 'Trem2', 'Cd163', 'Gpsm3', 'Tlr7', 'Stab1')
 macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(inflammatory_score), name = 'inflammatory_score')
-FeaturePlot(macrophages_wt_infected, features = 'inflammatory_score1', reduction = 'wt.infected.mac.umap')
+FeaturePlot(macrophages_wt_infected, features = 'inflammatory_score1', reduction = 'wt.cerebrum.mac.umap')
 
 #Oxidative stress
 oxidative_stress_score <- c('Prdx5', 'Txn1', 'Gsr', 'Ptgs2', 'Ccs', 'Prdx6', 'Gpx4', 'Sesn1', 'Sod3', 'Ltc4s')
 macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(oxidative_stress_score), name = 'oxidative_stress_score')
-FeaturePlot(macrophages_wt_infected, features = 'oxidative_stress_score1', reduction = 'wt.infected.mac.umap')
+FeaturePlot(macrophages_wt_infected, features = 'oxidative_stress_score1', reduction = 'wt.cerebrum.mac.umap')
 
 #ECM Organization
 ecm_score <- c('Col1a1', 'Nid1', 'Dpt', 'B4galt1', 'Lum', 'Col3a1', 'Ccdc80', 'Ramp2', 'Serpinh1', 'Ddr2')
 macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(ecm_score), name = 'ecm_score')
-FeaturePlot(macrophages_wt_infected, features = 'ecm_score1', reduction = 'wt.infected.mac.umap') +
+FeaturePlot(macrophages_wt_infected, features = 'ecm_score1', reduction = 'wt.cerebrum.mac.umap') +
   ggtitle('ECM Organization score')
 
 #Cytokine cytokine receptor interacitons
 cytokine_score <- c('Ccl6', 'Ccl24', 'Cxcl1', 'Cxcl2', 'Pf4', 'Cxcl13', 'Cxcl12', 'Cxcl16', 'Il6', 'Ccr2', 'Il2rg', 'Csf1r', 'Tnfrsf1b')
 macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(cytokine_score), name = 'cytokine_score')
-FeaturePlot(macrophages_wt_infected, features = 'cytokine_score1', reduction = 'wt.infected.mac.umap') 
+FeaturePlot(macrophages_wt_infected, features = 'cytokine_score1', reduction = 'wt.cerebrum.mac.umap') 
 
 #Migratory markers
 ccl_chemokines <- rownames(wt_cerebrum_macrophages[['RNA']]$data)[grepl('Ccl', rownames(wt_cerebrum_macrophages[['RNA']]$data))]
@@ -341,25 +341,25 @@ DotPlot(wt_cerebrum_macrophages, features = nonclassic_monocyte_markers_feb4, gr
   coord_flip()
 
 plotList_nonclassic_mono <- lapply(nonclassic_monocyte_markers_feb4, featurePlotLight, data = wt_cerebrum_macrophages, 
-                                reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+                                reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_nonclassic_mono, common.legend = TRUE, legend = 'right'))
 
 
 #From Li et al Fig 1 https://pmc.ncbi.nlm.nih.gov/articles/PMC6542613/
 #M1 markers
 li_type1_markers <- lapply(c('Nos2', 'Cd86', 'Tnf'), featurePlotLight, data = wt_cerebrum_macrophages, 
-                       reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+                       reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
 do.call(ggarrange, c(li_type1_markers, common.legend = TRUE, legend = 'right'))
 #M2 markers
 li_type2_markers <- lapply(c('Chil3', 'Arg1', 'Mgl2', 'Retnla'), featurePlotLight, data = wt_cerebrum_macrophages, 
-                           reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+                           reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
 do.call(ggarrange, c(li_type2_markers, common.legend = TRUE, legend = 'right'))
 
 
 #macropahge linaege markers
-FeaturePlot(wt_cerebrum_macrophages, features = c('Ptprc') , reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = c('Lyz2') , reduction = 'wt.infected.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = c('Adgre1') , reduction = 'wt.infected.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = c('Ptprc') , reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = c('Lyz2') , reduction = 'wt.cerebrum.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = c('Adgre1') , reduction = 'wt.cerebrum.mac.umap')
 
 #Other markers from paper
 FeaturePlot(wt_cerebrum_macrophages_day5, features = c('Siglec1') , reduction = 'day5_macs_wt')
@@ -419,24 +419,24 @@ DotPlot(wt_cerebrum_macrophages, features = M_ic_macs, group.by = 'Timepoint', s
 #Feature plot genes
 #Removing genes with no expression
 plotList_il4 <- lapply(M_il4_macs[!M_il4_macs %in% c('Retnla', 'Alox15', 'Ccl17')], featurePlotLight, data = wt_cerebrum_macrophages, 
-                   reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+                   reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_il4, common.legend = TRUE, legend = 'right'))
 
 plotList_lps <- lapply(M_lps_ifng_macs[!M_lps_ifng_macs %in% c('Nfkblz', 'Marco', 'Cxcl11')], featurePlotLight, data = wt_cerebrum_macrophages, 
-                       reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+                       reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_lps, common.legend = TRUE, legend = 'right'))
 
 plotList_mhc <- lapply(mhc_2_macs, featurePlotLight, data = wt_cerebrum_macrophages, 
-                       reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+                       reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_mhc, common.legend = TRUE, legend = 'right'))
 
 plotList_il10 <- lapply(M_il10_macs[!M_il10_macs %in% c('Marco')], featurePlotLight, data = wt_cerebrum_macrophages, 
-                       reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+                       reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_il10, common.legend = TRUE, legend = 'right'))
 
 
 plotList_ic <- lapply(M_ic_macs, featurePlotLight, data = wt_cerebrum_macrophages, 
-                        reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+                        reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_ic, common.legend = TRUE, legend = 'right'))
 
 #Look at functional differences between seurat clusters
@@ -448,5 +448,5 @@ macro_markers_up <- dplyr::filter(macro_markers, (avg_log2FC) > 1 & p_val_adj < 
 cluster0_paths <- gprofiler2::gost(query = macro_markers_up[macro_markers_up$cluster == 3,]$gene, organism = 'mmusculus', evcodes = TRUE)
 cluster0_paths$result[1,]
 
-FeaturePlot(wt_cerebrum_macrophages, features = c('Lyz2') , reduction = 'wt.infected.mac.umap')
+FeaturePlot(wt_cerebrum_macrophages, features = c('Lyz2') , reduction = 'wt.cerebrum.mac.umap')
 
