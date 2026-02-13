@@ -5,6 +5,7 @@ library(gridExtra)
 library(ggpubr)
 library(Seurat)
 library(gprofiler2)
+library(UCell)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -56,24 +57,117 @@ wt_cerebrum_macrophages <- prepUmapSeuratObj(wt_cerebrum_macrophages, nDims = 20
 
 DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = TRUE, group.by = 'seurat_clusters',
         label.size = 6)+
-  ggtitle('WT Infected Macrophages')
+  ggtitle('WT  Macrophages')
 
 DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = FALSE, group.by = 'Timepoint',
         label.size = 6)+
-  ggtitle('WT Infected Macrophages')
+  ggtitle('WT  Macrophages')
 
 DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = FALSE, group.by = 'Treatment',
         label.size = 6)+
-  ggtitle('WT Infected Macrophages')
+  ggtitle('WT Macrophages')
+
+#Only infected macs
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_umap.pdf", width = 6, height = 6)
+DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Timepoint',
+        label.size = 8)+
+  ggtitle('WT Cerebrum Macrophages')+
+  xlab('UMAP 1')+
+  ylab('UMAP 2')+
+  theme(legend.text=element_text(size=16),
+        plot.title = element_text(size = 22))+
+  guides(colour = guide_legend(override.aes = list(size=8)))
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_time_props.pdf", width = 2, height = 6)
+table(macrophages_wt_infected$Timepoint) %>% as.data.frame() %>% 
+  dplyr::mutate(cell_prop = (Freq/sum(Freq))*100) %>% 
+  ggplot(aes(x = 1, y = cell_prop, fill = Var1))+
+  geom_bar(position = 'stack', stat = 'identity')+
+  xlab('')+
+  ylab("Proportion of cells (%)")+
+  theme(axis.line = element_line(colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y = element_text(size = 20),
+        axis.text.y = element_text(size = 16)) +
+  guides(fill="none")
+dev.off()
 
 #Examine what separates day 5 from other timepoints
 day5_macro_markers <- FindMarkers(macrophages_wt_infected, group.by = 'Timepoint', ident.1 = 'Day 5',
                                   test.use = 'MAST')
 day5_up_markers <- dplyr::filter(day5_macro_markers, (avg_log2FC) > 1 & p_val_adj < 0.01)
 
+#Look at genes downregulated at day 5
+day5_down_markers <- dplyr::filter(day5_macro_markers, (avg_log2FC) < -1 & p_val_adj < 0.01)
+
 #Gene ontology 
-day5_paths <- gprofiler2::gost(query = rownames(day5_up_markers), organism = 'mmusculus', evcodes = TRUE)
+day5_paths <- gprofiler2::gost(query = rownames(day5_up_markers), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 day5_paths$result[8,]
+
+day_5_down_paths <- gprofiler2::gost(query = rownames(day5_down_markers), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+day_5_down_paths$result
+
+#Pathway barplots
+day_5_down_paths_head <- day_5_down_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source == 'GO:BP') %>% head(n = 10)
+day_5_down_paths_head$term_name = factor(day_5_down_paths_head$term_name, levels = rev(day_5_down_paths_head$term_name))
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/day5_downregulated_paths.pdf", width = 6, height = 4)
+ggplot(day_5_down_paths_head, aes(x = -log10(p_value), y = term_name, fill = -log10(p_value)))+
+  geom_bar(stat = 'identity', width = 0.5, color = 'black')+
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(size = 11),
+        plot.title = element_text(hjust = 2, size = 18))+
+  guides(fill="none")+
+  #geom_vline(xintercept = -log10(0.01), color = 'orange', linetype = 'dashed', linewidth = 1.1)+
+  ylab('')+
+  xlab('-log10 p-value')+
+  ggtitle('Day 5 downregulated paths')
+dev.off()
+
+day_5_up_paths_gobp_head <- day5_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source == 'GO:BP') %>%  head(n = 10)
+day_5_up_paths_gobp_head$term_name = factor(day_5_up_paths_gobp_head$term_name, levels = rev(day_5_up_paths_gobp_head$term_name))
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/day5_upregulated_paths.pdf", width = 6, height = 4)
+ggplot(day_5_up_paths_gobp_head, aes(x = -log10(p_value), y = term_name, fill = -log10(p_value)))+
+  geom_bar(stat = 'identity', width = 0.5, color = 'black')+
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(size = 11),
+        plot.title = element_text(hjust = 2, size = 18))+
+  guides(fill="none")+
+  #geom_vline(xintercept = -log10(0.01), color = 'orange', linetype = 'dashed')+
+  ylab('')+
+  xlab('-log10 p-value')+
+  ggtitle('Day 5 upregulated paths')
+dev.off()
+
+FeaturePlot(macrophages_wt_infected, features = 'Cd83', reduction = 'wt.infected.mac.umap')
+
+#Dotplot of timepoint markers
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_markers_dot.pdf", width = 9, height = 6)
+DotPlot(macrophages_wt_infected, features = c(head(rownames(day5_up_markers), n = 10), head(rownames(day5_down_markers), n = 10)), 
+        group.by = 'Timepoint', scale = FALSE)+
+  theme(axis.text.x = element_text(angle = 90, size = 16),
+        axis.text.y = element_text(size = 16))+
+  scale_size(range = c(0.01, 12)) +
+  scale_colour_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                         values = c(0, 0.3, 0.6, 1))+
+  ylab('Timepoint')+
+  xlab('Gene')
+dev.off()
 
 #Function for nicer featureplots
 featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim = 0, maxLim = 5){
@@ -449,4 +543,17 @@ cluster0_paths <- gprofiler2::gost(query = macro_markers_up[macro_markers_up$clu
 cluster0_paths$result[1,]
 
 FeaturePlot(wt_cerebrum_macrophages, features = c('Lyz2') , reduction = 'wt.cerebrum.mac.umap')
+
+#Macrophage scores
+macrophage_subset_markers <- list(M1_signature = c('Tnf', 'Il1b', 'Il6', 'Il12a', 'Il23a', 'Il27', 'Nos2', 'Ido1', 'Irf5', 'Nfkblz',
+                                                   'Socs1', 'Marco', 'Cd80', 'Cd86', 'Cd274', 'C1d', 'C1qa', 'C1qb', 'C1qbp', 'C1qc',
+                                                   'C1qtnf1', 'C3', 'C3ar1', 'C5ar1', 'Itgb2', 'Ccl2', 'Ccl3', 'Ccl4', 'Ccl5', 'Cxcl9',
+                                                   'Cxcl10', 'Cxcl11', 'Cxcl16', 'Ccr7'),
+                                  Il4_alt_signature = c('Arg1', 'Mrc1', 'Chil3', 'Tgm2', 'Il1rn', 'Msr1', 'Pdcd1lg2', 'Cd209a', 'Clec10a', 'Retnla', 'Alox15',
+                                                                     'Socs2', 'Irf4', 'Ppard', 'Pparg', 'Ccl17', 'Ccl24'),
+                                  Il10_M2c_signature = c('Il10', 'Il4ra', 'Tgfb1', 'Nfil3', 'Sbno2', 'Socs3', 'Fcgr1', 'Fcgr2b', 'Fcgr3', 'Marco',
+                                                         'Cxcl13'),
+                                  mhc2_sig = c('H2-Aa', 'H2-Ab1', 'H2-DMa', 'H2-DMb1', 'H2-DMb2', 'H2-Eb1'))
+macrophage_mat <- Matrix::Matrix(macrophages_wt_infected[['RNA']]$data, sparse = TRUE)
+macrophage_scores <- ScoreSignatures_UCell(macrophage_mat,features=macrophage_subset_markers)
 
