@@ -6,6 +6,7 @@ library(ggpubr)
 library(Seurat)
 library(gprofiler2)
 library(UCell)
+library(RColorBrewer)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
