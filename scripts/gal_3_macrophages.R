@@ -106,6 +106,21 @@ day5_up_markers <- dplyr::filter(day5_macro_markers, (avg_log2FC) > 1 & p_val_ad
 #Look at genes downregulated at day 5
 day5_down_markers <- dplyr::filter(day5_macro_markers, (avg_log2FC) < -1 & p_val_adj < 0.01)
 
+#Plot number of markers
+deg_counts <- data.frame(direction = c('upregulated', 'downregulated'), num_genes = c(nrow(day5_up_markers), nrow(day5_down_markers)))
+deg_counts$direction = factor(deg_counts$direction, levels = c('upregulated', 'downregulated'))
+ggplot(deg_counts, aes(x = direction, y = num_genes, fill = direction))+
+         geom_bar(stat = 'identity', width = 0.3)+
+  theme(legend.position = 'none',
+        axis.text = element_text(size = 15),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank())+
+  scale_fill_manual(values = c('blue', 'orange'))+
+  ylab('')+
+  xlab('')+
+  ggtitle('Number DEGs day 5')
+
 #Gene ontology 
 day5_paths <- gprofiler2::gost(query = rownames(day5_up_markers), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 day5_paths$result[8,]
@@ -554,6 +569,42 @@ macrophage_subset_markers <- list(M1_signature = c('Tnf', 'Il1b', 'Il6', 'Il12a'
                                   Il10_M2c_signature = c('Il10', 'Il4ra', 'Tgfb1', 'Nfil3', 'Sbno2', 'Socs3', 'Fcgr1', 'Fcgr2b', 'Fcgr3', 'Marco',
                                                          'Cxcl13'),
                                   mhc2_sig = c('H2-Aa', 'H2-Ab1', 'H2-DMa', 'H2-DMb1', 'H2-DMb2', 'H2-Eb1'))
-macrophage_mat <- Matrix::Matrix(macrophages_wt_infected[['RNA']]$data, sparse = TRUE)
-macrophage_scores <- ScoreSignatures_UCell(macrophage_mat,features=macrophage_subset_markers)
+
+#Set maxrank to median number of genes per their docs
+median_genes <- round(median(macrophages_wt_infected$nFeature_RNA))
+macrophages_wt_infected <- AddModuleScore_UCell(macrophages_wt_infected, features = macrophage_subset_markers, maxRank=median_genes)
+
+VlnPlot(macrophages_wt_infected, features = 'M1_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
+  theme(legend.position = 'none')+
+  ggtitle('Classical Activation Score')+
+  geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
+               fill = 'white')+
+  ylim(c(-0.01, 0.4))
+FeaturePlot(macrophages_wt_infected, features = 'M1_signature_UCell', reduction = 'wt.infected.mac.umap')
+
+VlnPlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
+  theme(legend.position = 'none')+
+  geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
+               fill = 'white')+
+  ylim(c(-0.01, 0.4))+
+  ggtitle('Alternate Activation Score')
+
+VlnPlot(macrophages_wt_infected, features = 'Il10_M2c_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
+  theme(legend.position = 'none')+
+  geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
+               fill = 'white')+
+  ylim(c(-0.01, 0.4))+
+  ggtitle('M2c Score')
+
+VlnPlot(macrophages_wt_infected, features = 'mhc2_sig_UCell', group.by = 'Timepoint', pt.size = 0)+
+  theme(legend.position = 'none')+
+  geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
+               fill = 'white')+
+  ylim(c(-0.01, 0.8))+
+  ggtitle('Mh2c Score')
+
+
+#Smoothed featureplot
+mac_m1_knn <- SmoothKNN(macrophages_wt_infected, signature.names = 'M1_signature_UCell', reduction = "pca")
+FeaturePlot(mac_m1_knn, features = 'M1_signature_UCell_kNN', reduction = 'wt.infected.mac.umap')
 
