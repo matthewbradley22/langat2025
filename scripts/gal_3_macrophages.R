@@ -560,7 +560,7 @@ cluster0_paths$result[1,]
 
 FeaturePlot(wt_cerebrum_macrophages, features = c('Lyz2') , reduction = 'wt.cerebrum.mac.umap')
 
-#Macrophage scores
+#Macrophage scores from https://link.springer.com/article/10.1186/s12974-016-0581-z
 macrophage_subset_markers <- list(M1_signature = c('Tnf', 'Il1b', 'Il6', 'Il12a', 'Il23a', 'Il27', 'Nos2', 'Ido1', 'Irf5', 'Nfkblz',
                                                    'Socs1', 'Marco', 'Cd80', 'Cd86', 'Cd274', 'C1d', 'C1qa', 'C1qb', 'C1qbp', 'C1qc',
                                                    'C1qtnf1', 'C3', 'C3ar1', 'C5ar1', 'Itgb2', 'Ccl2', 'Ccl3', 'Ccl4', 'Ccl5', 'Cxcl9',
@@ -581,7 +581,9 @@ VlnPlot(macrophages_wt_infected, features = 'M1_signature_UCell', group.by = 'Ti
   geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
                fill = 'white')+
   ylim(c(-0.01, 0.4))
+
 FeaturePlot(macrophages_wt_infected, features = 'M1_signature_UCell', reduction = 'wt.infected.mac.umap')
+FeaturePlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', reduction = 'wt.infected.mac.umap')
 
 VlnPlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
   theme(legend.position = 'none')+
@@ -604,6 +606,12 @@ VlnPlot(macrophages_wt_infected, features = 'mhc2_sig_UCell', group.by = 'Timepo
   ylim(c(-0.01, 0.8))+
   ggtitle('Mh2c Score')
 
+#How are classic and alternative activation related
+ggplot(macrophages_wt_infected[[]], aes (x = M1_signature_UCell, y = Il4_alt_signature_UCell))+
+  geom_point(alpha = 0.8, aes(color = Timepoint))+
+  geom_smooth(method = 'lm', se = FALSE, color = 'black')+
+  xlab('M1 Signature')+
+  ylab('M2 Signature')
 
 #Smoothed featureplot
 mac_m1_knn <- SmoothKNN(macrophages_wt_infected, signature.names = 'M1_signature_UCell', reduction = "pca")

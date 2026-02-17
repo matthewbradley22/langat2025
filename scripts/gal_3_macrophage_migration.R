@@ -244,41 +244,41 @@ dev.off()
 wt_endothelial <- subset(wt_cerebrum, Treatment == 'rLGTV' & manualAnnotation == 'Endothelial')
 wt_mac_mono <- subset(wt_cerebrum, Treatment == 'rLGTV' & manualAnnotation == 'Macrophage/Monocytes')
 
-DotPlot(wt_endothelial, features = c('Vcam1', 'Ccr1', 'Icam1', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
-                                     'Cdh5', 'Epha1', 'Ephb1', 'Sele', 'Selp'), group.by = 'Timepoint', scale = FALSE)+
+DotPlot(wt_endothelial, features = c('Vcam1', 'Icam1', 'Icam2', 'Sele', 'Selp', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
+                                     'Cdh5'), group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,2.5))+
-  ggtitle('Endothelial arrest and transmigration')
+  ggtitle('Endothelial trafficking genes')
 
-DotPlot(wt_mac_mono, features = c('Pecam1', 'Pvr', 'Cd99l2', 'Epha1', 'Ephb1', 'Itga4', 'Itgb1'), group.by = 'Timepoint', scale = FALSE)+
+DotPlot(wt_mac_mono, features = c('Pecam1', 'Pvr', 'Cd99l2', 'Epha1', 'Ephb1', 'Itga4', 'Itgb1', 'Ccr1', 'Ccr2', 'Ccr5'), group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,2.5))+
-  ggtitle('Monocyte transmigration')
+  ggtitle('Monocyte trafficking')
 
 #Same plots but pbs samples
 wt_endothelial_pbs <- subset(wt_cerebrum, Treatment == 'PBS' & manualAnnotation == 'Endothelial')
 wt_mac_mono_pbs <- subset(wt_cerebrum, Treatment == 'PBS' & manualAnnotation == 'Macrophage/Monocytes')
 
-DotPlot(wt_endothelial_pbs, features = c('Vcam1', 'Ccr1', 'Icam1', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
-                                     'Cdh5', 'Epha1', 'Ephb1', 'Sele', 'Selp'), group.by = 'Timepoint', scale = FALSE)+
+DotPlot(wt_endothelial_pbs, features = c('Vcam1', 'Icam1', 'Icam2', 'Sele', 'Selp', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
+                                     'Cdh5'), group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,2.5))+
-  ggtitle('PBS Endothelial arrest and transmigration')
+  ggtitle('PBS Endothelial trafficking')
 
 
-DotPlot(wt_mac_mono_pbs, features = c('Pecam1', 'Pvr', 'Cd99l2', 'Epha1', 'Ephb1', 'Itga4', 'Itgb1'), group.by = 'Timepoint', scale = FALSE)+
+DotPlot(wt_mac_mono_pbs, features = c('Pecam1', 'Pvr', 'Cd99l2', 'Epha1', 'Ephb1', 'Itga4', 'Itgb1', 'Ccr1', 'Ccr2', 'Ccr5'), group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,2.5))+
-  ggtitle('PBS Macrophage arrest and transmigration')
+  ggtitle('PBS Monocyte trafficking')
