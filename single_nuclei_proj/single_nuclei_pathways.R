@@ -297,6 +297,54 @@ DotPlot(sn_integrated_dat_wt, features = c('Ccl2',  'Ccl3', 'Ccl5', 'Ccl7', 'Ccl
   xlab('')
 dev.off()
 
+#LRP8 across groups
+table(sn_integrated_dat$new_genotype)
+wt_sn <- subset(sn_integrated_dat, new_genotype %in% c('wt', 'wt (same)'))
+ko_sn <- subset(sn_integrated_dat, new_genotype %in% c('KO', 'KO (same)'))
+uninfected <- subset(sn_integrated_dat, new_inf %in% c('mock', 'none'))
+uninfected_wt <- subset(uninfected, new_genotype %in% c('wt', 'wt (same)'))
+
+wt_sn_lrp8_dat <- DotPlot(wt_sn, features = 'Lrp8', group.by = 'treatment_celltype')$data
+split_cols <- stringr::str_split_fixed(wt_sn_lrp8_dat$id, " ", 2)
+colnames(split_cols) <- c('infection', 'celltype')
+wt_sn_lrp8_dat <- cbind(wt_sn_lrp8_dat, split_cols)
+
+pdf("~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/lrp8_expression.pdf", height = 6, width = 8)
+ggplot(wt_sn_lrp8_dat, aes(x = infection, y = celltype, color = avg.exp.scaled, size = pct.exp))+
+  geom_point()+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
+                       values = c(1.0,0.7,0.4,0.35,-0.1),
+                       limits = c(-1.2, 2.4), name = 'Average scaled expression')+
+  scale_size_continuous(name = 'Percent expression')+
+  theme_classic()+
+  scale_x_discrete(labels=c("FALSE" = "Uninfected", "TRUE" = "Infected"))+
+  theme(axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
+        legend.title=element_text(size=14),
+        plot.title = element_text(size = 20))+
+  xlab('')+
+  ylab('')+
+  ggtitle('Lrp8')
+dev.off()
 
 
+#Do again but just uninfected wt
+sn_uninfected_wt_lrp8_dat <- DotPlot(uninfected_wt, features = 'Lrp8', group.by = 'manualAnnotation')$data
+
+pdf("~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/lrp8_expression_uninfected_wt.pdf", height = 6, width = 8)
+ggplot(sn_uninfected_wt_lrp8_dat, aes(x = features.plot, y = id, color = avg.exp.scaled, size = pct.exp))+
+  geom_point()+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white","lightblue"),
+                        values = c(1.0,0.7,0.55,0.45,-0),
+                        limits = c(-1.4, 1.7), name = 'Average scaled expression')+
+  scale_size_continuous(name = 'Percent expression')+
+  theme_classic()+
+  theme(axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
+        legend.title=element_text(size=14),
+        plot.title = element_text(size = 20))+
+  xlab('')+
+  ylab('')+
+  ggtitle('Lrp8 uninfected WT cells')
+dev.off()
 
