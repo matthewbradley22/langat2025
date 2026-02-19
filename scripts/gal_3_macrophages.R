@@ -78,6 +78,7 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FAL
   theme(legend.text=element_text(size=16),
         plot.title = element_text(size = 22))+
   guides(colour = guide_legend(override.aes = list(size=8)))
+  #scale_colour_manual(values = c("#F7BA05", "#CF009C", "#0091CF"))
 dev.off()
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_time_props.pdf", width = 2, height = 6)
@@ -109,18 +110,22 @@ day5_down_markers <- dplyr::filter(day5_macro_markers, (avg_log2FC) < -1 & p_val
 
 #Plot number of markers
 deg_counts <- data.frame(direction = c('upregulated', 'downregulated'), num_genes = c(nrow(day5_up_markers), nrow(day5_down_markers)))
-deg_counts$direction = factor(deg_counts$direction, levels = c('upregulated', 'downregulated'))
+deg_counts$direction = factor(deg_counts$direction, levels = c('downregulated', 'upregulated'))
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_day_deg_count.pdf", width = 4, height = 5)
 ggplot(deg_counts, aes(x = direction, y = num_genes, fill = direction))+
-         geom_bar(stat = 'identity', width = 0.3)+
+         geom_bar(stat = 'identity', width = 0.3, color = 'black')+
   theme(legend.position = 'none',
         axis.text = element_text(size = 15),
-        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        axis.text.x = element_text(angle = 0, vjust = 0.5),
         axis.line = element_line(colour = "black"),
         panel.background = element_blank())+
   scale_fill_manual(values = c('blue', 'orange'))+
   ylab('')+
   xlab('')+
-  ggtitle('Number DEGs day 5')
+  ggtitle('DEG Count')+
+  scale_x_discrete(labels= c('Day 3/4 up', 'Day 5 up'))
+dev.off()
 
 #Gene ontology 
 day5_paths <- gprofiler2::gost(query = rownames(day5_up_markers), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
@@ -173,16 +178,24 @@ dev.off()
 FeaturePlot(macrophages_wt_infected, features = 'Cd83', reduction = 'wt.infected.mac.umap')
 
 #Dotplot of timepoint markers
-pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_markers_dot.pdf", width = 9, height = 6)
-DotPlot(macrophages_wt_infected, features = c(head(rownames(day5_up_markers), n = 10), head(rownames(day5_down_markers), n = 10)), 
-        group.by = 'Timepoint', scale = FALSE)+
+deg_dotplot_dat <- DotPlot(macrophages_wt_infected, features = c(head(rownames(day5_up_markers), n = 10), head(rownames(day5_down_markers), n = 10)), 
+                           group.by = 'Timepoint', scale = FALSE)$data
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_markers_dot.pdf", width = 10, height = 6)
+#Just realized that if scale = FALSE, still plots log valeus (the avg.exp.scaled is now just a log(value + 1) scaled column)
+#I'll stick with this for now given it seems to be standard
+ggplot(deg_dotplot_dat, aes(x = features.plot, y = id))+
+  geom_point(aes(fill = avg.exp.scaled, size = pct.exp), pch=21)+
   theme(axis.text.x = element_text(angle = 90, size = 16),
-        axis.text.y = element_text(size = 16))+
-  scale_size(range = c(0.01, 12)) +
-  scale_colour_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
-                         values = c(0, 0.3, 0.6, 1))+
-  ylab('Timepoint')+
-  xlab('Gene')
+        axis.text.y = element_text(size = 16),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"))+
+  scale_size(range = c(0.01, 12), name = 'Percent expressed') +
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                         values = c(0, 0.3, 0.6, 1),
+                       name = 'Average Expression')+
+  ylab('')+
+  xlab('')
 dev.off()
 
 #Function for nicer featureplots
@@ -526,6 +539,11 @@ DotPlot(wt_cerebrum_macrophages, features = M_ic_macs, group.by = 'Timepoint', s
   ggtitle('Ic mac markers')+
   coord_flip()
 
+DotPlot(wt_cerebrum_macrophages, features = mhc_2_macs, group.by = 'Timepoint', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
+  ggtitle('mhc-2 mac markers')+
+  coord_flip()
+
 #Feature plot genes
 #Removing genes with no expression
 plotList_il4 <- lapply(M_il4_macs[!M_il4_macs %in% c('Retnla', 'Alox15', 'Ccl17')], featurePlotLight, data = wt_cerebrum_macrophages, 
@@ -612,6 +630,10 @@ ggplot(macrophages_wt_infected[[]], aes (x = M1_signature_UCell, y = Il4_alt_sig
   geom_smooth(method = 'lm', se = FALSE, color = 'black')+
   xlab('M1 Signature')+
   ylab('M2 Signature')
+
+#Which genes are exprssed from each group
+DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$M1_signature, group.by = 'Timepoint', scale = FALSE)+
+  coord_flip()
 
 #Smoothed featureplot
 mac_m1_knn <- SmoothKNN(macrophages_wt_infected, signature.names = 'M1_signature_UCell', reduction = "pca")
