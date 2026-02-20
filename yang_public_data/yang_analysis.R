@@ -19,3 +19,7 @@ table(yang_data$manualAnnotation, yang_data$treatment)
 
 #Look at genes of interest
 FeaturePlot(yang_data, features = 'Nos2', reduction = 'umap.rpca')
+
+FeaturePlot(yang_data, features = 'H2-Aa', reduction = 'umap.rpca')
+
+DotPlot(yang_data, features = c('H2-Aa', 'H2-Ab1', 'H2-DMa'), group.by = 'treatment', scale = FALSE)

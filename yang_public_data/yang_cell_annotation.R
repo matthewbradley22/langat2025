@@ -59,7 +59,7 @@ FeaturePlot(yang_data, 'Mog', reduction = 'umap.rpca')
 FeaturePlot(yang_data, 'Plp1', reduction = 'umap.rpca')
 FeaturePlot(yang_data, 'Gjc3',reduction = 'umap.rpca') #Also high in OPCs
 FeaturePlot(yang_data, 'Mbp', reduction = 'umap.rpca')
-
+FeaturePlot(yang_data, 'Olig1', reduction = 'umap.rpca')
 
 #OPC
 FeaturePlot(yang_data, 'Pdgfra', reduction = 'umap.rpca')
