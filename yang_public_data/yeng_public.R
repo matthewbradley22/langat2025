@@ -56,11 +56,11 @@ options(future.globals.maxSize = 500 * 1024^2)
 #Prepare integrated data to plot
 ElbowPlot(yang_data, ndims = 40)
 yang_data <- FindNeighbors(yang_data, reduction = "integrated.rpca", dims = 1:30)
-yang_data <- FindClusters(yang_data, resolution = 2, cluster.name = "rpca_clusters")
+yang_data <- FindClusters(yang_data, resolution = 1, cluster.name = "rpca_clusters")
 yang_data <- RunUMAP(yang_data, reduction = "integrated.rpca", dims = 1:30, reduction.name = "umap.rpca")
 
 #Plot cells
-DimPlot(yang_data,reduction = "umap.rpca")
+DimPlot(yang_data,reduction = "umap.rpca", label = TRUE)
 SaveSeuratRds(yang_data, file = "~/Documents/ÖverbyLab/yang_public_data/yang_rpca_integrated_obj.RDS")
 
 
