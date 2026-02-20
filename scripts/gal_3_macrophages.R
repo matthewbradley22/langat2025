@@ -78,8 +78,8 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FAL
   theme(legend.text=element_text(size=16),
         plot.title = element_text(size = 22))+
   guides(colour = guide_legend(override.aes = list(size=8)))+
-  scale_colour_manual(values = c("lightcyan", "cyan3", "darkcyan"))
-  #scale_colour_manual(values = c("gold1", "palevioletred3", "cyan3"))
+  #scale_colour_manual(values = c("lightcyan", "cyan3", "darkcyan"))
+  scale_colour_manual(values = c("gold1", "palevioletred3", "cyan3"))
 dev.off()
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_time_props.pdf", width = 2, height = 6)
@@ -651,20 +651,25 @@ dev.off()
 FeaturePlot(macrophages_wt_infected, features = 'M1_signature_UCell', reduction = 'wt.infected.mac.umap')
 FeaturePlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', reduction = 'wt.infected.mac.umap')
 
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M2_mac_score.pdf", width = 7, height = 6)
 VlnPlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
   theme(legend.position = 'none')+
   geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
                fill = 'white')+
   ylim(c(-0.01, 0.4))+
   ggtitle('Alternate Activation Score')
+dev.off()
 
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M2C_mac_score.pdf", width = 7, height = 6)
 VlnPlot(macrophages_wt_infected, features = 'Il10_M2c_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
   theme(legend.position = 'none')+
   geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
                fill = 'white')+
   ylim(c(-0.01, 0.4))+
   ggtitle('M2c Score')
+dev.off()
 
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/Mhc2_mac_score.pdf", width = 7, height = 6)
 VlnPlot(macrophages_wt_infected, features = 'mhc2_sig_UCell', group.by = 'Timepoint', pt.size = 0)+
   theme(legend.position = 'none')+
   geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
@@ -683,7 +688,8 @@ ggplot(macrophages_wt_infected[[]], aes (x = M1_signature_UCell, y = Il4_alt_sig
   xlab('M1 Signature')+
   ylab('M2 Signature')+
   xlim(c(0,0.38))+
-  ylim(c(0,0.38))
+  ylim(c(0,0.38))+
+  scale_colour_manual(values = c("gold1", "palevioletred3", "cyan3"))
 dev.off()
 #Which genes are exprssed from each group
 DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$M1_signature, group.by = 'Timepoint', scale = FALSE)+
