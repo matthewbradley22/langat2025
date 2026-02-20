@@ -8,10 +8,13 @@ library(pheatmap)
 library(RColorBrewer)
 library(dplyr)
 
-source('./scripts/langatFunctions.R')
-#Load in data
-#ParseSeuratObj_int <- LoadSeuratRds('./ccaIntegratedDat.rds')
-ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
+source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
+#Load in data and plot to check
+ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds")
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
+newCols[11] =  '#FF8AEF'
+DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
+        cols = newCols)
 
 #Load parse well label map
 wellMap <- data.frame(well = c(paste0('A', seq(1,12)), paste0('B', seq(1,12)),
@@ -387,17 +390,24 @@ ParseSeuratObj_int$manualAnnotation = factor(ParseSeuratObj_int$manualAnnotation
                                                                                              'Muscle cells', 'B Cells', 'T cells', 
                                                                                              'Granulocytes', 'Nk cells', 'unknown')))
 
+#Change order of cells to be plotted
+ParseSeuratObj_int$manualAnnotation <- factor(ParseSeuratObj_int$manualAnnotation, 
+                                              levels = c( 'unknown',  'Oligodendrocytes',   'Neurons', 'Microglia', 
+                                                          'Immature Neurons', 'Ependymal',  'Endothelial', 'Choroid Plexus','Astrocytes',
+                                                         'Pericytes', 'T cells', 'Granulocytes', 'Nk cells','Muscle cells', 
+                                                         'Macrophage/Monocytes', 'B Cells'))
+
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cell_type_dotplot.pdf', height = 6, width = 12)
-DotPlot(ParseSeuratObj_int, features = c('Snap25', 'Syt1', 'Celf4','Sox11', 'Csf1r', 'Cx3cr1', 'Tmem119',
-                                         'Klra2', 'Ccr2', 'Lyz2',  'Aqp4', 'Fgfr3','Gfap', 
-                                          'Mag', 'Mog', 'Vwf', 'Flt1', 'Pecam1', 'Nnat', 'Cfap54' ,'Mia', 'Ttr','Kl',
-                                          'Vtn', 'Abcc9', 'Acta2', 'Tagln','Cd19', 'Ms4a1',
-                                         'Cd3e', 'Cd3d', 'S100a9', 'Il1r2', 'Clnk', 'Nkg7', 'Ptprc'
-                                         ), 
+DotPlot(subset(ParseSeuratObj_int, manualAnnotation != 'unknown'), features = c('Cd19', 'Ms4a1', 'Klra2', 'Ccr2', 'Lyz2', 'Acta2', 'Tagln', 'Clnk','Nkg7','S100a9', 'Il1r2',
+                                         'Cd3e', 'Cd3d','Abcc9', 'Vtn', 'Aqp4', 'Fgfr3','Gfap', 'Ttr','Kl', 'Flt1', 'Pecam1','Vwf', 'Cfap54' ,'Nnat', 'Mia',
+                                         'Sox11', 'Csf1r', 'Cx3cr1', 
+                                         'Tmem119', 'Snap25', 'Syt1',  'Celf4', 'Mag', 'Mog'), 
         group.by = 'manualAnnotation', assay = 'RNA')+
   theme(axis.text.x = element_text(angle = 75, vjust = 0.5),
         axis.text = element_text(size = 16))+
-  scale_color_gradient2(low = '#3DB9FF', mid = 'lightgray', high = 'darkred', midpoint = 0)+
+  scale_color_gradientn(colours = c('lightblue','white', '#FFD991', '#FF4024'), 
+                       values = c(0, 0.35, 0.5, 1),
+                       name = 'Average Expression')+
   scale_size_continuous(range = c(0,7))+
   theme(legend.position = "bottom",
         legend.justification = "center",

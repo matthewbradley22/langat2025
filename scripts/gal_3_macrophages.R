@@ -7,6 +7,7 @@ library(Seurat)
 library(gprofiler2)
 library(UCell)
 library(RColorBrewer)
+library(rstatix)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -648,6 +649,10 @@ VlnPlot(macrophages_wt_infected, features = 'M1_signature_UCell', group.by = 'Ti
   xlab('')
 dev.off()
 
+#Statistically compare
+kruskal.test(M1_signature_UCell ~ Timepoint, data = macrophages_wt_infected[[]])
+dunn_test(macrophages_wt_infected[[]], M1_signature_UCell ~ Timepoint, p.adjust.method = "holm", detailed = FALSE)
+
 FeaturePlot(macrophages_wt_infected, features = 'M1_signature_UCell', reduction = 'wt.infected.mac.umap')
 FeaturePlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', reduction = 'wt.infected.mac.umap')
 
@@ -660,6 +665,11 @@ VlnPlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', group.by 
   ggtitle('Alternate Activation Score')
 dev.off()
 
+#Statistically compare
+kruskal.test(Il4_alt_signature_UCell ~ Timepoint, data = macrophages_wt_infected[[]])
+dunn_test(macrophages_wt_infected[[]], Il4_alt_signature_UCell ~ Timepoint, p.adjust.method = "holm", detailed = FALSE)
+
+
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M2C_mac_score.pdf", width = 7, height = 6)
 VlnPlot(macrophages_wt_infected, features = 'Il10_M2c_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
   theme(legend.position = 'none')+
@@ -668,6 +678,10 @@ VlnPlot(macrophages_wt_infected, features = 'Il10_M2c_signature_UCell', group.by
   ylim(c(-0.01, 0.4))+
   ggtitle('M2c Score')
 dev.off()
+
+#Statistically compare
+kruskal.test(Il10_M2c_signature_UCell ~ Timepoint, data = macrophages_wt_infected[[]])
+dunn_test(macrophages_wt_infected[[]], Il10_M2c_signature_UCell ~ Timepoint, p.adjust.method = "holm", detailed = FALSE)
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/Mhc2_mac_score.pdf", width = 7, height = 6)
 VlnPlot(macrophages_wt_infected, features = 'mhc2_sig_UCell', group.by = 'Timepoint', pt.size = 0)+
@@ -684,13 +698,14 @@ DotPlot(macrophages_wt_infected, features = c('Il10', 'Il6', 'Nos2', 'Ccl1', 'Cc
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M1_vs_M2_scores.pdf", width = 7, height = 6)
 ggplot(macrophages_wt_infected[[]], aes (x = M1_signature_UCell, y = Il4_alt_signature_UCell))+
   geom_point(alpha = 0.8, aes(color = Timepoint))+
-  #geom_smooth(se = FALSE, color = 'black')+
+  geom_smooth(method = 'lm', se = FALSE, color = 'black')+
   xlab('M1 Signature')+
   ylab('M2 Signature')+
   xlim(c(0,0.38))+
   ylim(c(0,0.38))+
   scale_colour_manual(values = c("gold1", "palevioletred3", "cyan3"))
 dev.off()
+
 #Which genes are exprssed from each group
 DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$M1_signature, group.by = 'Timepoint', scale = FALSE)+
   coord_flip()
