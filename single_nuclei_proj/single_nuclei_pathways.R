@@ -32,14 +32,13 @@ newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272
 DimPlot(sn_integrated_dat, group.by =   'manualAnnotation', cols = newCols, reduction = 'umap.integrated')
 
 #Look at infection and see if labels make sense. Why not more infection in ifnar knockout?
-FeaturePlot(sn_integrated_dat, features = 'LGTV', reduction = 'umap.integrated', split.by = 'new_inf')
-FeaturePlot(sn_integrated_dat, features = 'rna_LGTV', reduction = 'umap.integrated',  split.by = 'new_genotype')
+VlnPlot(sn_integrated_dat, features = 'rna_LGTV',group.by = 'new_inf')
+
 table(sn_integrated_dat$new_genotype, sn_integrated_dat$new_inf)
 DotPlot(sn_integrated_dat, features = 'rna_LGTV', group.by = 'treatment_celltype')
 DotPlot(sn_integrated_dat, features = 'rna_LGTV', group.by = 'genotype_celltype')
-DotPlot(sn_integrated_dat, features = 'Rsad2', group.by = 'genotype_celltype')
-DotPlot(sn_integrated_dat, features = 'Ifng', group.by = 'genotype_celltype')
-
+DotPlot(sn_integrated_dat, features = c('Rsad2', 'Mavs', 'Ifit1'), group.by = 'genotype_celltype')
+DotPlot(sn_integrated_dat, features = c('Rsad2', 'Mavs', 'Ifit1'), group.by = 'treatment')
 #subset to wt
 sn_integrated_dat_wt <- subset(sn_integrated_dat, new_genotype %in% c('wt', 'wt (same)'))
 
@@ -284,8 +283,33 @@ FeaturePlot(sn_integrated_dat_wt, features = cxcl_chemokines, reduction = 'wt.um
 FeaturePlot(sn_integrated_dat_wt, features = 'Cxcl10', reduction = 'wt.umap.integrated')
 
 
-DotPlot(sn_integrated_dat_wt, features = ccl_chemokines, group.by = 'treatment_celltype', scale = TRUE)+
-  theme(axis.text.x = element_text(angle = 90))
+ccl_chemo_dot_dat <- DotPlot(sn_integrated_dat_wt, features = c('Ccl2', 'Ccl5', 'Ccl7'), group.by = 'treatment_celltype', scale = FALSE)$data
+ccl_meta <- str_split_fixed(ccl_chemo_dot_dat$id, pattern = ' ', n = 2)
+colnames(ccl_meta) <- c('infection', 'celltype')
+ccl_chemo_dot_dat <- cbind(ccl_chemo_dot_dat, ccl_meta)
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/chemokine_expression.pdf', height = 6, width = 7)
+ggplot(ccl_chemo_dot_dat, aes(x = features.plot, y = celltype))+
+  geom_point(aes(fill = avg.exp.scaled, size = pct.exp), pch = 21)+
+  facet_grid(cols = vars(infection), scales = "free",
+             labeller = as_labeller(c("FALSE" = "Uninfected", "TRUE" = "LGTV")))+
+  #coord_flip()+
+  scale_size_continuous(range = c(0,9), limits = c(0,100))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,3.3))+
+  ggtitle('Single-nuclei chemokines genes')+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        #panel.border = element_rect(colour = "white", fill = NA),
+        panel.spacing = unit(0, "line"),
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 90))+
+  ylab('')+
+  xlab('')
+dev.off()
+
+
 DotPlot(sn_integrated_dat_wt, features = cxcl_chemokines, group.by = 'treatment_celltype', scale = TRUE)+
   theme(axis.text.x = element_text(angle = 90))
 
