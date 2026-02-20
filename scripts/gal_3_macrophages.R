@@ -69,7 +69,7 @@ DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = FAL
   ggtitle('WT Macrophages')
 
 #Only infected macs
-pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_umap.pdf", width = 6, height = 6)
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_umap_blue.pdf", width = 6, height = 6)
 DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Timepoint',
         label.size = 8)+
   ggtitle('WT Cerebrum Macrophages')+
@@ -77,8 +77,9 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FAL
   ylab('UMAP 2')+
   theme(legend.text=element_text(size=16),
         plot.title = element_text(size = 22))+
-  guides(colour = guide_legend(override.aes = list(size=8)))
-  #scale_colour_manual(values = c("#F7BA05", "#CF009C", "#0091CF"))
+  guides(colour = guide_legend(override.aes = list(size=8)))+
+  scale_colour_manual(values = c("lightcyan", "cyan3", "darkcyan"))
+  #scale_colour_manual(values = c("gold1", "palevioletred3", "cyan3"))
 dev.off()
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_time_props.pdf", width = 2, height = 6)
@@ -147,12 +148,12 @@ ggplot(day_5_down_paths_head, aes(x = -log10(p_value), y = term_name, fill = -lo
         panel.border = element_blank(),
         panel.background = element_blank(),
         axis.text.y = element_text(size = 11),
-        plot.title = element_text(hjust = 2, size = 18))+
+        plot.title = element_text(hjust = 0, size = 18))+
   guides(fill="none")+
   #geom_vline(xintercept = -log10(0.01), color = 'orange', linetype = 'dashed', linewidth = 1.1)+
   ylab('')+
   xlab('-log10 p-value')+
-  ggtitle('Day 5 downregulated paths')
+  ggtitle('Day 3/4 paths')
 dev.off()
 
 day_5_up_paths_gobp_head <- day5_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source == 'GO:BP') %>%  head(n = 10)
@@ -167,12 +168,12 @@ ggplot(day_5_up_paths_gobp_head, aes(x = -log10(p_value), y = term_name, fill = 
         panel.border = element_blank(),
         panel.background = element_blank(),
         axis.text.y = element_text(size = 11),
-        plot.title = element_text(hjust = 2, size = 18))+
+        plot.title = element_text(hjust = 0, size = 18))+
   guides(fill="none")+
   #geom_vline(xintercept = -log10(0.01), color = 'orange', linetype = 'dashed')+
   ylab('')+
   xlab('-log10 p-value')+
-  ggtitle('Day 5 upregulated paths')
+  ggtitle('Day 5 paths')
 dev.off()
 
 FeaturePlot(macrophages_wt_infected, features = 'Cd83', reduction = 'wt.infected.mac.umap')
@@ -592,13 +593,17 @@ macrophage_subset_markers <- list(M1_signature = c('Tnf', 'Il1b', 'Il6', 'Il12a'
 #Set maxrank to median number of genes per their docs
 median_genes <- round(median(macrophages_wt_infected$nFeature_RNA))
 macrophages_wt_infected <- AddModuleScore_UCell(macrophages_wt_infected, features = macrophage_subset_markers, maxRank=median_genes)
+macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(macrophage_subset_markers$M1_signature), name = 'm1_seurat_test')
 
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M1_mac_score.pdf", width = 7, height = 6)
 VlnPlot(macrophages_wt_infected, features = 'M1_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
   theme(legend.position = 'none')+
   ggtitle('Classical Activation Score')+
   geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
                fill = 'white')+
-  ylim(c(-0.01, 0.4))
+  ylim(c(-0.01, 0.4))+
+  xlab('')
+dev.off()
 
 FeaturePlot(macrophages_wt_infected, features = 'M1_signature_UCell', reduction = 'wt.infected.mac.umap')
 FeaturePlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', reduction = 'wt.infected.mac.umap')
@@ -624,13 +629,19 @@ VlnPlot(macrophages_wt_infected, features = 'mhc2_sig_UCell', group.by = 'Timepo
   ylim(c(-0.01, 0.8))+
   ggtitle('Mh2c Score')
 
+#check m(ic) sig from paper
+DotPlot(macrophages_wt_infected, features = c('Il10', 'Il6', 'Nos2', 'Ccl1', 'Ccl20', 'Cxcl3', 'Cxcl13'), group.by = 'Timepoint')
+
 #How are classic and alternative activation related
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M1_vs_M2_scores.pdf", width = 7, height = 6)
 ggplot(macrophages_wt_infected[[]], aes (x = M1_signature_UCell, y = Il4_alt_signature_UCell))+
   geom_point(alpha = 0.8, aes(color = Timepoint))+
-  geom_smooth(method = 'lm', se = FALSE, color = 'black')+
+  #geom_smooth(se = FALSE, color = 'black')+
   xlab('M1 Signature')+
-  ylab('M2 Signature')
-
+  ylab('M2 Signature')+
+  xlim(c(0,0.38))+
+  ylim(c(0,0.38))
+dev.off()
 #Which genes are exprssed from each group
 DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$M1_signature, group.by = 'Timepoint', scale = FALSE)+
   coord_flip()

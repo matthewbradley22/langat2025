@@ -241,17 +241,35 @@ DotPlot(wt_cerebrum_day5_all_dot_dat, features = c('Ccl1', 'Ccl2', 'Ccl3', 'Ccl4
 dev.off()
 
 #Split by celltype instead
-wt_endothelial <- subset(wt_cerebrum, Treatment == 'rLGTV' & manualAnnotation == 'Endothelial')
+wt_cerebrum$treatment_time <- paste(wt_cerebrum$Treatment, wt_cerebrum$Timepoint)
+wt_endothelial <- subset(wt_cerebrum, manualAnnotation == 'Endothelial')
 wt_mac_mono <- subset(wt_cerebrum, Treatment == 'rLGTV' & manualAnnotation == 'Macrophage/Monocytes')
 
-DotPlot(wt_endothelial, features = c('Vcam1', 'Icam1', 'Icam2', 'Sele', 'Selp', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
-                                     'Cdh5'), group.by = 'Timepoint', scale = FALSE)+
-  coord_flip()+
+endo_trafficking_dot_dat <- DotPlot(wt_endothelial, features = c('Vcam1', 'Icam1', 'Icam2', 'Sele', 'Selp', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
+                                     'Cdh5'), group.by = 'treatment_time', scale = FALSE)$data
+meta_columns <- str_split_fixed(endo_trafficking_dot_dat$id, " ", 2)
+colnames(meta_columns) <- c('treatment', 'time')
+endo_trafficking_dot_dat <- cbind(endo_trafficking_dot_dat, meta_columns)
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/endothelial_trafficking_dot.pdf', width = 8, height = 6)
+ggplot(endo_trafficking_dot_dat, aes(x = time, y = features.plot))+
+  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
+  facet_grid(cols = vars(treatment), scales = "free")+
+  #coord_flip()+
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
-  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,2.5))+
-  ggtitle('Endothelial trafficking genes')
+  ggtitle('Endothelial trafficking genes')+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        #panel.border = element_rect(colour = "white", fill = NA),
+        panel.spacing = unit(0, "line"),
+        strip.background = element_blank())+
+  scale_size(range = c(0,9), limits = c(0, 100))+
+  ylab('')+
+  xlab('')
+dev.off()
 
 DotPlot(wt_mac_mono, features = c('Pecam1', 'Pvr', 'Cd99l2', 'Epha1', 'Ephb1', 'Itga4', 'Itgb1', 'Ccr1', 'Ccr2', 'Ccr5'), group.by = 'Timepoint', scale = FALSE)+
   coord_flip()+
