@@ -282,14 +282,16 @@ FeaturePlot(sn_integrated_dat_wt, features = ccl_chemokines, reduction = 'wt.uma
 FeaturePlot(sn_integrated_dat_wt, features = cxcl_chemokines, reduction = 'wt.umap.integrated')
 FeaturePlot(sn_integrated_dat_wt, features = 'Cxcl10', reduction = 'wt.umap.integrated')
 
+genes_of_interest <- c('Ccl2', 'Ccl5', 'Ccl7')
+#c('H2-Aa', 'H2-Ab1', 'H2-DMa', 'H2-DMb1', 'H2-DMb2', 'H2-Eb1')
 
-ccl_chemo_dot_dat <- DotPlot(sn_integrated_dat_wt, features = c('Ccl2', 'Ccl5', 'Ccl7'), group.by = 'treatment_celltype', scale = FALSE)$data
-ccl_meta <- str_split_fixed(ccl_chemo_dot_dat$id, pattern = ' ', n = 2)
-colnames(ccl_meta) <- c('infection', 'celltype')
-ccl_chemo_dot_dat <- cbind(ccl_chemo_dot_dat, ccl_meta)
+goi_dot_dat <- DotPlot(sn_integrated_dat_wt, features = genes_of_interest, group.by = 'treatment_celltype', scale = FALSE)$data
+goi_meta <- str_split_fixed(goi_dot_dat$id, pattern = ' ', n = 2)
+colnames(goi_meta) <- c('infection', 'celltype')
+goi_dot_dat <- cbind(goi_dot_dat, goi_meta)
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/chemokine_expression.pdf', height = 6, width = 7)
-ggplot(ccl_chemo_dot_dat, aes(x = features.plot, y = celltype))+
+ggplot(goi_dot_dat, aes(x = features.plot, y = celltype))+
   geom_point(aes(fill = avg.exp.scaled, size = pct.exp), pch = 21)+
   facet_grid(cols = vars(infection), scales = "free",
              labeller = as_labeller(c("FALSE" = "Uninfected", "TRUE" = "LGTV")))+

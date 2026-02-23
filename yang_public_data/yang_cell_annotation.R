@@ -98,16 +98,23 @@ yang_data[[]] <- yang_data[[]] %>% dplyr::mutate(manualAnnotation = case_when(se
                                                                               seurat_clusters %in% c(9, 39, 27)~'Endothelial',
                                                                               seurat_clusters %in% c(18, 46)~'Astrocytes',
                                                                               seurat_clusters %in% c(2)~'Microglia',
-                                                                              seurat_clusters %in% c(0, 1)~'Macro/Mono',
+                                                                              seurat_clusters %in% c(0, 1, 17, 24, 40)~'Macro/Mono',
                                                                               seurat_clusters %in% c(21, 22, 13, 7, 6)~'Oligo',
-                                                                              seurat_clusters %in% c(3, 44)~'OPC',
+                                                                              seurat_clusters %in% c(3, 44, 37, 44)~'OPC',
                                                                               seurat_clusters %in% c(8)~'T cells',
                                                                               seurat_clusters %in% c(26)~'Nk cells',
                                                                               seurat_clusters %in% c(47, 16, 35)~'Pericytes',
                                                                               .default = 'unknown'))
+
+
+#Plot assignments
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
+newCols[11] =  '#FF8AEF'
+
 DimPlot(yang_data, group.by = 'manualAnnotation', reduction = "umap.rpca",
-        label = TRUE)+
-  theme(legend.position = 'none')
+        label = FALSE, cols = newCols)+
+  xlab('')+
+  ylab('')
 
 #Check my annotations vs singleR
 #Mouse rna seq reference
@@ -151,3 +158,13 @@ cluster16_47_35Map <- read_csv("~/Documents/ÖverbyLab/yang_public_data/gene_cou
                          skip = 4)
 table(cluster16_47_35Map$subclass_name) %>% sort()
 
+#Look at cluster 12
+clust12 <- subset(yang_dat_merged_layers, seurat_clusters %in% c(12))
+clust12[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/yang_public_data/gene_counts_for_allen_atlas/12.csv', row.names = TRUE)
+
+cluster12Map <- read_csv("~/Documents/ÖverbyLab/yang_public_data/gene_counts_for_allen_atlas/12csv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1771599174687/12csv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1771599174687.csv", 
+                               skip = 4)
+table(cluster12Map$subclass_name) %>% sort()
+cluster12Map_labels <- cluster12Map[c('cell_id', 'subclass_name')]
+yang_data[[]] = left_join(yang_data[[]], cluster12Map_labels, by = c('id' = 'cell_id'))
+DimPlot(yang_data, reduction = "umap.rpca", group.by = 'subclass_name')

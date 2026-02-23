@@ -558,37 +558,47 @@ M_il10_macs <- c('Il10', 'Il4ra', 'Tgfb1', 'Nfil3', 'Sbno2', 'Socs3', 'Fcgr1', '
                  'Cxcl13')
 M_ic_macs <- c('Il10', 'Il6', 'Nos2', 'Ccl1', 'Ccl20', 'Cxcl3', 'Cxcl13')
 
-
-DotPlot(wt_cerebrum_macrophages, features = M_il4_macs, group.by = 'Timepoint', scale = FALSE) +
+#Plotting infected only
+DotPlot(macrophages_wt_infected, features = M_il4_macs, group.by = 'Timepoint', scale = FALSE) +
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
   ggtitle('M IL4 (alternative activation) mac markers')+
   coord_flip()
 
-DotPlot(wt_cerebrum_macrophages, features = mhc_2_macs, group.by = 'Timepoint', scale = FALSE) +
+DotPlot(macrophages_wt_infected, features = mhc_2_macs, group.by = 'Timepoint', scale = FALSE) +
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
   ggtitle('MHC-2 mac markers')+
   coord_flip()
 
-DotPlot(wt_cerebrum_macrophages, features = M_lps_ifng_macs, group.by = 'Timepoint', scale = FALSE) +
+DotPlot(macrophages_wt_infected, features = M_lps_ifng_macs, group.by = 'Timepoint', scale = FALSE) +
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
   ggtitle('LPS Ifng (classical activation) mac markers')+
   coord_flip()
 
-DotPlot(wt_cerebrum_macrophages, features = M_il10_macs, group.by = 'Timepoint', scale = FALSE) +
+DotPlot(macrophages_wt_infected, features = M_il10_macs, group.by = 'Timepoint', scale = FALSE) +
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
   ggtitle('Il10 (M2c, tissue remodeling) mac markers')+
   coord_flip()
 
-DotPlot(wt_cerebrum_macrophages, features = M_ic_macs, group.by = 'Timepoint', scale = FALSE) +
+DotPlot(macrophages_wt_infected, features = M_ic_macs, group.by = 'Timepoint', scale = FALSE) +
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
   ggtitle('Ic mac markers')+
   coord_flip()
 
-DotPlot(wt_cerebrum_macrophages, features = mhc_2_macs, group.by = 'Timepoint', scale = FALSE) +
-  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))+
-  ggtitle('mhc-2 mac markers')+
-  coord_flip()
+wt_cerebrum_macrophages$time_treatment <- factor(ifelse(wt_cerebrum_macrophages$Treatment == 'PBS', 'PBS', 
+                                                 paste(wt_cerebrum_macrophages$Timepoint, wt_cerebrum_macrophages$Treatment, sep = '_')),
+                                                 levels = c('PBS', 'Day 3_rLGTV', 'Day 4_rLGTV', 'Day 5_rLGTV'))
 
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/mac_mhc2_dotplot.pdf", width = 7, height = 6)
+DotPlot(wt_cerebrum_macrophages, features = mhc_2_macs, group.by = 'time_treatment', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  ggtitle('mhc-2 mac markers')+
+  coord_flip()+
+  xlab('')+
+  ylab('')+
+  scale_color_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1),
+                       name = 'Average Expression')
+dev.off()
 #Feature plot genes
 #Removing genes with no expression
 plotList_il4 <- lapply(M_il4_macs[!M_il4_macs %in% c('Retnla', 'Alox15', 'Ccl17')], featurePlotLight, data = wt_cerebrum_macrophages, 
@@ -651,7 +661,7 @@ dev.off()
 
 #Statistically compare
 kruskal.test(M1_signature_UCell ~ Timepoint, data = macrophages_wt_infected[[]])
-dunn_test(macrophages_wt_infected[[]], M1_signature_UCell ~ Timepoint, p.adjust.method = "holm", detailed = FALSE)
+dunn_test(macrophages_wt_infected[[]], M1_signature_UCell ~ Timepoint, p.adjust.method = "holm", detailed = TRUE)
 
 FeaturePlot(macrophages_wt_infected, features = 'M1_signature_UCell', reduction = 'wt.infected.mac.umap')
 FeaturePlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', reduction = 'wt.infected.mac.umap')
