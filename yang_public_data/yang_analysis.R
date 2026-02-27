@@ -43,6 +43,73 @@ DotPlot(yang_data, features = c('Ccl2', 'Ccl5', 'Ccl7'), group.by = 'manualAnnot
 FeaturePlot(yang_data, features = c('Ccl2'))
 
 #Trafficking genes
-endo_trafficking_dot_dat <- DotPlot(yang_data, features = c('Vcam1', 'Icam1', 'Icam2', 'Sele', 'Selp', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
+yang_endo <- subset(yang_data, manualAnnotation == 'Endothelial')
+endo_trafficking_dot_dat <- DotPlot(yang_endo, features = c('Vcam1', 'Icam1', 'Icam2', 'Sele', 'Selp', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
                                                                  'Cdh5'), group.by = 'treatment', scale = FALSE)$data
+ggplot(endo_trafficking_dot_dat, aes(x = id, y = features.plot))+
+  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
+  #coord_flip()+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,2.7))+
+  ggtitle('Endothelial trafficking genes Yang data')+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        #panel.border = element_rect(colour = "white", fill = NA),
+        panel.spacing = unit(0, "line"),
+        strip.background = element_blank())+
+  scale_size(range = c(0,9), limits = c(0, 100))+
+  ylab('')+
+  xlab('')
+
+#Monocyte trafficking genes
+#Still deciding which cells will be labelled monocytes, as some cluster closely with microglia
+yang_mono <- subset(yang_data, manualAnnotation == 'Macro/Mono')
+mono_trafficking_dot_dat <- DotPlot(yang_mono, features = c('Pecam1', 'Pvr', 'Cd99l2', 'Epha1', 'Ephb1', 'Itga4', 'Itgb1', 'Ccr1', 'Ccr2', 'Ccr5'), 
+                                    group.by = 'treatment', scale = FALSE)$data
+
+ggplot(mono_trafficking_dot_dat, aes(x = id, y = features.plot))+
+  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
+  #coord_flip()+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,1.7))+
+  ggtitle('Monocyte trafficking genes Yang data')+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        #panel.border = element_rect(colour = "white", fill = NA),
+        panel.spacing = unit(0, "line"),
+        strip.background = element_blank())+
+  scale_size(range = c(0,9), limits = c(0, 100))+
+  ylab('')+
+  xlab('')
+
+#Chemokines
+yang_data$treatment_celltype <- paste(yang_data$treatment, yang_data$manualAnnotation, sep = '_')
+ccl_genes <- c('Ccl2', 'Ccl3', 'Ccl5', 'Ccl7')
+ccl_exp <- DotPlot(yang_data, features = ccl_genes,
+        group.by = 'treatment_celltype', scale = FALSE)$data
+ccl_meta <- stringr::str_split_fixed(ccl_exp$id, "_", 2)
+colnames(ccl_meta) = c('treatment', 'celltype')
+ccl_dat <- cbind(ccl_exp, ccl_meta)
+
+ggplot(ccl_dat, aes(x = celltype, y = features.plot))+
+  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
+  facet_grid(cols = vars(treatment), scales = "free")+
+  coord_flip()+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,6))+
+  ggtitle('Ccl genes Yang data')+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        #panel.border = element_rect(colour = "white", fill = NA),
+        panel.spacing = unit(0, "line"),
+        strip.background = element_blank())+
+  scale_size(range = c(0,9), limits = c(0, 100))+
+  ylab('')+
+  xlab('')
 
