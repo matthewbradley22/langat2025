@@ -1,6 +1,7 @@
 library(SingleR)
 library(celldex)
 library(readr)
+library(scDblFinder)
 
 #Annotate yang japanese encephelitis cells
 yang_data <- LoadSeuratRds("~/Documents/ÖverbyLab/yang_public_data/yang_rpca_integrated_obj.RDS")
@@ -50,8 +51,8 @@ FeaturePlot(yang_data, 'Itgam', reduction = 'umap.rpca')
 FeaturePlot(yang_data, 'Ptprc', reduction = 'umap.rpca')
 FeaturePlot(yang_data, 'Ccr2', reduction = 'umap.rpca')
 FeaturePlot(yang_data, 'Lyz2', reduction = 'umap.rpca')
-FeaturePlot(yang_data, 'Ccr2', reduction = 'umap.rpca')
-
+#Ly6c2 used in yng paper
+FeaturePlot(yang_data, 'Ly6c2', reduction = 'umap.rpca')
 
 #Oligo
 FeaturePlot(yang_data, 'Mag',reduction = 'umap.rpca')
@@ -168,3 +169,12 @@ table(cluster12Map$subclass_name) %>% sort()
 cluster12Map_labels <- cluster12Map[c('cell_id', 'subclass_name')]
 yang_data[[]] = left_join(yang_data[[]], cluster12Map_labels, by = c('id' = 'cell_id'))
 DimPlot(yang_data, reduction = "umap.rpca", group.by = 'subclass_name')
+yang_data$manualAnnotation[yang_data$subclass_name == '334 Microglia NN'] = 'Microglia' 
+
+#Check for doublets
+#dbr.sd set to 1 since i'm not sure expected doublet rate with parse
+sce_dbl <- scDblFinder(yang_dat_merged_layers[['RNA']]$counts, dbr.sd=1)
+hist(sce_dbl$scDblFinder.score)
+
+yang_data$sc_dbl_labels <- sce_dbl$scDblFinder.class
+DimPlot(yang_data, group.by = 'sc_dbl_labels', reduction = "umap.rpca")

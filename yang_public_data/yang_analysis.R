@@ -3,8 +3,9 @@ library(dplyr)
 
 #Load in data
 yang_data <- LoadSeuratRds("~/Documents/ÖverbyLab/yang_public_data/yang_rpca_integrated_obj.RDS")
-DimPlot(yang_data,reduction = "umap.rpca", label = TRUE, group.by = 'manualAnnotation')+
-  theme(legend.position = 'none')
+newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
+newCols[11] =  '#FF8AEF'
+DimPlot(yang_data,reduction = "umap.rpca", label = FALSE, group.by = 'manualAnnotation', cols = newCols)
 
 #Label by treatment group
 yang_sample <- substring(yang_data$id, 1, 1) 
@@ -19,11 +20,13 @@ table(yang_data$manualAnnotation, yang_data$treatment)
 
 #Look at genes of interest
 FeaturePlot(yang_data, features = 'Nos2', reduction = 'umap.rpca')
-DotPlot(yang_data, features = c('Nos2'), group.by = 'treatment', scale = FALSE)
 DotPlot(yang_data, features = c('Nos2'), group.by = 'manualAnnotation', scale = FALSE)
 
 #Look at macrophage specific expression
 macs <- subset(yang_data, manualAnnotation == 'Macro/Mono')
+
+DotPlot(macs, features = c('Nos2'), group.by = 'treatment', scale = FALSE)+
+  ggtitle('Macrophage Nos2 Expression')
 
 #MHC-2 markers https://link.springer.com/article/10.1186/s12974-016-0581-z
 DotPlot(macs, features = c('H2-Aa', 'H2-Ab1', 'H2-DMa', 'H2-DMb1', 'H2-DMb2', 'H2-Eb1'), group.by = 'treatment', scale = FALSE)+
@@ -38,3 +41,8 @@ DotPlot(macs, features = c('H2-Aa', 'H2-Ab1', 'H2-DMa', 'H2-DMb1', 'H2-DMb2', 'H
 
 DotPlot(yang_data, features = c('Ccl2', 'Ccl5', 'Ccl7'), group.by = 'manualAnnotation', scale = FALSE)
 FeaturePlot(yang_data, features = c('Ccl2'))
+
+#Trafficking genes
+endo_trafficking_dot_dat <- DotPlot(yang_data, features = c('Vcam1', 'Icam1', 'Icam2', 'Sele', 'Selp', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
+                                                                 'Cdh5'), group.by = 'treatment', scale = FALSE)$data
+
