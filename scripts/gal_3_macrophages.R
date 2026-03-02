@@ -31,6 +31,42 @@ length(false_macs_to_remove)
 
 ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, invert = TRUE)
 
+#Wt cerebrum celltypes across times
+wt_cerebrum <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT')
+cell_props_to_plot <- table(wt_cerebrum$Timepoint, wt_cerebrum$manualAnnotation, wt_cerebrum$Treatment) %>% 
+  as.data.frame() %>% 
+  dplyr::group_by(Var1, Var3) %>% 
+  dplyr::mutate(prop = Freq/sum(Freq))
+cell_props_to_plot <- cell_props_to_plot[cell_props_to_plot$Freq != 0,]
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_proportions_by_time.pdf", width = 6, height = 6)
+ggplot(cell_props_to_plot, aes(x = Var1, y = prop))+
+  geom_bar(aes(fill = Var2), stat = 'identity')+
+  facet_grid(~Var3, scales = "free")+
+  scale_fill_manual(values=newCols)+
+  theme(legend.position = 'none')+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        axis.text = element_text(size = 16))+
+  xlab('')+
+  ylab('')
+dev.off()
+#Count of cells per day, split by treatment - get numbers too can be on graph
+cell_counts_to_plot <- table(wt_cerebrum$Timepoint, wt_cerebrum$Treatment) %>% 
+  as.data.frame() 
+cell_counts_to_plot <- cell_counts_to_plot[cell_counts_to_plot$Freq != 0,]
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/total_counts_by_time.pdf", width = 6, height = 6)
+ggplot(cell_counts_to_plot, aes(x = Var1, y = Freq))+
+  geom_bar(stat = 'identity')+
+  facet_grid(~Var2, scales = 'free')+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        axis.text = element_text(size = 16))+
+  ylab('')+
+  xlab('')
+dev.off()
+
 #Create all subsets that will be used
 #Subset to same cells as in gal3 project
 wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
