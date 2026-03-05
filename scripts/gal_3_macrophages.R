@@ -534,6 +534,17 @@ DotPlot(wt_cerebrum_macrophages, features = monocyte_markers_feb4, group.by = 'T
   ggtitle('Monocyte markers')+
   coord_flip()
 
+#Plot gal3 only
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_over_time.pdf", width = 7, height = 6)
+DotPlot(wt_cerebrum_macrophages, features = 'Lgals3', group.by = 'time_treatment', scale = FALSE) +
+  theme(axis.text.x = element_text(angle = 0))+
+  ggtitle('Gal3 over time')+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0))+
+  ylab('')+
+  xlab('')
+dev.off()
+
 plotList_classic_mono <- lapply(monocyte_markers_feb4, featurePlotLight, data = wt_cerebrum_macrophages, 
                        reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_classic_mono, common.legend = TRUE, legend = 'right'))

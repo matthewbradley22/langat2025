@@ -10,6 +10,8 @@ DimPlot(yang_data,reduction = "umap.rpca", label = FALSE, group.by = 'manualAnno
 
 #Subset to just macrophage and microglia
 mic_mac <- subset(yang_data, seurat_clusters %in% c(0, 1, 40, 24, 17, 15, 12, 2, 29))
+#Clustering will change but want to be able to refer back to original clusters
+mic_mac$previous_clusters = mic_mac$seurat_clusters
 
 #Prep for umap
 mic_mac <- prepSeuratObj(mic_mac)
@@ -27,6 +29,7 @@ FeaturePlot(mic_mac, 'Csf1r', reduction = 'mac_umap')
 #Macrophages
 FeaturePlot(mic_mac, features = 'Ly6c2', reduction = 'mac_umap')
 FeaturePlot(mic_mac, 'Ccr2', reduction = 'mac_umap')
+FeaturePlot(mic_mac, 'Flt1', reduction = 'mac_umap') #From yang paper
 
 #Look at clusters in mapMyCells
 mic_mac <- JoinLayers(mic_mac)
@@ -52,3 +55,4 @@ mic_mac[[]][mic_mac$subclass_name %in% c('336 Monocytes NN', '337 DC NN', '335 B
 yang_data[[]][yang_data$id %in% mic_mac$id,]$manualAnnotation = mic_mac$manualAnnotation
 DimPlot(yang_data,reduction = "umap.rpca", label = FALSE, group.by = 'manualAnnotation', cols = newCols)
 
+SaveSeuratRds(yang_data, file = "~/Documents/ÖverbyLab/yang_public_data/yang_rpca_integrated_obj.RDS")
