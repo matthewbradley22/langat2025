@@ -86,41 +86,51 @@ DimPlot(combined_macros, label = FALSE, split.by = 'dataset', group.by = 'timepo
   ylab('')
 dev.off()
 
-pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/combined_mac_mhc2.pdf', width = 6, height = 5)
-DotPlot(combined_macros, features = c('H2-Aa', 'H2-Ab1', 'H2-DMa', 'H2-DMb1', 'H2-DMb2', 'H2-Eb1'), group.by = 'dataset_group', scale = FALSE)+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
-  ggtitle('mhc-2 mac markers')+
-  coord_flip()+
-  xlab('')+
-  ylab('')+
-  scale_color_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
-                        values = c(0, 0.3, 0.6, 1),
-                        name = 'Average Expression')
-dev.off()
+#Function to make dotplots
+comparative_dotplot <- function(data, genes, title){
+  comp_dot_dat <- DotPlot(data, features = genes, 
+                          group.by = 'dataset_group', scale = FALSE)$data
+  
+  comp_meta <- str_split_fixed(comp_dot_dat$id, "_", 2)
+  colnames(comp_meta) <- c('dataset', 'group')
+  comp_dot_dat <- cbind(comp_dot_dat, comp_meta)
+  comp_dot_dat$group <- factor(comp_dot_dat$group, levels = c('PBS', 'Day 3', 'Day 4', 'Day 5',
+                                                                        'healthy', 'mild', 'moderate', 'severe'))
+  legend_max = max(comp_dot_dat$avg.exp.scaled)
+  
+  #Make plot
+  dot_plot <- ggplot(comp_dot_dat, aes(x = group, y = features.plot))+
+    facet_grid(~dataset, scales = 'free')+
+    geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
+    #coord_flip()+
+    scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+    scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                         values = c(1.0,0.7,0.4,0),
+                         limits = c(0,legend_max))+
+    ggtitle(title)+
+    theme_bw()+
+    theme(panel.grid = element_blank(),
+          #panel.border = element_rect(colour = "white", fill = NA),
+          panel.spacing = unit(0, "line"),
+          strip.background = element_blank(),
+          axis.text.x = element_text(angle = 90))+
+    scale_size(range = c(0,9), limits = c(0, 100))+
+    ylab('')+
+    xlab('')
+  
+  plot(dot_plot)
+}
 
-#Monocyte trafficking genes
-mono_trafficking_dot_dat <- DotPlot(combined_macros, features = c('Pecam1', 'Pvr', 'Cd99l2', 'Epha1', 'Ephb1', 'Itga4', 'Itgb1', 'Ccr1', 'Ccr2', 'Ccr5'), 
-                                    group.by = 'dataset_group', scale = FALSE)$data
+pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/mono_mhc2.pdf', width = 6, height = 5)
+comparative_dotplot(data = combined_macros, genes = c('H2-Aa', 'H2-Ab1', 'H2-DMa', 'H2-DMb1', 'H2-DMb2', 'H2-Eb1'), title = 'Monocyte MHC2 genes')
+dev.off()
 
 pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/mono_trafficking_genes.pdf', width = 6, height = 5)
-ggplot(mono_trafficking_dot_dat, aes(x = id, y = features.plot))+
-  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
-  #coord_flip()+
-  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
-  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0),
-                       limits = c(0,2.5))+
-  ggtitle('Monocyte trafficking genes')+
-  theme_bw()+
-  theme(panel.grid = element_blank(),
-        #panel.border = element_rect(colour = "white", fill = NA),
-        panel.spacing = unit(0, "line"),
-        strip.background = element_blank(),
-        axis.text.x = element_text(angle = 90))+
-  scale_size(range = c(0,9), limits = c(0, 100))+
-  ylab('')+
-  xlab('')
+comparative_dotplot(data = combined_macros, genes = c('Pecam1', 'Pvr', 'Cd99l2', 'Epha1', 'Ephb1', 'Itga4', 'Itgb1', 'Ccr1', 'Ccr2', 'Ccr5'), title = 'Monocyte trafficking genes')
 dev.off()
+
+#Glance at other genes
+comparative_dotplot(data = combined_macros, genes = c('Nos2'), title = 'Nos2')
 
 ########### Begin endothelial analyses ########### 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
@@ -169,3 +179,8 @@ DimPlot(combined_endos, label = FALSE, split.by = 'dataset', group.by = 'timepoi
   ylab('')
 dev.off()
 
+#Endothelial trafficking genes
+pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/endo_trafficking_genes.pdf', width = 6, height = 5)
+comparative_dotplot(data = combined_endos, genes = c('Vcam1', 'Icam1', 'Icam2', 'Sele', 'Selp', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
+                                                     'Cdh5', 'Cxcl12'), title = 'Endothelial trafficking genes')
+dev.off()
