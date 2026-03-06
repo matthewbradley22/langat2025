@@ -649,5 +649,3 @@ DotPlot(chimeric_mock_IPS_infected_resident, features = paste0('Socs', c('1', '2
         group.by = 'celltype_time', scale = FALSE)+
   theme(panel.grid.major = element_line(colour = "lightgrey"),
         axis.text.x = element_text(angle = 45, vjust = 0.6))
-
-

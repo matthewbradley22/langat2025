@@ -1,5 +1,3 @@
-#Need to organize this and the cell_death_pathways.R script
-#there is not an isg regressed umap created in cell_death_pathways.R that should just be done here for organization
 #Packages and functions
 library(gridExtra)
 library(ggpubr)
