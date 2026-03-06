@@ -242,6 +242,7 @@ sn_merged <- RunUMAP(sn_merged, reduction = "integrated.rpca", dims = 1:25, redu
 
 #plot merged data by dataset
 sn_merged$dataset <- gsub("_.+", '', colnames(sn_merged))
+
 DimPlot(sn_merged, label = FALSE, split.by = 'dataset', group.by = 'manualAnnotation', reduction = 'umap.rpca',
         cols = newCols)+
   ggtitle('single-nuclei and yang')+
@@ -268,23 +269,28 @@ ccl_genes <- c('Ccl2', 'Ccl5', 'Ccl7', 'Ccl12')
 comparative_dotplot(data = sn_merged, genes = ccl_genes, title = '', sc_timepoints = FALSE)
 
 #Want to look at celltypes from each dataset split
-sn_merged$dataset_celltype <- paste(sn_merged$dataset, sn_merged$manualAnnotation, sep = '_')
+sn_merged$dataset_group_celltype <- paste(sn_merged$dataset_group, sn_merged$manualAnnotation, sep = '_')
 ccl_celltype_levels <- DotPlot(sn_merged, features = ccl_genes, 
-        group.by = 'dataset_celltype', scale = FALSE)$data
+        group.by = 'dataset_group_celltype', scale = FALSE)$data
 
-ccl_meta <- str_split_fixed(ccl_celltype_levels$id, "_", 2)
-colnames(ccl_meta) <- c('dataset', 'celltype')
+ccl_meta <- as.data.frame(str_split_fixed(ccl_celltype_levels$id, "_", 3))
+colnames(ccl_meta) <- c('dataset', 'treatment', 'celltype')
+ccl_meta$dataset_treatment = paste(ccl_meta$dataset, ccl_meta$treatment, sep = '_')
 ccl_celltype_levels <- cbind(ccl_celltype_levels, ccl_meta)
 
-ggplot(ccl_celltype_levels, aes(x = celltype, y = features.plot))+
-  facet_wrap(~dataset, scales = 'free')+
+ccl_celltype_levels_sn <- ccl_celltype_levels[ccl_celltype_levels$dataset == 'singleNuclei',]
+ccl_celltype_levels_yang <- ccl_celltype_levels[ccl_celltype_levels$dataset == 'yang',]
+
+pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/sn_chemokine_dot.pdf', width = 7, height = 6)
+ggplot(ccl_celltype_levels_sn, aes(x = celltype, y = features.plot))+
+  facet_wrap(~treatment)+
   geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
   coord_flip()+
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0),
                        limits = c(0,5.5))+
-  ggtitle('')+
+  ggtitle('Single-nuclei chemokines')+
   theme_bw()+
   theme(panel.grid = element_blank(),
         #panel.border = element_rect(colour = "white", fill = NA),
@@ -294,3 +300,25 @@ ggplot(ccl_celltype_levels, aes(x = celltype, y = features.plot))+
   scale_size(range = c(0,9), limits = c(0, 100))+
   ylab('')+
   xlab('')
+dev.off()
+
+pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/yang_chemokine_dot.pdf', width = 7, height = 6)
+ggplot(ccl_celltype_levels_yang, aes(x = celltype, y = features.plot))+
+  facet_wrap(~treatment)+
+  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
+  coord_flip()+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,5.5))+
+  ggtitle('Yang chemokines')+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        #panel.border = element_rect(colour = "white", fill = NA),
+        panel.spacing = unit(0, "line"),
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 90))+
+  scale_size(range = c(0,9), limits = c(0, 100))+
+  ylab('')+
+  xlab('')
+dev.off()

@@ -48,6 +48,7 @@ DimPlot(wt_cerebrum, reduction = 'wt_cerebrum', group.by = 'manualAnnotation', c
 #Polarization stimulus genes from https://www.mdpi.com/1422-0067/25/22/12078 / https://doi.org/10.3390/ijms252212078
 polarization_stimulus_genes <- c('Ifng', 'Csf2', 'Il4', 'Il13', 'Il1b', 'Il10',
                                  'Tgfb1', 'Csf3', 'Pf4')
+ifn_genes <- c(paste0('Ifna', 1:16), 'Ifnb1', 'Ifng')
 
 DotPlot(wt_cerebrum, features = polarization_stimulus_genes, scale = FALSE, group.by = 'manualAnnotation')+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
@@ -93,6 +94,32 @@ DotPlot(wt_cerebrum_day5_dot_dat, features = polarization_stimulus_genes, scale 
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,5))+
   ggtitle('Day 5 LGTV')
+
+#Plot IFN genes
+ifn_plot_3dpi <- DotPlot(wt_cerebrum_day3_dot_dat, features = ifn_genes, scale = FALSE, group.by = 'manualAnnotation')+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,1.4))+
+  theme(axis.text.x = element_text(angle = 90))+
+  ggtitle('Day 3')
+
+ifn_plot_4dpi <- DotPlot(wt_cerebrum_day4_dot_dat, features = ifn_genes, scale = FALSE, group.by = 'manualAnnotation')+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,1.4))+
+  theme(axis.text.x = element_text(angle = 90))+
+  ggtitle('Day 4')
+ifn_plot_5dpi <- DotPlot(wt_cerebrum_day5_dot_dat, features = ifn_genes, scale = FALSE, group.by = 'manualAnnotation')+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0,1.4))+
+  theme(axis.text.x = element_text(angle = 90))+
+  ggtitle('Day 5')
+
+ggpubr::ggarrange(ifn_plot_3dpi, ifn_plot_4dpi, ifn_plot_5dpi)
 
 #Also look at pbs
 pbs <- subset(wt_cerebrum, Treatment == 'PBS')
