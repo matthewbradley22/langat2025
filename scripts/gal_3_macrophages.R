@@ -67,6 +67,30 @@ dev.off()
 
 #Create all subsets that will be used
 #Subset to same cells as in gal3 project
+wt_cerebrum <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
+                              Genotype == 'WT')
+wt_cerebrum <- prepSeuratObj(wt_cerebrum)
+ElbowPlot(wt_cerebrum, ndims = 40)
+wt_cerebrum <- prepUmapSeuratObj(wt_cerebrum, nDims = 20, reductionName = 'wt.infected.mac.umap',
+                                             resolution_value = 0.8)
+wt_cerebrum$manualAnnotation <- factor(wt_cerebrum$manualAnnotation, levels = c('Astrocytes', 'Choroid Plexus', 'Endothelial',
+                                                                                'Ependymal', 'Immature Neurons', 'Microglia', 'Muscle cells',
+                                                                                'Neurons', 'Oligodendrocytes', 'Pericytes', 'B Cells',
+                                                                                'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 'T cells',
+                                                                                'unknown'))
+
+umap_color_list <- c(   "#8370ff", "#6D92F8", "#f57e8a","#D6644B", "#cd0402",
+                     "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", "#B370AE","#6DC3F8", "#166DF0", "#292270",
+                        "gray")
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/umap_new_colors.pdf", width = 8, height = 6)
+DimPlot(wt_cerebrum, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'manualAnnotation',
+        label.size = 6, cols = umap_color_list)+
+  ggtitle('')+
+  xlab('')+
+  ylab('')
+dev.off()
+
 wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
                               Genotype == 'WT' & (Timepoint == 'Day 5' | Treatment == 'PBS'))
 
@@ -104,8 +128,14 @@ DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = FAL
   ggtitle('WT Macrophages')
 
 #Only infected macs
+umap_color_list <- c(   "#8370ff", "#6D92F8", "#f57e8a","#D6644B", "#cd0402",
+                        "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", "#B370AE","#6DC3F8", "#166DF0", "#292270",
+                        "gray")
+
+color_schemes <- list(c("#292270","#166DF0", "#6DC3F8"), c("#292270","#B370AE" ,"#6DC3F8"), c("#8a0000","#D6644B","#6DC3F8"),
+                      c( "#292270","#6DC3F8", "#B370AE"))
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_umap_blue.pdf", width = 6, height = 6)
-DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Timepoint',
+p2 <- DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Timepoint',
         label.size = 8)+
   ggtitle('WT Cerebrum Macrophages')+
   xlab('UMAP 1')+
@@ -114,7 +144,11 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FAL
         plot.title = element_text(size = 22))+
   guides(colour = guide_legend(override.aes = list(size=8)))+
   #scale_colour_manual(values = c("lightcyan", "cyan3", "darkcyan"))
-  scale_colour_manual(values = c("gold1", "palevioletred3", "cyan3"))
+  scale_colour_manual(values = color_schemes[[2]])
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_umap_options.pdf", width = 10, height = 9)
+ggpubr::ggarrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
 dev.off()
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_time_props.pdf", width = 2, height = 6)

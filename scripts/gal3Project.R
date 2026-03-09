@@ -130,11 +130,15 @@ immune <- prepUmapSeuratObj(immune, nDims = 25, reductionName = 'immune.umap', r
 
 #Plug granulocytes into allan brain atlas and check
 DimPlot(immune, reduction = 'immune.umap', label = TRUE)
-
+umap_color_list <- c(   "#8370ff", "#6D92F8", "#f57e8a","#D6644B", "#cd0402",
+                        "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", "#B370AE","#6DC3F8", "#166DF0", "#292270",
+                        "gray")
+immune$manualAnnotation <- factor(immune$manualAnnotation, levels = c('Microglia', 'B Cells', 'Granulocytes', 'Macrophage/Monocytes',
+                                                                      "Nk cells", "T cells"))
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_cell_umap.pdf',
     width = 7, height = 5)
 DimPlot(immune, reduction = 'immune.umap', group.by = 'manualAnnotation', 
-        cols = c(newCols[[2]], newCols[[6]], newCols[[8]], newCols[[9]], newCols[[12]], newCols[[15]]))+
+        cols = c("#8a0000", "#F08C3A", "#B370AE", "#6DC3F8","#166DF0", "#292270"))+
   ggtitle('Immune cells')+
   xlab('Umap 1')+
   ylab('Umap 2')+  
