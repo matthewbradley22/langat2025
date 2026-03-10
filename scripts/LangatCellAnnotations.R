@@ -392,16 +392,22 @@ ParseSeuratObj_int$manualAnnotation = factor(ParseSeuratObj_int$manualAnnotation
 
 #Change order of cells to be plotted
 ParseSeuratObj_int$manualAnnotation <- factor(ParseSeuratObj_int$manualAnnotation, 
-                                              levels = c( 'unknown',  'Oligodendrocytes',   'Neurons', 'Microglia', 
-                                                          'Immature Neurons', 'Ependymal',  'Endothelial', 'Choroid Plexus','Astrocytes',
-                                                         'Pericytes', 'T cells', 'Granulocytes', 'Nk cells','Muscle cells', 
-                                                         'Macrophage/Monocytes', 'B Cells'))
+                                              levels = c( 'unknown',  'T cells',   'Nk cells', 'Macrophage/Monocytes', 
+                                                          'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                                                         'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
+                                                         'Choroid Plexus', 'Astrocytes'))
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cell_type_dotplot.pdf', height = 6, width = 12)
-DotPlot(subset(ParseSeuratObj_int, manualAnnotation != 'unknown'), features = c('Cd19', 'Ms4a1', 'Klra2', 'Ccr2', 'Lyz2', 'Acta2', 'Tagln', 'Clnk','Nkg7','S100a9', 'Il1r2',
-                                         'Cd3e', 'Cd3d','Abcc9', 'Vtn', 'Aqp4', 'Fgfr3','Gfap', 'Ttr','Kl', 'Flt1', 'Pecam1','Vwf', 'Cfap54' ,'Nnat', 'Mia',
-                                         'Sox11', 'Csf1r', 'Cx3cr1', 
-                                         'Tmem119', 'Snap25', 'Syt1',  'Celf4', 'Mag', 'Mog'), 
+DotPlot(subset(ParseSeuratObj_int, manualAnnotation != 'unknown'), features = c('Aqp4', 'Fgfr3','Gfap', 'Ttr','Kl', 
+                                                                                'Flt1', 'Pecam1','Vwf',
+                                                                                'Cfap54' ,'Nnat', 'Mia',
+                                                                                'Sox11', 'Celf4','Csf1r', 'Cx3cr1', 
+                                                                                'Tmem119', 'Acta2', 'Tagln',
+                                                                                'Snap25', 'Syt1',  
+                                                                                'Mag', 'Mog', 'Abcc9', 'Vtn', 
+                                                                                'Cd19', 'Ms4a1', 'S100a9', 'Il1r2', 
+                                                                                'Klra2', 'Ccr2', 'Lyz2', 
+                                                                                'Clnk','Nkg7','Cd3e', 'Cd3d'), 
         group.by = 'manualAnnotation', assay = 'RNA')+
   theme(axis.text.x = element_text(angle = 75, vjust = 0.5),
         axis.text = element_text(size = 16))+

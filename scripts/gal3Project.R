@@ -65,10 +65,19 @@ wt_cerebrum_day5 <- prepUmapSeuratObj(wt_cerebrum_day5, nDims = 20, reductionNam
 
 DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', label = TRUE)
 wt_cerebrum_day5$manualAnnotation <- factor(wt_cerebrum_day5$manualAnnotation)
+
+umap_color_list <- c(   "#8370ff", "#6D92F8", "#f57e8a","#D6644B", "#cd0402",
+                        "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", "#B370AE","#6DC3F8", "#166DF0", "#292270",
+                        "gray")
+wt_cerebrum_day5$manualAnnotation <- factor(wt_cerebrum_day5$manualAnnotation, levels = c('Astrocytes', 'Choroid Plexus', 'Endothelial',
+                                                                                'Ependymal', 'Immature Neurons', 'Microglia', 'Muscle cells',
+                                                                                'Neurons', 'Oligodendrocytes', 'Pericytes', 'B Cells',
+                                                                                'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 'T cells',
+                                                                                'unknown'))
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_cerebrum_day5_UMAP.pdf',
     width = 7, height = 5)
-DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'manualAnnotation', cols = newCols)+
-  ggtitle('WT Cerebrum UMAP')+
+DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'manualAnnotation', cols = umap_color_list)+
+  ggtitle('WT Cerebrum Day 5 + PBS')+
   xlab('Umap 1')+
   ylab('Umap 2')+  
   theme(axis.text.x=element_blank(),
@@ -94,21 +103,13 @@ barDat <- wt_cerebrum_day5[[]] %>% dplyr::group_by(Treatment, manualAnnotation) 
 barDat %>% dplyr::filter(manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes'))
 
 order <- subset(barDat, Treatment == 'PBS')
-barDat$manualAnnotation = factor(barDat$manualAnnotation, levels = c("Astrocytes", "Choroid Plexus", "Endothelial", 
-                                                                    'Ependymal','Immature Neurons', 'Muscle cells',
-                                                                    'Neurons','Oligodendrocytes', 'Pericytes',
-                                                                    'Microglia','Macrophage/Monocytes','B Cells',
-                                                                    'Granulocytes', 'Nk cells', 'T cells', 'unknown'))
-
-#Reorder level colors to match above cell order
-newCols_order <- match(levels(barDat$manualAnnotation), levels(factor(ParseSeuratObj_int$manualAnnotation)))
-newCols_reordered <- newCols[newCols_order]
+barDat$manualAnnotation = factor(barDat$manualAnnotation, levels = levels(wt_cerebrum_day5$manualAnnotation))
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_cerebrum_day5_cell_prop_bar.pdf", width = 8, height = 6)
 barDat %>% ggplot(aes(x = Treatment, y = prop, fill = manualAnnotation))+
   geom_bar(stat = 'identity', position = 'stack')+
   theme(text = element_text(size = 23))+
-  scale_fill_manual(values = newCols_reordered)+
+  scale_fill_manual(values = umap_color_list)+
   guides(fill=guide_legend(title="Cell Type"))
 dev.off()
 
@@ -130,11 +131,9 @@ immune <- prepUmapSeuratObj(immune, nDims = 25, reductionName = 'immune.umap', r
 
 #Plug granulocytes into allan brain atlas and check
 DimPlot(immune, reduction = 'immune.umap', label = TRUE)
-umap_color_list <- c(   "#8370ff", "#6D92F8", "#f57e8a","#D6644B", "#cd0402",
-                        "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", "#B370AE","#6DC3F8", "#166DF0", "#292270",
-                        "gray")
 immune$manualAnnotation <- factor(immune$manualAnnotation, levels = c('Microglia', 'B Cells', 'Granulocytes', 'Macrophage/Monocytes',
                                                                       "Nk cells", "T cells"))
+
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_cell_umap.pdf',
     width = 7, height = 5)
 DimPlot(immune, reduction = 'immune.umap', group.by = 'manualAnnotation', 
@@ -151,6 +150,8 @@ dev.off()
 DimPlot(immune, reduction = 'immune.umap', group.by = 'Treatment')
 
 #Dotplots of key genes
+immune_wt_infected$manualAnnotation <- factor(immune_wt_infected$manualAnnotation, levels = rev(c("Microglia", 'Macrophage/Monocytes',
+                                                                                              'T cells', 'Nk cells', 'Granulocytes')))
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_feature_dotplot_infected.pdf", width = 9, height = 6)
 DotPlot(immune_wt_infected, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
                              'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
@@ -170,6 +171,8 @@ DotPlot(immune_wt_infected, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'C
   ggtitle('Immune cells: infected')
 dev.off()
 
+immune_wt_mock$manualAnnotation <- factor(immune_wt_mock$manualAnnotation, levels = rev(c("Microglia", 'Macrophage/Monocytes',
+                                                                                              'T cells', 'Nk cells', 'Granulocytes', 'B Cells')))
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_feature_dotplot_mock.pdf", width = 9, height = 6)
 DotPlot(immune_wt_mock, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
                                          'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
@@ -292,7 +295,8 @@ DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', label = FALSE, group.
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_cerebrum_day5.pdf',
     width = 7, height = 5)
 DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnnotation',
-        cols = c(newCols[[2]], newCols[[6]], newCols[[8]], newCols[[9]], newCols[[12]], newCols[[15]]))
+        cols = c("#B370AE","#F08C3A",  "#6DC3F8", "#8a0000", "#292270"))+
+  ggtitle('Day 5 + pbs immune mock')
 dev.off()
 
 plotList <- list(featurePlotLight('Lgals3', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
@@ -338,7 +342,7 @@ DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', label = TRUE)
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_wt_infected_day5_umap.pdf',
     width = 8, height = 6)
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
-         cols = c(newCols[[2]], newCols[[6]], newCols[[8]], newCols[[9]], newCols[[12]], newCols[[15]]))+
+         cols = c("#B370AE", "#166DF0", "#292270","#6DC3F8", "#8a0000"))+
   ggtitle('Immune WT Infected UMAP')+
   xlab('Umap 1')+
   ylab('Umap 2')+  

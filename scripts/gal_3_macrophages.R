@@ -128,12 +128,9 @@ DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = FAL
   ggtitle('WT Macrophages')
 
 #Only infected macs
-umap_color_list <- c(   "#8370ff", "#6D92F8", "#f57e8a","#D6644B", "#cd0402",
-                        "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", "#B370AE","#6DC3F8", "#166DF0", "#292270",
-                        "gray")
-
 color_schemes <- list(c("#292270","#166DF0", "#6DC3F8"), c("#292270","#B370AE" ,"#6DC3F8"), c("#8a0000","#D6644B","#6DC3F8"),
                       c( "#292270","#6DC3F8", "#B370AE"))
+
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_umap_blue.pdf", width = 6, height = 6)
 p2 <- DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Timepoint',
         label.size = 8)+
@@ -147,6 +144,7 @@ p2 <- DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label
   scale_colour_manual(values = color_schemes[[2]])
 dev.off()
 
+#Reran above code several times w different color schemes to create grid
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_umap_options.pdf", width = 10, height = 9)
 ggpubr::ggarrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
 dev.off()
