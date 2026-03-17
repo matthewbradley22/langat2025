@@ -132,7 +132,7 @@ color_schemes <- list(c("#292270","#166DF0", "#6DC3F8"), c("#292270","#B370AE" ,
                       c( "#292270","#6DC3F8", "#B370AE"))
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_umap_blue.pdf", width = 6, height = 6)
-p2 <- DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Timepoint',
+p1 <- DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Timepoint',
         label.size = 8)+
   ggtitle('WT Cerebrum Macrophages')+
   xlab('UMAP 1')+
@@ -141,7 +141,8 @@ p2 <- DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label
         plot.title = element_text(size = 22))+
   guides(colour = guide_legend(override.aes = list(size=8)))+
   #scale_colour_manual(values = c("lightcyan", "cyan3", "darkcyan"))
-  scale_colour_manual(values = color_schemes[[2]])
+  scale_colour_manual(values = color_schemes[[1]])
+p1
 dev.off()
 
 #Reran above code several times w different color schemes to create grid

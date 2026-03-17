@@ -649,3 +649,20 @@ DotPlot(chimeric_mock_IPS_infected_resident, features = paste0('Socs', c('1', '2
         group.by = 'celltype_time', scale = FALSE)+
   theme(panel.grid.major = element_line(colour = "lightgrey"),
         axis.text.x = element_text(angle = 45, vjust = 0.6))
+
+#IFN values chimeric samples
+#Split by day and genotype
+chimeric_wt <- subset(chimeric_mock, Treatment == 'rChLGTV' & Genotype == 'WT')
+ifn_genes <- c(paste0('Ifna', 1:16), 'Ifnb1', 'Ifng')
+
+ifn_dat <- DotPlot(chimeric, features = ifn_genes, group.by = 'celltype_time', scale = FALSE)$data
+ifn_dat_meta <- str_split_fixed(ifn_dat$id, pattern = '_', n = 2)
+colnames(ifn_dat_meta) <- c('celltype', 'timepoint')
+ifn_dat <- cbind(ifn_dat, ifn_dat_meta)
+ggplot(ifn_dat, aes(x = features.plot, y = celltype, color = avg.exp.scaled, size = pct.exp))+
+  geom_point()+
+  facet_grid(~timepoint)+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
+                        values = c(1.0,0.65,0.3,0))+
+  theme_bw()
+

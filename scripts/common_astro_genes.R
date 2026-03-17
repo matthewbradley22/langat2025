@@ -20,6 +20,7 @@ newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272
 newCols[11] =  '#FF8AEF'
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
+
 #Setting treatment to NOT equal lgtv, so we keep mock and chimeric
 sc_astros <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Genotype == 'WT' & Treatment != 'rLGTV')
 sc_astros_ips <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Genotype == 'IPS1' & Treatment != 'rLGTV')
@@ -97,8 +98,8 @@ VennDiagram::venn.diagram(x = list(sc_astro_markers_chlgtv$gene, bulk_sig_gene_s
 
 #Mavs
 total_gene_overlap_mavs <- sum(sc_astro_markers_mavs_chlgtv$gene %in% bulk_sig_genes_mavs_symbols)
-total_gene_overlap_mavs/nrow(sc_astro_markers_mavs_chlgtv) #45% sc genes in bulk
-total_gene_overlap_mavs/length(bulk_sig_genes_mavs_symbols) #17% bulk genes in sc
+total_gene_overlap_mavs/nrow(sc_astro_markers_mavs_chlgtv) #3.3% sc genes in bulk
+total_gene_overlap_mavs/length(bulk_sig_genes_mavs_symbols) #3.4% bulk genes in sc
 
 VennDiagram::venn.diagram(x = list(sc_astro_markers_mavs_chlgtv$gene, bulk_sig_genes_mavs_symbols),
                           category.names = c('SC', 'bulk'),
@@ -149,5 +150,28 @@ ggplot(shared_genes_mavs_paths$result[1:3,], aes(x = -log10(p_value), y = factor
 ########## Comapre MAVS and WT in bulk and sc respectively ########## 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 sum(dds_wt_res_sig$SYMBOL %in% dds_mavs_res_sig$SYMBOL)
+
+VennDiagram::venn.diagram(x = list(bulk_sig_gene_symbols, bulk_sig_genes_mavs_symbols),
+                          category.names = c('', ''),
+                          filename = '~/Documents/ÖverbyLab/scPlots/bulk_mavs_vs_wt_venn.png',
+                          resolution = 50,
+                          fill = c("#B3E2CD", "#FDCDAC"),
+                          cat.cex = 10,
+                          cex = 15,width = 3000)
+
+wt_mavs_overlap <- dds_wt_res_sig$SYMBOL[dds_wt_res_sig$SYMBOL %in% dds_mavs_res_sig$SYMBOL]
+wt_mavs_overlap_paths <- gprofiler2::gost(wt_mavs_overlap, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+wt_mavs_overlap_paths$result
+
+#Plot select paths
+wt_mavs_overlap_paths$result$term_name <- factor(wt_mavs_overlap_paths$result$term_name, 
+                                                   levels = wt_mavs_overlap_paths$result$term_name[order(wt_mavs_overlap_paths$result$p_value)])
+
+ggplot(wt_mavs_overlap_paths$result[c(1,3,5,6,9,11,12),], aes(x = -log10(p_value), y = factor(term_name), fill = -log10(p_value)))+
+  geom_bar(stat = 'identity')+
+  xlab('')+
+  ylab('')+
+  geom_vline(xintercept=-log10(0.01), linetype="dotted", col ='white')+
+  theme(axis.text = element_text(size = 16))
 
 

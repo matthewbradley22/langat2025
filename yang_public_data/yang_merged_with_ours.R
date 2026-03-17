@@ -1,6 +1,10 @@
 #Merging our data with yang's
 #Could subset celltypes to make this faster if it's really slow
 
+library(Seurat)
+library(dplyr)
+library(ggplot2)
+source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 #Load our data
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
@@ -29,6 +33,27 @@ DimPlot(yang_data,reduction = "umap.rpca", label = FALSE, group.by = 'manualAnno
 yang_data$Treatment = yang_data$treatment
 yang_data$treatment = NULL
 
+#load in single-nuclei data
+#Read in processed data
+sn_integrated_dat <- LoadSeuratRds('~/Documents/ÖverbyLab/single_nuclei_proj/LGTVscCombined.rds')
+
+#Make treatment column names same case before merging
+#Combine infected column for later
+sn_integrated_dat$Treatment = sn_integrated_dat$treatment
+sn_integrated_dat$treatment = NULL
+
+sn_integrated_dat$infected_grouped = ifelse(sn_integrated_dat$new_inf %in% c('mock', 'none'), 'uninfected', 'infected')
+#subset to only wt
+sn_integrated_dat_wt <- subset(sn_integrated_dat, new_genotype %in% c('wt', 'wt (same)'))
+
+sn_integrated_dat_wt <- prepSeuratObj(sn_integrated_dat_wt)
+ElbowPlot(sn_integrated_dat_wt) 
+sn_integrated_dat_wt <- prepUmapSeuratObj(sn_integrated_dat_wt, nDims = 20,num_neighbors = 30L, 
+                                          reductionName = 'wt.umap.integrated',
+                                          resolution_value = 0.8)
+
+DimPlot(sn_integrated_dat_wt, group.by =  'manualAnnotation', cols = newCols, reduction = 'wt.umap.integrated')
+
 #Create celltype subsets to integrate
 parse_endo <- subset(wt_cerebrum, manualAnnotation == 'Endothelial')
 parse_macro <- subset(wt_cerebrum, manualAnnotation == 'Macrophage/Monocytes')
@@ -36,13 +61,15 @@ parse_macro <- subset(wt_cerebrum, manualAnnotation == 'Macrophage/Monocytes')
 yang_endo <- subset(yang_data, manualAnnotation == 'Endothelial')
 yang_macro <- subset(yang_data, manualAnnotation == 'Macro/Mono')
 
+sn_endo <- subset(sn_integrated_dat_wt, manualAnnotation == 'Endothelial')
+sn_macro <- subset(sn_integrated_dat_wt, manualAnnotation == 'Macrophages')
 
 ########### Monocyte / macropahge analyses ########### 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 
 
 #monocyte cells combined
-macro.combined <- merge(parse_macro, y = yang_macro, add.cell.ids = c("parse", "yang"), project = "merged_macros")
+macro.combined <- merge(parse_macro, y = c(yang_macro,sn_macro), add.cell.ids = c("parse", "yang", "sn"), project = "merged_macros")
 
 macro.combined <- NormalizeData(macro.combined)
 macro.combined <- FindVariableFeatures(macro.combined)
@@ -72,20 +99,30 @@ combined_macros$manualAnnotation = 'macro/mono'
 combined_macros$dataset <- gsub("_.+", '', colnames(combined_macros))
 combined_macros$timepoint_or_treatment <- factor(dplyr::case_when(combined_macros$dataset == 'parse' & combined_macros$Treatment != 'PBS' ~ combined_macros$Timepoint,
                                                            combined_macros$dataset == 'parse' & combined_macros$Treatment == 'PBS' ~ combined_macros$Treatment,
-                                                           combined_macros$dataset == 'yang' ~ combined_macros$Treatment),
-                                                 levels = c('PBS', 'Day 3', 'Day 4', 'Day 5', 'healthy', 'mild', 'moderate', 'severe'))
+                                                           combined_macros$dataset == 'yang' ~ combined_macros$Treatment,
+                                                           combined_macros$dataset == 'sn' ~ combined_macros$infected_grouped,),
+                                                 levels = c('PBS', 'Day 3', 'Day 4', 'Day 5', 'healthy', 'mild', 'moderate', 'severe', 'uninfected', 'infected'))
 combined_macros$dataset_group <- factor(paste(combined_macros$dataset, combined_macros$timepoint_or_treatment, sep = '_'),
                                         levels = c('parse_PBS', 'parse_Day 3', 'parse_Day 4', 'parse_Day 5',
-                                                   'yang_healthy', 'yang_mild','yang_moderate', 'yang_severe'))
+                                                   'yang_healthy', 'yang_mild','yang_moderate', 'yang_severe',
+                                                   'sn_uninfected', 'sn_infected'))
 
 #Plot datasets to compare umap locations
 pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/combined_mac_plot.pdf', width = 6, height = 5)
-DimPlot(combined_macros, label = FALSE, split.by = 'dataset', group.by = 'timepoint_or_treatment', reduction = 'umap.rpca',
+DimPlot(combined_macros, label = FALSE, group.by = 'dataset_group', reduction = 'umap.rpca',
         cols = newCols)+
   ggtitle('Macrophage integrated UMAP')+
   xlab('')+
   ylab('')
 dev.off()
+
+#Remove sn_uninfected as these seem to be microglia (not grouped with most macrophages)
+combined_macros <- subset(combined_macros, dataset_group != 'sn_uninfected')
+DimPlot(combined_macros, label = FALSE, group.by = 'dataset_group', reduction = 'umap.rpca',
+        cols = newCols)+
+  ggtitle('Macrophage integrated UMAP')+
+  xlab('')+
+  ylab('')
 
 #Look at seurat clusters, later look into what is separating groups
 DimPlot(combined_macros, reduction = 'umap.rpca')
@@ -102,7 +139,8 @@ comparative_dotplot <- function(data, genes, title, sc_timepoints = TRUE){
   
   if(sc_timepoints) {
     comp_dot_dat$group <- factor(comp_dot_dat$group, levels = c('PBS', 'Day 3', 'Day 4', 'Day 5',
-                                                                'healthy', 'mild', 'moderate', 'severe'))
+                                                                'healthy', 'mild', 'moderate', 'severe',
+                                                                'uninfected', 'infected'))
   }
   
   legend_max = max(comp_dot_dat$avg.exp.scaled)
@@ -145,7 +183,7 @@ comparative_dotplot(data = combined_macros, genes = c('Nos2'), title = 'Nos2')
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 
 #endothelial cells combined
-endo.combined <- merge(parse_endo, y = yang_endo, add.cell.ids = c("parse", "yang"), project = "merged_endos")
+endo.combined <- merge(parse_endo, y = c(yang_endo, sn_endo), add.cell.ids = c("parse", "yang", "sn"), project = "merged_endos")
 
 endo.combined <- NormalizeData(endo.combined)
 endo.combined <- FindVariableFeatures(endo.combined)
@@ -175,14 +213,17 @@ combined_endos$manualAnnotation = 'endothelial'
 combined_endos$dataset <- gsub("_.+", '', colnames(combined_endos))
 combined_endos$timepoint_or_treatment <- factor(dplyr::case_when(combined_endos$dataset == 'parse' & combined_endos$Treatment != 'PBS' ~ combined_endos$Timepoint,
                                                                   combined_endos$dataset == 'parse' & combined_endos$Treatment == 'PBS' ~ combined_endos$Treatment,
-                                                                  combined_endos$dataset == 'yang' ~ combined_endos$Treatment),
-                                                 levels = c('PBS', 'Day 3', 'Day 4', 'Day 5', 'healthy', 'mild', 'moderate', 'severe'))
+                                                                  combined_endos$dataset == 'yang' ~ combined_endos$Treatment,
+                                                                 combined_endos$dataset == 'sn' ~ combined_endos$infected_grouped),
+                                                 levels = c('PBS', 'Day 3', 'Day 4', 'Day 5', 'healthy', 'mild', 'moderate', 'severe',
+                                                            'uninfected', 'infected'))
 combined_endos$dataset_group <- factor(paste(combined_endos$dataset, combined_endos$timepoint_or_treatment, sep = '_'),
                                         levels = c('parse_PBS', 'parse_Day 3', 'parse_Day 4', 'parse_Day 5',
-                                                   'yang_healthy', 'yang_mild','yang_moderate', 'yang_severe'))
+                                                   'yang_healthy', 'yang_mild','yang_moderate', 'yang_severe',
+                                                   'sn_uninfected', 'sn_infected'))
 #Plot data together
 pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/combined_endothelial_plot.pdf', width = 6, height = 5)
-DimPlot(combined_endos, label = FALSE, split.by = 'dataset', group.by = 'timepoint_or_treatment', reduction = 'umap.rpca',
+DimPlot(combined_endos, label = FALSE, group.by = 'dataset_group', reduction = 'umap.rpca',
         cols = newCols)+
   ggtitle('Endothelial integrated UMAP')+
   xlab('')+
@@ -280,6 +321,27 @@ ccl_celltype_levels <- cbind(ccl_celltype_levels, ccl_meta)
 
 ccl_celltype_levels_sn <- ccl_celltype_levels[ccl_celltype_levels$dataset == 'singleNuclei',]
 ccl_celltype_levels_yang <- ccl_celltype_levels[ccl_celltype_levels$dataset == 'yang',]
+
+pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/combined_chemokine_dot.pdf', width = 7, height = 6)
+ggplot(ccl_celltype_levels, aes(x = celltype, y = features.plot))+
+  facet_wrap(~dataset_treatment, nrow = 1, ncol = 4)+
+  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
+  coord_flip()+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,5.5))+
+  ggtitle('Single-nuclei chemokines')+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        #panel.border = element_rect(colour = "white", fill = NA),
+        panel.spacing = unit(0, "line"),
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 90))+
+  scale_size(range = c(0,9), limits = c(0, 100))+
+  ylab('')+
+  xlab('')
+dev.off()
 
 pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/sn_chemokine_dot.pdf', width = 7, height = 6)
 ggplot(ccl_celltype_levels_sn, aes(x = celltype, y = features.plot))+

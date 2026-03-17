@@ -16,6 +16,16 @@ FeaturePlot(yang_data, 'Rbfox3', reduction = 'umap.rpca')
 FeaturePlot(yang_data, 'Dpp10', reduction = 'umap.rpca')
 FeaturePlot(yang_data, 'Syt1', reduction = 'umap.rpca')
 
+#Ex neurons
+FeaturePlot(yang_data, 'Slc17a7', reduction = 'umap.rpca')
+FeaturePlot(yang_data, 'Sv2b', reduction = 'umap.rpca')
+FeaturePlot(yang_data, 'Arpp21', reduction = 'umap.rpca')
+
+#in neurons
+FeaturePlot(yang_data, 'Gad1', reduction = 'umap.rpca')
+FeaturePlot(yang_data, 'Gad2', reduction = 'umap.rpca')
+FeaturePlot(yang_data, 'Dlx6os1', reduction = 'umap.rpca')
+
 
 #Endothelial cells
 #brain endo marker Pglyrp1 from https://www.sciencedirect.com/science/article/pii/S0092867420300623
@@ -178,3 +188,10 @@ hist(sce_dbl$scDblFinder.score)
 
 yang_data$sc_dbl_labels <- sce_dbl$scDblFinder.class
 DimPlot(yang_data, group.by = 'sc_dbl_labels', reduction = "umap.rpca")
+
+#Look at all neurons
+#Based on markers, clusters 10 and 19 appear excitatory, and the rest a bit inconclusive
+neurons <- subset(yang_dat_merged_layers, manualAnnotation == 'Neuron')
+neurons[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/yang_public_data/gene_counts_for_allen_atlas/yang_neurons.csv', row.names = TRUE)
+
+
