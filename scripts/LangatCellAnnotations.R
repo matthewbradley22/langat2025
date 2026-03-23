@@ -397,8 +397,11 @@ ParseSeuratObj_int$manualAnnotation <- factor(ParseSeuratObj_int$manualAnnotatio
                                                          'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
                                                          'Choroid Plexus', 'Astrocytes'))
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cell_type_dotplot.pdf', height = 6, width = 12)
-DotPlot(subset(ParseSeuratObj_int, manualAnnotation != 'unknown'), features = c('Aqp4', 'Fgfr3','Gfap', 'Ttr','Kl', 
+cerebrum_samples <- subset(ParseSeuratObj_int, manualAnnotation != 'unknown' & Organ == 'Cerebrum' & Treatment != 'rChLGTV' &
+                             Genotype == 'WT')
+no_unknown <- subset(ParseSeuratObj_int,  manualAnnotation != 'unknown')
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cerebrum_cell_type_dotplot.pdf', height = 6, width = 12)
+DotPlot(cerebrum_samples, features = c('Aqp4', 'Fgfr3','Gfap', 'Ttr','Kl', 
                                                                                 'Flt1', 'Pecam1','Vwf',
                                                                                 'Cfap54' ,'Nnat', 'Mia',
                                                                                 'Sox11', 'Celf4','Csf1r', 'Cx3cr1', 
@@ -411,10 +414,12 @@ DotPlot(subset(ParseSeuratObj_int, manualAnnotation != 'unknown'), features = c(
         group.by = 'manualAnnotation', assay = 'RNA')+
   theme(axis.text.x = element_text(angle = 75, vjust = 0.5),
         axis.text = element_text(size = 16))+
-  scale_color_gradientn(colours = c('lightblue','white', '#FFD991', '#FF4024'), 
-                       values = c(0, 0.35, 0.5, 1),
-                       name = 'Average Expression')+
-  scale_size_continuous(range = c(0,7))+
+  scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', labels = c(-1, 0, 1,2),
+                        breaks = c(-1, 0, 1,2), , limits = c(-2,2.5))+
+ # scale_color_gradientn(colours = c('lightblue','white', '#FFD991', '#FF4024'), 
+         #              values = c(0, 0.35, 0.5, 1),
+          #             name = 'Average Expression')+
+  scale_size_continuous(range = c(0,8), limits = c(0,100))+
   theme(legend.position = "bottom",
         legend.justification = "center",
         legend.direction = "horizontal",

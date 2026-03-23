@@ -20,8 +20,8 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 
 #Can run this to remove odd macrophage group, but need to create immune_wt_infected below first
 #write.csv(false_macrophages_toremove, "~/Documents/ÖverbyLab/false_macs_to_remove.csv")
+#false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
 
-false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
 #or load in from csv
 false_macs_to_remove <- read.csv("~/Documents/ÖverbyLab/false_macs_to_remove.csv")[[2]]
 #should be 409 cells
@@ -36,6 +36,8 @@ wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV')
 
 immune <- subset(wt_cerebrum_day5, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
                                                       'T cells', 'Granulocytes', 'Nk cells'))
+resident <- subset(wt_cerebrum_day5, !manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
+                                                             'T cells', 'Granulocytes', 'Nk cells'))
 wt_cerebrum_day5_mock <- subset(wt_cerebrum_day5, Treatment == ('PBS'))
 wt_cerebrum_day5_infected <- subset(wt_cerebrum_day5, Treatment == ('rLGTV'))
 
@@ -55,6 +57,7 @@ resident_wt_infected <- subset(wt_cerebrum_day5_infected, !manualAnnotation %in%
                                                                                 'T cells', 'Granulocytes', 'Nk cells', 'unknown',
                                                                                 'Choroid Plexus', 'Muscle cells', 'Neurons',
                                                                                 'Oligodendrocytes', 'Pericytes'))
+
 macrophages_wt_mock <- subset(wt_cerebrum_day5_mock, manualAnnotation %in% c('Macrophage/Monocytes'))
 macrophages_wt_infected <- subset(wt_cerebrum_day5_infected, manualAnnotation %in% c('Macrophage/Monocytes'))
 
@@ -66,9 +69,10 @@ wt_cerebrum_day5 <- prepUmapSeuratObj(wt_cerebrum_day5, nDims = 20, reductionNam
 DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', label = TRUE)
 wt_cerebrum_day5$manualAnnotation <- factor(wt_cerebrum_day5$manualAnnotation)
 
-umap_color_list <- c(   "#8370ff", "#6D92F8", "#f57e8a","#D6644B", "#cd0402",
+umap_color_list <- c(   "#7047A1", "#6D92F8", "#FF96A2","#F76363", "#D6644B",
                         "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", "#B370AE","#6DC3F8", "#166DF0", "#292270",
                         "gray")
+
 wt_cerebrum_day5$manualAnnotation <- factor(wt_cerebrum_day5$manualAnnotation, levels = c('Astrocytes', 'Choroid Plexus', 'Endothelial',
                                                                                 'Ependymal', 'Immature Neurons', 'Microglia', 'Muscle cells',
                                                                                 'Neurons', 'Oligodendrocytes', 'Pericytes', 'B Cells',
@@ -112,6 +116,20 @@ barDat %>% ggplot(aes(x = Treatment, y = prop, fill = manualAnnotation))+
   scale_fill_manual(values = umap_color_list)+
   guides(fill=guide_legend(title="Cell Type"))
 dev.off()
+
+#Make barplot based on timepoint
+barDat_time <- wt_cerebrum_day5[[]] %>% dplyr::group_by(Treatment, Timepoint, manualAnnotation) %>% 
+  dplyr::summarise(total = n()) %>% dplyr::mutate(prop = total/sum(total)) %>% 
+  arrange(desc(total)) 
+
+#Change to all timepoints
+barDat_time %>% ggplot(aes(x = Timepoint, y = prop, fill = manualAnnotation))+
+  geom_bar(stat = 'identity', position = 'stack')+
+  facet_wrap(~Treatment)+
+  theme(text = element_text(size = 23))+
+  scale_fill_manual(values = umap_color_list)+
+  guides(fill=guide_legend(title="Cell Type"))
+
 
 #Combine cxcl10 and select cl for plotting
 pdf('~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/select_chemokines_dotplot.pdf', width = 8, height = 6)
@@ -194,10 +212,17 @@ DotPlot(immune_wt_mock, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86'
   labs(caption = 'Only microglia and macrophages > 100 cells. 47 B cells, 48 T cells')
 dev.off()
 
-pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/resident_feature_dotplot_infected.pdf", width = 9, height = 6)
+wt_cerebrum_day5_known <- subset(wt_cerebrum_day5, manualAnnotation != 'unknown')
+wt_cerebrum_day5_known$manualAnnotation <- factor(wt_cerebrum_day5_known$manualAnnotation, 
+                                              levels = c( 'unknown',  'T cells',   'Nk cells', 'Macrophage/Monocytes', 
+                                                          'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                                                          'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
+                                                          'Choroid Plexus', 'Astrocytes'))
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/all_cells_immune_dotplot_.pdf", width = 9, height = 8)
 #No Ccr3 expression
-DotPlot(resident_wt_infected, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
-                                     'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
+DotPlot(wt_cerebrum_day5_known, features = c('Tspo', 'Lgals3', 'Adgre1', 'Cd68',  'Cd86', 'Ptprc',  'Ccr1', 'Ccr2', 
+                                     'Ccr3', 'Ccr5', 'Tmem119',  'Csf1r'),
         group.by = 'manualAnnotation')+
   scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', labels = c(-1, 0, 1,2),
                         breaks = c(-1, 0, 1,2), , limits = c(-2,2.5))+
@@ -210,8 +235,8 @@ DotPlot(resident_wt_infected, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 
         legend.spacing.x = unit(2, "cm"))+
   guides(size = guide_legend(title.position = "top", title = 'Percent Expressed', order = 2),
          color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression'))+
-  ggtitle('Infected: resident cells')+
-  labs(caption = 'Only 39 Ependymal, 53 endothelial, 72 astrocytes')
+  ggtitle('All resident cells')
+  #labs(caption = 'Only 39 Ependymal, 53 endothelial, 72 astrocytes')
 dev.off()
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/resident_feature_dotplot_mock.pdf", width = 9, height = 6)
@@ -275,8 +300,6 @@ featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim
 
 
 #Look at mock and infected separately
-
-
 wt_cerebrum_day5_mock <- prepSeuratObj(wt_cerebrum_day5_mock)
 ElbowPlot(wt_cerebrum_day5_mock, ndims = 40)
 wt_cerebrum_day5_mock <- prepUmapSeuratObj(wt_cerebrum_day5_mock, nDims = 20, reductionName = 'wt.cerebrum.mock.umap')
@@ -295,7 +318,7 @@ DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', label = FALSE, group.
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_cerebrum_day5.pdf',
     width = 7, height = 5)
 DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnnotation',
-        cols = c("#B370AE","#F08C3A",  "#6DC3F8", "#8a0000", "#292270"))+
+        cols = c("#F08C3A", "#292270", "#6DC3F8", "#8a0000" ))+
   ggtitle('Day 5 + pbs immune mock')
 dev.off()
 

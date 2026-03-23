@@ -21,7 +21,7 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 #Can run this to remove odd macrophage group, but need to create immune_wt_infected below first
 #write.csv(false_macrophages_toremove, "~/Documents/ÖverbyLab/false_macs_to_remove.csv")
 
-false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
+#false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
 #or load in from csv
 false_macs_to_remove <- read.csv("~/Documents/ÖverbyLab/false_macs_to_remove.csv")[[2]]
 #should be 409 cells
@@ -36,13 +36,23 @@ cell_props_to_plot <- table(wt_cerebrum$Timepoint, wt_cerebrum$manualAnnotation,
   dplyr::group_by(Var1, Var3) %>% 
   dplyr::mutate(prop = Freq/sum(Freq))
 cell_props_to_plot <- cell_props_to_plot[cell_props_to_plot$Freq != 0,]
+cell_props_to_plot$Var2 <- factor(cell_props_to_plot$Var2, levels = c('Astrocytes', 'Choroid Plexus', 'Endothelial',
+                                                                      'Ependymal', 'Immature Neurons', 'Microglia', 'Muscle cells',
+                                                                      'Neurons', 'Oligodendrocytes', 'Pericytes', 'B Cells',
+                                                                      'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 
+                                                                      'T cells', 'unknown'))
 
-pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_proportions_by_time.pdf", width = 6, height = 6)
+#Define new colors for umap and bars
+umap_color_list <- c(   "#7047A1", "#6D92F8", "#FF96A2","#F76363", "#D6644B",
+                        "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", "#B370AE","#6DC3F8", "#166DF0", "#292270",
+                        "gray")
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_proportions_by_time.pdf", width = 8, height = 6)
 ggplot(cell_props_to_plot, aes(x = Var1, y = prop))+
   geom_bar(aes(fill = Var2), stat = 'identity')+
   facet_grid(~Var3, scales = "free")+
-  scale_fill_manual(values=newCols)+
-  theme(legend.position = 'none')+
+  scale_fill_manual(values=umap_color_list)+
+  #theme(legend.position = 'none')+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         axis.text = element_text(size = 16))+
@@ -78,10 +88,6 @@ wt_cerebrum$manualAnnotation <- factor(wt_cerebrum$manualAnnotation, levels = c(
                                                                                 'Neurons', 'Oligodendrocytes', 'Pericytes', 'B Cells',
                                                                                 'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 'T cells',
                                                                                 'unknown'))
-
-umap_color_list <- c(   "#8370ff", "#6D92F8", "#f57e8a","#D6644B", "#cd0402",
-                     "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", "#B370AE","#6DC3F8", "#166DF0", "#292270",
-                        "gray")
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/umap_new_colors.pdf", width = 8, height = 6)
 DimPlot(wt_cerebrum, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'manualAnnotation',
@@ -728,7 +734,7 @@ macrophages_wt_infected <- AddModuleScore_UCell(macrophages_wt_infected, feature
 macrophages_wt_infected <- AddModuleScore(macrophages_wt_infected, features = list(macrophage_subset_markers$M1_signature), name = 'm1_seurat_test')
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M1_mac_score.pdf", width = 7, height = 6)
-VlnPlot(macrophages_wt_infected, features = 'M1_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
+VlnPlot(macrophages_wt_infected, features = 'M1_signature_UCell', group.by = 'Timepoint', pt.size = 0, cols = c("#292270","#166DF0", "#6DC3F8"))+
   theme(legend.position = 'none')+
   ggtitle('Classical Activation Score')+
   geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
@@ -745,7 +751,7 @@ FeaturePlot(macrophages_wt_infected, features = 'M1_signature_UCell', reduction 
 FeaturePlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', reduction = 'wt.infected.mac.umap')
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M2_mac_score.pdf", width = 7, height = 6)
-VlnPlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
+VlnPlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', group.by = 'Timepoint', pt.size = 0, cols = c("#292270","#166DF0", "#6DC3F8"))+
   theme(legend.position = 'none')+
   geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
                fill = 'white')+
@@ -759,7 +765,7 @@ dunn_test(macrophages_wt_infected[[]], Il4_alt_signature_UCell ~ Timepoint, p.ad
 
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M2C_mac_score.pdf", width = 7, height = 6)
-VlnPlot(macrophages_wt_infected, features = 'Il10_M2c_signature_UCell', group.by = 'Timepoint', pt.size = 0)+
+VlnPlot(macrophages_wt_infected, features = 'Il10_M2c_signature_UCell', group.by = 'Timepoint', pt.size = 0,  cols = c("#292270","#166DF0", "#6DC3F8"))+
   theme(legend.position = 'none')+
   geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
                fill = 'white')+
@@ -772,7 +778,7 @@ kruskal.test(Il10_M2c_signature_UCell ~ Timepoint, data = macrophages_wt_infecte
 dunn_test(macrophages_wt_infected[[]], Il10_M2c_signature_UCell ~ Timepoint, p.adjust.method = "holm", detailed = FALSE)
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/Mhc2_mac_score.pdf", width = 7, height = 6)
-VlnPlot(macrophages_wt_infected, features = 'mhc2_sig_UCell', group.by = 'Timepoint', pt.size = 0)+
+VlnPlot(macrophages_wt_infected, features = 'mhc2_sig_UCell', group.by = 'Timepoint', pt.size = 0,  cols = c("#292270","#166DF0", "#6DC3F8"))+
   theme(legend.position = 'none')+
   geom_boxplot(width = 0.1, position = position_dodge(0.9), alpha = 0.5,
                fill = 'white')+
@@ -791,7 +797,7 @@ ggplot(macrophages_wt_infected[[]], aes (x = M1_signature_UCell, y = Il4_alt_sig
   ylab('M2 Signature')+
   xlim(c(0,0.38))+
   ylim(c(0,0.38))+
-  scale_colour_manual(values = c("gold1", "palevioletred3", "cyan3"))
+  scale_colour_manual(values =c("#292270","#166DF0", "#6DC3F8"))
 dev.off()
 
 #Which genes are exprssed from each group

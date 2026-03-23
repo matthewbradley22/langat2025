@@ -21,8 +21,8 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 
 #Can run this to remove odd macrophage group, but need to create immune_wt_infected below first
 #write.csv(false_macrophages_toremove, "~/Documents/ÖverbyLab/false_macs_to_remove.csv")
+#false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
 
-false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
 #or load in from csv
 false_macs_to_remove <- read.csv("~/Documents/ÖverbyLab/false_macs_to_remove.csv")[[2]]
 #should be 409 cells
@@ -283,7 +283,7 @@ wt_peri <- subset(wt_cerebrum, manualAnnotation == 'Pericytes')
 
 #Plot endothelial markers
 endo_trafficking_dot_dat <- DotPlot(wt_endothelial, features = c('Vcam1', 'Icam1', 'Icam2', 'Sele', 'Selp', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
-                                     'Cdh5', 'Cxcl12'), group.by = 'treatment_time', scale = FALSE)$data
+                                     'Cdh5', 'Cxcl12', 'Cxcl11'), group.by = 'treatment_time', scale = FALSE)$data
 meta_columns <- str_split_fixed(endo_trafficking_dot_dat$id, " ", 2)
 colnames(meta_columns) <- c('treatment', 'time')
 endo_trafficking_dot_dat <- cbind(endo_trafficking_dot_dat, meta_columns)
@@ -310,7 +310,7 @@ dev.off()
 
 #Plot monocyte markers
 mono_trafficking_dot_dat <- DotPlot(wt_mac_mono, features = c('Pecam1', 'Pvr', 'Cd99l2', 'Epha1', 'Ephb1', 'Itgal', 'Itga4', 'Itgb1', 'Ccr1', 'Ccr2', 'Ccr5',
-                                                              'Cxcr4'), 
+                                                              'Cxcr4', 'Ackr3'), 
                                     group.by = 'treatment_time', scale = FALSE)$data
 meta_columns_mono <- str_split_fixed(mono_trafficking_dot_dat$id, " ", 2)
 colnames(meta_columns_mono) <- c('treatment', 'time')

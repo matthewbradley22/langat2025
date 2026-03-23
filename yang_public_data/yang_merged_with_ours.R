@@ -59,7 +59,7 @@ parse_endo <- subset(wt_cerebrum, manualAnnotation == 'Endothelial')
 parse_macro <- subset(wt_cerebrum, manualAnnotation == 'Macrophage/Monocytes')
 
 yang_endo <- subset(yang_data, manualAnnotation == 'Endothelial')
-yang_macro <- subset(yang_data, manualAnnotation == 'Macro/Mono')
+yang_macro <- subset(yang_data, manualAnnotation == 'Macrophage/Monocytes')
 
 sn_endo <- subset(sn_integrated_dat_wt, manualAnnotation == 'Endothelial')
 sn_macro <- subset(sn_integrated_dat_wt, manualAnnotation == 'Macrophages')
@@ -117,7 +117,6 @@ DimPlot(combined_macros, label = FALSE, group.by = 'dataset_group', reduction = 
 dev.off()
 
 #Remove sn_uninfected as these seem to be microglia (not grouped with most macrophages)
-combined_macros <- subset(combined_macros, dataset_group != 'sn_uninfected')
 DimPlot(combined_macros, label = FALSE, group.by = 'dataset_group', reduction = 'umap.rpca',
         cols = newCols)+
   ggtitle('Macrophage integrated UMAP')+
@@ -240,18 +239,12 @@ dev.off()
 ########### Single nuclei comparison #############
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 
-
-#Read in single nuclei data for ccl comparison. Only usjng healthy and severe Yang
-#Read in processed data
-sn_integrated_dat <- LoadSeuratRds('~/Documents/ÖverbyLab/single_nuclei_proj/LGTVscCombined.rds')
-
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
 DimPlot(sn_integrated_dat, group.by =   'manualAnnotation', cols = newCols, reduction = 'umap.integrated')
 
-#subset to wt for sn data. healthy and severe for yang data
-sn_integrated_dat_wt <- subset(sn_integrated_dat, new_genotype %in% c('wt', 'wt (same)'))
-yang_data_no_mild <- subset(yang_data, Treatment %in% c('healthy', 'severe'))
+#Oly compare sn to severe yang
+yang_data_no_mild <- subset(yang_data, Treatment %in% c('healthy','severe'))
 
 #merge wt sn with yang
 sn.combined <- merge(sn_integrated_dat_wt, y = yang_data_no_mild, add.cell.ids = c("singleNuclei", "yang"), project = "sn_merged")
@@ -284,8 +277,7 @@ sn_merged <- RunUMAP(sn_merged, reduction = "integrated.rpca", dims = 1:25, redu
 #plot merged data by dataset
 sn_merged$dataset <- gsub("_.+", '', colnames(sn_merged))
 
-DimPlot(sn_merged, label = FALSE, split.by = 'dataset', group.by = 'manualAnnotation', reduction = 'umap.rpca',
-        cols = newCols)+
+DimPlot(sn_merged, label = FALSE, split.by = 'dataset', group.by = 'manualAnnotation', reduction = 'umap.rpca')+
   ggtitle('single-nuclei and yang')+
   xlab('')+
   ylab('')
@@ -314,17 +306,33 @@ sn_merged$dataset_group_celltype <- paste(sn_merged$dataset_group, sn_merged$man
 ccl_celltype_levels <- DotPlot(sn_merged, features = ccl_genes, 
         group.by = 'dataset_group_celltype', scale = FALSE)$data
 
-ccl_meta <- as.data.frame(str_split_fixed(ccl_celltype_levels$id, "_", 3))
+#Add parse sc data
+wt_cerebrum$treatment_celltype <- paste(wt_cerebrum$Treatment, wt_cerebrum$manualAnnotation, sep = '_')
+ccl_celltype_levels_parse <- DotPlot(wt_cerebrum, features = ccl_genes, 
+                               group.by = 'treatment_celltype', scale = FALSE)$data
+ccl_celltype_levels_parse$id <- paste('singleCell', ccl_celltype_levels_parse$id, sep = '_')
+
+#Combine all data
+ccl_celltype_levels_all <- rbind(ccl_celltype_levels, ccl_celltype_levels_parse)
+
+ccl_meta <- as.data.frame(str_split_fixed(ccl_celltype_levels_all$id, "_", 3))
 colnames(ccl_meta) <- c('dataset', 'treatment', 'celltype')
 ccl_meta$dataset_treatment = paste(ccl_meta$dataset, ccl_meta$treatment, sep = '_')
-ccl_celltype_levels <- cbind(ccl_celltype_levels, ccl_meta)
-
-ccl_celltype_levels_sn <- ccl_celltype_levels[ccl_celltype_levels$dataset == 'singleNuclei',]
-ccl_celltype_levels_yang <- ccl_celltype_levels[ccl_celltype_levels$dataset == 'yang',]
-
-pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/combined_chemokine_dot.pdf', width = 7, height = 6)
-ggplot(ccl_celltype_levels, aes(x = celltype, y = features.plot))+
-  facet_wrap(~dataset_treatment, nrow = 1, ncol = 4)+
+ccl_celltype_levels_all <- cbind(ccl_celltype_levels_all, ccl_meta)
+ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Macrophage/Monocytes',]$celltype = 'Macrophages'
+ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Choroid Plexus',]$celltype = 'ChP'
+ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Oligodendrocytes',]$celltype = 'Oligo'
+ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Pericytes',]$celltype = 'Peri'
+ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Cd8+NK',]$celltype = 'NK+Cd8'
+ccl_celltype_levels_all <- dplyr::filter(ccl_celltype_levels_all, celltype != 'unknown')
+ccl_celltype_levels_all$celltype <- factor(ccl_celltype_levels_all$celltype, levels = rev(c('Astrocytes', 'ChP', 'Endothelial', 'Ependymal',
+                                                                                        'Ex Neurons', 'Immature Neurons', 'In Neurons', 'Microglia',
+                                                                                        'Muscle cells', 'Neurons', 'Oligo', 'OPC', 'Peri',
+                                                                                        'VLMCs', 'B Cells', 'Granulocytes', 'Macrophages',
+                                                                                        'Nk cells', 'NK+Cd8', 'T cells')))
+pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/combined_chemokine_dot.pdf', width = 10, height = 8)
+ggplot(ccl_celltype_levels_all, aes(x = celltype, y = features.plot))+
+  facet_wrap(~dataset_treatment, nrow = 1, ncol = 6)+
   geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
   coord_flip()+
   scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
@@ -332,48 +340,6 @@ ggplot(ccl_celltype_levels, aes(x = celltype, y = features.plot))+
                        values = c(1.0,0.7,0.4,0),
                        limits = c(0,5.5))+
   ggtitle('Single-nuclei chemokines')+
-  theme_bw()+
-  theme(panel.grid = element_blank(),
-        #panel.border = element_rect(colour = "white", fill = NA),
-        panel.spacing = unit(0, "line"),
-        strip.background = element_blank(),
-        axis.text.x = element_text(angle = 90))+
-  scale_size(range = c(0,9), limits = c(0, 100))+
-  ylab('')+
-  xlab('')
-dev.off()
-
-pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/sn_chemokine_dot.pdf', width = 7, height = 6)
-ggplot(ccl_celltype_levels_sn, aes(x = celltype, y = features.plot))+
-  facet_wrap(~treatment)+
-  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
-  coord_flip()+
-  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
-  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0),
-                       limits = c(0,5.5))+
-  ggtitle('Single-nuclei chemokines')+
-  theme_bw()+
-  theme(panel.grid = element_blank(),
-        #panel.border = element_rect(colour = "white", fill = NA),
-        panel.spacing = unit(0, "line"),
-        strip.background = element_blank(),
-        axis.text.x = element_text(angle = 90))+
-  scale_size(range = c(0,9), limits = c(0, 100))+
-  ylab('')+
-  xlab('')
-dev.off()
-
-pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/yang_chemokine_dot.pdf', width = 7, height = 6)
-ggplot(ccl_celltype_levels_yang, aes(x = celltype, y = features.plot))+
-  facet_wrap(~treatment)+
-  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
-  coord_flip()+
-  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
-  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0),
-                       limits = c(0,5.5))+
-  ggtitle('Yang chemokines')+
   theme_bw()+
   theme(panel.grid = element_blank(),
         #panel.border = element_rect(colour = "white", fill = NA),

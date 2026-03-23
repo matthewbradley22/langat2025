@@ -4,6 +4,7 @@ library(readr)
 library(scDblFinder)
 library(stringr)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
+
 #Annotate yang japanese encephelitis cells
 yang_data <- LoadSeuratRds("~/Documents/ÖverbyLab/yang_public_data/yang_rpca_integrated_obj.RDS")
 DimPlot(yang_data,reduction = "umap.rpca", label = TRUE)+
@@ -108,17 +109,17 @@ FeaturePlot(yang_data, 'Ace2', reduction = 'umap.rpca')
 #Label celltypes
 #Saved some cell labels in yang_mic_mac_analysis.R script, so running this again will actually remove those
 #updated macrophage microglia labels. Updating script below to include that analysis, but just something to be cognizant of
-yang_data[[]] <- yang_data[[]] %>% dplyr::mutate(manualAnnotation = case_when(seurat_clusters %in% c(19, 10, 11, 20, 5, 14, 4, 41)~'Neuron',
+yang_data[[]] <- yang_data[[]] %>% dplyr::mutate(manualAnnotation = case_when(seurat_clusters %in% c(19, 10, 11, 20, 5, 14, 4, 41)~'Neurons',
                                                                               seurat_clusters %in% c(9, 39, 27)~'Endothelial',
                                                                               seurat_clusters %in% c(18, 46)~'Astrocytes',
                                                                               seurat_clusters %in% c(2)~'Microglia',
-                                                                              seurat_clusters %in% c(0, 1, 17, 24, 40)~'Macro/Mono',
+                                                                              seurat_clusters %in% c(0, 1, 17, 24, 40)~'Macrophage/Monocytes',
                                                                               seurat_clusters %in% c(21, 22, 13, 7, 6, 43, 23)~'Oligo',
                                                                               seurat_clusters %in% c(3, 44, 37, 44)~'OPC',
-                                                                              seurat_clusters %in% c(8)~'T cells',
+                                                                              seurat_clusters %in% c(8, 33)~'T cells',
                                                                               seurat_clusters %in% c(26)~'Nk cells',
-                                                                              seurat_clusters %in% c(47, 16, 35)~'Pericytes',
-                                                                              seurat_clusters %in% c(38, 25)~'Im neurons', #Based on genes below
+                                                                              seurat_clusters %in% c(47, 16, 35)~'Peri',
+                                                                              seurat_clusters %in% c(38, 25)~'Immature Neurons', #Based on genes below
                                                                               .default = 'unknown'))
 
 
@@ -207,8 +208,8 @@ DimPlot(yang_data,reduction = "umap.rpca", group.by = 'neuron_labelling_mapMy', 
 
 #Update neuron labels and remove group of likely doublets
 yang_data <- subset(yang_data, seurat_clusters != 4)
-yang_data[[]] <- yang_data[[]] %>% mutate(manualAnnotation = case_when(neuron_labelling_mapMy == 'GABA' ~ 'In neurons',
-                                                                                                 neuron_labelling_mapMy == 'Glut' ~ 'Ex neurons',
+yang_data[[]] <- yang_data[[]] %>% mutate(manualAnnotation = case_when(neuron_labelling_mapMy == 'GABA' ~ 'In Neurons',
+                                                                                                 neuron_labelling_mapMy == 'Glut' ~ 'Ex Neurons',
                                                                                                  .default = manualAnnotation))
 DimPlot(yang_data, group.by = 'manualAnnotation', reduction = 'umap.rpca', cols = newCols)
 
@@ -255,7 +256,9 @@ ElbowPlot(mic_mac, ndims = 30)
 mic_mac <- prepUmapSeuratObj(mic_mac, nDims = 20, reductionName = 'mac_umap', num_neighbors = 30L)
 
 DimPlot(mic_mac, reduction = "mac_umap", label = FALSE, group.by = 'manualAnnotation', cols = newCols)
-
+#Remove columns that match name of later left_join with allan data, shouldn't be here
+mic_mac$subclass_name <- NULL
+mic_mac$neuron_labelling_mapMy <- NULL
 #Look at important gene markers
 #Microglia
 FeaturePlot(mic_mac, features = 'Tmem119', reduction = 'mac_umap')
@@ -285,7 +288,7 @@ DimPlot(mic_mac, reduction = "mac_umap", group.by = 'subclass_name', cols = newC
 mic_mac$manualAnnotation = 'unknown'
 mic_mac[[]][mic_mac$subclass_name == '334 Microglia NN' & !is.na(mic_mac$subclass_name),]$manualAnnotation = 'Microglia'
 #I find mapmy to generally label macrophages as dendritic cells due to its low count of actual macrophges in the data
-mic_mac[[]][mic_mac$subclass_name %in% c('336 Monocytes NN', '337 DC NN', '335 BAM NN') & !is.na(mic_mac$subclass_name),]$manualAnnotation = 'Macro/Mono'
+mic_mac[[]][mic_mac$subclass_name %in% c('336 Monocytes NN', '337 DC NN', '335 BAM NN') & !is.na(mic_mac$subclass_name),]$manualAnnotation = 'Macrophage/Monocytes'
 
 #Check results back in main UMAP
 yang_data[[]][yang_data$id %in% mic_mac$id,]$manualAnnotation = mic_mac$manualAnnotation
