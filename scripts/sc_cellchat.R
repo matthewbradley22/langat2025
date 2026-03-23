@@ -17,8 +17,8 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, manualAnnotation != 'unknown')
 
 #Create sample column, split genotypes, and make cellchat object
 ParseSeuratObj_int$samples = factor(ParseSeuratObj_int$orig.ident)
-wt_cells <- subset(ParseSeuratObj_int, Genotype == 'WT')
-ips_cells <- subset(ParseSeuratObj_int, Genotype == 'IPS1')
+wt_cells <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment == 'rChLGTV')
+ips_cells <- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment == 'rChLGTV')
 mock_cells <- subset(ParseSeuratObj_int, Treatment == 'PBS')
 
 #Create ligand receptor database
@@ -51,15 +51,22 @@ prep_cellchat_obj <- function(seu_obj){
   #Infer pathway level
   cellchat_obj <- computeCommunProbPathway(cellchat_obj)
   
-  cellchat_ips <- aggregateNet(cellchat_obj)
+  cellchat_obj <- aggregateNet(cellchat_obj)
+  
+  #centrality scores
+  cellchat_obj <- netAnalysis_computeCentrality(cellchat_obj, slot.name = "netP")
+  return(cellchat_obj)
 }
 
+#Create cellchat objects for mock and infected cells and look at overall senders/receivers
 mock_cells_cc <- prep_cellchat_obj(mock_cells)
+netAnalysis_signalingRole_scatter(mock_cells_cc)
 
+wt_cells_cc <- prep_cellchat_obj(wt_cells)
+netAnalysis_signalingRole_scatter(wt_cells_cc)
 
-#Aggregate cell-communication
-groupSize_wt <- as.numeric(table(cellchat_wt@idents))
-groupSize_ips <- as.numeric(table(cellchat_ips@idents))
+ips_cells_cc <- prep_cellchat_obj(ips_cells)
+netAnalysis_signalingRole_scatter(ips_cells_cc)
 
 #Plot general cell-cell trends
 netVisual_circle(cellchat_wt@net$count, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
@@ -70,13 +77,20 @@ netVisual_circle(cellchat_ips@net$weight, vertex.weight = groupSize_ips, weight.
 
 #Look at specific cell type interactions
 #Had to recreate aggregateNet function in cellChatBug.R in order to use sources and targets. Bug reported on github
-cellchat_astro_wt <- aggregateNet_bug_removed(cellchat_wt, source = "Astrocytes")
-cellchat_astro_ips <- aggregateNet_bug_removed(cellchat_ips, source = "Astrocytes")
+plot_source_targets <- function(cc_obj, target_cell = NULL, source_cell = NULL){
+  cellchat_obj <- aggregateNet_bug_removed(cc_obj, source = source_cell, target = target_cell)
+  groupSize <- as.numeric(table(cellchat_obj@idents))
+  netVisual_circle(cellchat_obj@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+}
 
-cellchat_astro_targ_wt <- aggregateNet_bug_removed(cellchat_wt, target  = "Astrocytes")
-cellchat_astro_targ_ips <- aggregateNet_bug_removed(cellchat_ips, target = "Astrocytes")
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_source.pdf", width = 8, height =6)
+plot_source_targets(mock_cells_cc, source_cell = 'Astrocytes')
+dev.off()
 
-pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/astro_source_wt.pdf", width = 8, height =6)
+plot_source_targets(wt_cells_cc, source_cell = 'Astrocytes')
+plot_source_targets(ips_cells_cc, source_cell = 'Astrocytes')
+
+
 netVisual_circle(cellchat_astro_wt@net$weight, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
 dev.off()
 
