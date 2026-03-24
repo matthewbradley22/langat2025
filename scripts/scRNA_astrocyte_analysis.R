@@ -1,6 +1,7 @@
 library(Seurat)
 library(RColorBrewer)
 library(dplyr)
+library(UpSetR)
 library(ggplot2)
 library(tidyr)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
@@ -356,4 +357,73 @@ DimPlot(astrocytes_cerebellum, reduction = 'astrocytes_cerebellum_umap', group.b
   ylab('')+
   ggtitle('Cerebellum Astrocytes')
 
+#########Genes only upregulated in astrocytes##########
+#######################################################
+wt_chimeric <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment %in% c('PBS', 'rChLGTV'))
+celltypes <- unique(wt_chimeric$manualAnnotation)
+degs_by_celltype <- list()
+
+for(i in 1:length(celltypes)){
+  print(paste('Beginning celltype', celltypes[i]))
+  cur_dat <- subset(wt_chimeric, manualAnnotation == celltypes[i])
+  celltype_markers <- FindMarkers(cur_dat, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+              test.use = 'MAST')
+  degs_by_celltype[[i]] = celltype_markers
+  names(degs_by_celltype)[[i]] = celltypes[i]
+  print(paste('Done with celltype', celltypes[i]))
+}
+
+celltype_markers_sig <- lapply(degs_by_celltype, FUN = function(x){
+  celltype_dat <- as.data.frame(x)
+  celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
+})
+
+num_degs <- lapply(celltype_markers_sig, nrow)
+num_degs_df <- data.frame(celltypes = names(celltype_markers_sig), num_degs = unlist(num_degs))
+num_degs_df
+
+deg_names <- lapply(celltype_markers_sig, FUN = function(x){
+  rownames(x)
+})
+
+upset_dat <- UpSetR::fromList(deg_names)
+UpSetR::upset(upset_dat, nsets = 10, order.by = 'freq')
+
+#Get all genes upregulated in non astrocytes in infection
+non_astros <- celltype_markers_sig[names(celltype_markers_sig) != 'Astrocytes']
+non_astro_genes <- unique(unlist(lapply(non_astros, FUN = function(x){
+  rownames(x)
+})))
+
+astro_genes <- rownames(celltype_markers_sig$Astrocytes)
+astro_genes <- astro_genes[!astro_genes %in% non_astro_genes]
+
+#No pathways
+gprofiler2::gost(query = astro_genes, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+
+#Dotplot specific genes
+wt_chimeric_known <- subset(wt_chimeric, manualAnnotation != 'unknown')
+
+for(i in 1:length(astro_genes)){
+  gene_dot <- DotPlot(wt_chimeric, features = c(astro_genes[[i]]), group.by = 'Treatment_celltype', scale = FALSE)$data
+  gene_dot_meta <- str_split_fixed(gene_dot$id, pattern = '_', n = 2)
+  colnames(gene_dot_meta) <- c('treatment', 'celltype')
+  gene_dot <- cbind(gene_dot, gene_dot_meta)
+  
+  print(ggplot(gene_dot, aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
+    geom_tile()+
+    scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                         values = c(1.0,0.7,0.4,0))+
+    ggtitle(astro_genes[[i]]))
+}
+
+gene_dot <- DotPlot(wt_chimeric_known, features = c('Grm5'), group.by = 'Treatment_celltype', scale = FALSE)$data
+gene_dot_meta <- str_split_fixed(gene_dot$id, pattern = '_', n = 2)
+colnames(gene_dot_meta) <- c('treatment', 'celltype')
+gene_dot <- cbind(gene_dot, gene_dot_meta)
+ggplot(gene_dot, aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
+        geom_tile()+
+        scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                             values = c(1.0,0.7,0.4,0))+
+        ggtitle('Grm5')
 

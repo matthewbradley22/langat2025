@@ -114,7 +114,7 @@ yang_data[[]] <- yang_data[[]] %>% dplyr::mutate(manualAnnotation = case_when(se
                                                                               seurat_clusters %in% c(18, 46)~'Astrocytes',
                                                                               seurat_clusters %in% c(2)~'Microglia',
                                                                               seurat_clusters %in% c(0, 1, 17, 24, 40)~'Macrophage/Monocytes',
-                                                                              seurat_clusters %in% c(21, 22, 13, 7, 6, 43, 23)~'Oligo',
+                                                                              seurat_clusters %in% c(21, 22, 13, 7, 6, 43, 23, 28)~'Oligo',
                                                                               seurat_clusters %in% c(3, 44, 37, 44)~'OPC',
                                                                               seurat_clusters %in% c(8, 33)~'T cells',
                                                                               seurat_clusters %in% c(26)~'Nk cells',

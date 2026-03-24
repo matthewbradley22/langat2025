@@ -3,6 +3,7 @@ library(Seurat)
 library(RColorBrewer)
 library(CellChat)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
+source('~/Documents/ÖverbyLab/scripts/cellChatBug.R')
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
@@ -64,16 +65,18 @@ netAnalysis_signalingRole_scatter(mock_cells_cc)
 
 wt_cells_cc <- prep_cellchat_obj(wt_cells)
 netAnalysis_signalingRole_scatter(wt_cells_cc)
+groupSize_wt <- as.numeric(table(wt_cells_cc@idents))
 
 ips_cells_cc <- prep_cellchat_obj(ips_cells)
 netAnalysis_signalingRole_scatter(ips_cells_cc)
+groupSize_ips <- as.numeric(table(ips_cells_cc@idents))
 
 #Plot general cell-cell trends
-netVisual_circle(cellchat_wt@net$count, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
-netVisual_circle(cellchat_wt@net$weight, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+netVisual_circle(wt_cells_cc@net$count, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+netVisual_circle(wt_cells_cc@net$weight, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
 
-netVisual_circle(cellchat_ips@net$count, vertex.weight = groupSize_ips, weight.scale = T, label.edge= F, title.name = "Number of interactions")
-netVisual_circle(cellchat_ips@net$weight, vertex.weight = groupSize_ips, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+netVisual_circle(ips_cells_cc@net$count, vertex.weight = groupSize_ips, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+netVisual_circle(ips_cells_cc@net$weight, vertex.weight = groupSize_ips, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
 
 #Look at specific cell type interactions
 #Had to recreate aggregateNet function in cellChatBug.R in order to use sources and targets. Bug reported on github
@@ -122,6 +125,14 @@ plot_source_targets(wt_cells_cc, target_cell = 'Endothelial')
 dev.off()
 
 #Microglia interactions
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_micro_source.pdf", width = 8, height = 6)
+plot_source_targets(wt_cells_cc, source_cell = 'Microglia')
+dev.off()
+
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_micro_target.pdf", width = 8, height = 6)
+plot_source_targets(wt_cells_cc, target_cell ='Microglia')
+dev.off()
+
 #Can view weights 
 wt_cells_cc@net
 
@@ -163,32 +174,49 @@ ht2 <- netAnalysis_signalingRole_heatmap(wt_cells_cc, pattern = "incoming")
 ht1
 
 #Look at top pathways between astros and neurons
-astro_neuron <-  subsetCommunication(mock_cells_cc, slot.name = "net",
-                                              sources.use = 'Astrocytes', targets.use = 'Neurons',
-                                              signaling = NULL,
-                                              pairLR.use = NULL,
-                                              thresh = 0.05)
-astro_neuron$cell_int <- paste(astro_neuron$source, astro_neuron$target, sep = '_')
-astro_neuron %>% dplyr::filter(prob > 0.1) %>% dplyr::arrange(prob) %>% 
-  ggplot(aes(x = cell_int, y = interaction_name, color = prob))+
-  geom_point()+
-  ylab('')+
-  xlab('')+
-  ggtitle('Top Astrocyte - Neuron interaction paths')+
-  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0),
-                       limits = c(0,0.35))+
-  theme_bw()
+int_path_heatmap <- function(cc_dat, source_cells = NULL, target_cells = NULL, main = ""){
+  comm_subset <-  subsetCommunication(cc_dat, slot.name = "net",
+                                       sources.use = source_cells, targets.use = target_cells,
+                                       signaling = NULL,
+                                       pairLR.use = NULL,
+                                       thresh = 0.05)
+  comm_subset$cell_int <- paste(comm_subset$source, comm_subset$target, sep = '_')
+  
+  #Order interaction name by probability for plotting
+  comm_subset$interaction_name <- factor(comm_subset$interaction_name, levels = comm_subset$interaction_name[order(comm_subset$prob)])
+  
+  #Plot
+  final_plot <- comm_subset %>% dplyr::arrange(prob) %>% dplyr::filter(prob > 0.1) %>% 
+    ggplot(aes(x = cell_int, y = interaction_name, fill = prob))+
+    geom_tile(color = 'black')+
+    ylab('')+
+    xlab('')+
+    ggtitle(main)+
+    scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                         values = c(1.0,0.7,0.4,0),
+                         limits = c(0,0.35))+
+    theme_bw()
+  
+  print(final_plot)
+}
+
+int_path_heatmap(mock_cells_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'mock')
+int_path_heatmap(wt_cells_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'wt')
+int_path_heatmap(ips_cells_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'ips1')
+
+#Loot at specific gene expression
+DotPlot(mock_cells, features = 'Sv2b', group.by = 'manualAnnotation')
+DotPlot(wt_cells, features = 'Negr1', group.by = 'manualAnnotation')
 
 #Try chord diagram
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/astro_to_neuron_chord.pdf", width = 20, height =16)
-netVisual_chord_gene(cellchat, sources.use = 'Astrocytes', targets.use = 'Neurons', lab.cex = 1.1,legend.pos.y = 30)
+netVisual_chord_gene(wt_cells_cc, sources.use = 'Astrocytes', targets.use = 'Neurons', lab.cex = 1.1,legend.pos.y = 30)
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/neuron_to_astro_chord.pdf", width = 20, height =16)
-netVisual_chord_gene(cellchat, sources.use = 'Neurons', targets.use = 'Astrocytes', lab.cex = 1.1,legend.pos.y = 30)
+netVisual_chord_gene(wt_cells_cc, sources.use = 'Neurons', targets.use = 'Astrocytes', lab.cex = 1.1,legend.pos.y = 30)
 dev.off()
 
 #Can plot select signalling pathways
-plotGeneExpression(cellchat, signaling = "NRXN", type = "violin")
+plotGeneExpression(wt_cells_cc, signaling = "NRXN", type = "violin")
 plotGeneExpression(cellchat, signaling = "TNF", type = "violin")

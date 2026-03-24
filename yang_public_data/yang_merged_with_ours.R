@@ -350,3 +350,38 @@ ggplot(ccl_celltype_levels_all, aes(x = celltype, y = features.plot))+
   ylab('')+
   xlab('')
 dev.off()
+
+#Check sc data across timepoints
+wt_cerebrum$time_celltype <- paste(wt_cerebrum$Timepoint, wt_cerebrum$manualAnnotation, sep = '_')
+wt_cerebrum_lgtv <- subset(wt_cerebrum, Treatment == 'rLGTV')
+
+wt_cerebrum_lgtv_ccl <- DotPlot(wt_cerebrum_lgtv, features = c('Ccl2', 'Ccl5', 'Ccl7', 'Ccl12'), group.by = 'time_celltype', scale = FALSE)$data
+wt_cerebrum_lgtv_ccl_meta <- str_split_fixed(wt_cerebrum_lgtv_ccl$id, pattern = '_', n = 2)
+colnames(wt_cerebrum_lgtv_ccl_meta) = c('timepoint', 'celltype')
+wt_cerebrum_lgtv_ccl <- cbind(wt_cerebrum_lgtv_ccl, wt_cerebrum_lgtv_ccl_meta)
+wt_cerebrum_lgtv_ccl <- dplyr::filter(wt_cerebrum_lgtv_ccl, celltype != 'unknown')
+
+wt_cerebrum_lgtv_ccl$celltype <- factor(wt_cerebrum_lgtv_ccl$celltype, levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal', 'Immature Neurons',
+                                                                             'Microglia', 'Muscle cells', 'Neurons', 'Oligodendrocytes', 'Pericytes',
+                                                                             'B Cells', 'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 'T cells')))
+
+ggplot(wt_cerebrum_lgtv_ccl, aes(x = celltype, y = features.plot))+
+  facet_wrap(~timepoint, nrow = 1, ncol = 3)+
+  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
+  coord_flip()+
+  scale_size_continuous(range = c(0.5,6), limits = c(0,100))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,5))+
+  ggtitle('Single-cell chemokines')+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        #panel.border = element_rect(colour = "white", fill = NA),
+        panel.spacing = unit(0, "line"),
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 90))+
+  scale_size(range = c(0,9), limits = c(0, 100))+
+  ylab('')+
+  xlab('')
+
+
