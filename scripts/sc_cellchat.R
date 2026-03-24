@@ -83,58 +83,60 @@ plot_source_targets <- function(cc_obj, target_cell = NULL, source_cell = NULL){
   netVisual_circle(cellchat_obj@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
 }
 
+#Astrocyte interactions
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_source.pdf", width = 8, height =6)
 plot_source_targets(mock_cells_cc, source_cell = 'Astrocytes')
 dev.off()
 
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_astro_source.pdf", width = 8, height =6)
 plot_source_targets(wt_cells_cc, source_cell = 'Astrocytes')
+dev.off()
+
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_astro_source.pdf", width = 8, height =6)
 plot_source_targets(ips_cells_cc, source_cell = 'Astrocytes')
-
-
-netVisual_circle(cellchat_astro_wt@net$weight, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
 dev.off()
 
-pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/astro_target_wt.pdf", width = 8, height =6)
-netVisual_circle(cellchat_astro_targ_wt@net$weight, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_target.pdf", width = 8, height =6)
+plot_source_targets(mock_cells_cc, target_cell = 'Astrocytes')
 dev.off()
 
-pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/astro_source_ips.pdf", width = 8, height =6)
-netVisual_circle(cellchat_astro_ips@net$weight, vertex.weight = groupSize_ips, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_astro_target.pdf", width = 8, height =6)
+plot_source_targets(wt_cells_cc, target_cell = 'Astrocytes')
 dev.off()
 
-pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/astro_target_ips.pdf", width = 8, height =6)
-netVisual_circle(cellchat_astro_targ_ips@net$weight, vertex.weight = groupSize_ips, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_astro_target.pdf", width = 8, height =6)
+plot_source_targets(ips_cells_cc, target_cell = 'Astrocytes')
 dev.off()
-
-#Can view weights 
-cellchat_astro@net
 
 #Endothelial interactions
-cellchat_endo_wt <- aggregateNet_bug_removed(cellchat_wt, source = "Endothelial")
-cellchat_endo_ips <- aggregateNet_bug_removed(cellchat_ips, source = "Endothelial")
-
-pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/endo_source.pdf", width = 8, height =6)
-netVisual_circle(cellchat_endo_wt@net$weight, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_endo_source.pdf", width = 8, height = 6)
+plot_source_targets(mock_cells_cc, source_cell = 'Endothelial')
 dev.off()
 
-cellchat_endo_target <- aggregateNet_bug_removed(cellchat, target = "Endothelial")
-
-pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/endo_target.pdf", width = 8, height =6)
-netVisual_circle(cellchat_endo_target@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_endo_source.pdf", width = 8, height = 6)
+plot_source_targets(wt_cells_cc, source_cell = 'Endothelial')
 dev.off()
+
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_endo_target.pdf", width = 8, height = 6)
+plot_source_targets(wt_cells_cc, target_cell = 'Endothelial')
+dev.off()
+
+#Microglia interactions
+#Can view weights 
+wt_cells_cc@net
 
 #Look at specific pathways
 CellChatDB$interaction$pathway_name
-cellchat@netP$pathways
+wt_cells_cc@netP$pathways
 #Look at ligand-receptor pairs in select pathwayy
 CellChatDB$interaction[CellChatDB$interaction$pathway_name == 'Glutamate',]$ligand %>% unique()
 #Plot pathway
 pathways.show <- c("IL1") 
-netVisual_aggregate(cellchat, signaling = pathways.show)
+netVisual_aggregate(wt_cells_cc, signaling = pathways.show)
 
 #Aggregate pathway chord diagram
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/cellchat_agg_chord.pdf", width = 20, height =16)
-netVisual_aggregate(cellchat_wt, signaling = pathways.show, layout = "chord")
+netVisual_aggregate(wt_cells_cc, signaling = pathways.show, layout = "chord")
 dev.off()
 
 #Heatmap of il1 pathway
@@ -144,31 +146,24 @@ netVisual_heatmap(cellchat, signaling = pathways.show, color.heatmap = "Reds")
 netAnalysis_contribution(cellchat, signaling = pathways.show)
 
 # show all the interactions sending from astrocytes to neurons
-pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/astro_to_neuron.pdf", width = 20, height =16)
-netVisual_chord_gene(cellchat_wt, sources.use = 1, targets.use = c(11), lab.cex = 0.5,legend.pos.y = 30)
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_to_neuron.pdf", width = 20, height =16)
+netVisual_chord_gene(mock_cells_cc, sources.use = 1, targets.use = c(11), lab.cex = 1,legend.pos.y = 30)
 dev.off()
 
-#Network centrality scores
-cellchat_wt <- netAnalysis_computeCentrality(cellchat_wt, slot.name = "netP")
-cellchat_ips <- netAnalysis_computeCentrality(cellchat_ips, slot.name = "netP")
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_astro_to_neuron.pdf", width = 20, height =16)
+netVisual_chord_gene(wt_cells_cc, sources.use = 1, targets.use = c(11), lab.cex = 1,legend.pos.y = 30)
+dev.off()
 
 #Look at pathway centrality
-netAnalysis_signalingRole_network(cellchat_wt, signaling = pathways.show, width = 8, height = 2.5, font.size = 10)
-
-#Overall senders and recievers 
-netAnalysis_signalingRole_scatter(cellchat_wt)
-netAnalysis_signalingRole_scatter(cellchat_ips)
+netAnalysis_signalingRole_network(wt_cells_cc, signaling = pathways.show, width = 8, height = 2.5, font.size = 10)
 
 # Signaling role analysis on the aggregated cell-cell communication network from all signaling pathways
-netAnalysis_signalingRole_scatter(cellchat)
-
-# Signaling role analysis on the aggregated cell-cell communication network from all signaling pathways
-ht1 <- netAnalysis_signalingRole_heatmap(cellchat, pattern = "outgoing")
-ht2 <- netAnalysis_signalingRole_heatmap(cellchat, pattern = "incoming")
+ht1 <- netAnalysis_signalingRole_heatmap(wt_cells_cc, pattern = "outgoing")
+ht2 <- netAnalysis_signalingRole_heatmap(wt_cells_cc, pattern = "incoming")
 ht1
 
 #Look at top pathways between astros and neurons
-astro_neuron <-  subsetCommunication(cellchat, slot.name = "net",
+astro_neuron <-  subsetCommunication(mock_cells_cc, slot.name = "net",
                                               sources.use = 'Astrocytes', targets.use = 'Neurons',
                                               signaling = NULL,
                                               pairLR.use = NULL,
@@ -182,7 +177,7 @@ astro_neuron %>% dplyr::filter(prob > 0.1) %>% dplyr::arrange(prob) %>%
   ggtitle('Top Astrocyte - Neuron interaction paths')+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0),
-                       limits = c(0,0.32))+
+                       limits = c(0,0.35))+
   theme_bw()
 
 #Try chord diagram

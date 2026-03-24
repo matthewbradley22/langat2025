@@ -143,9 +143,6 @@ astrocytes$infection_group <- ifelse(astrocytes$Treatment %in% c('rChLGTV', 'rLG
 #from scRNA_astrocyte_analysis.R script
 
 
-
-
-
 #PBS
 pbs_sc_ips <- ips_astrocytes_cerebrum_markers[ips_astrocytes_cerebrum_markers$avg_log2FC > 1 & 
                                                 ips_astrocytes_cerebrum_markers$p_val_adj < 0.01 &
