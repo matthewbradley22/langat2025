@@ -2,6 +2,7 @@
 library(Seurat)
 library(RColorBrewer)
 library(CellChat)
+library(ggpubr)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 source('~/Documents/ÖverbyLab/scripts/cellChatBug.R')
 
@@ -21,6 +22,16 @@ ParseSeuratObj_int$samples = factor(ParseSeuratObj_int$orig.ident)
 wt_cells <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment == 'rChLGTV')
 ips_cells <- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment == 'rChLGTV')
 mock_cells <- subset(ParseSeuratObj_int, Treatment == 'PBS')
+
+#Split into timepoints as well
+wt_cells_three <- subset(wt_cells, Timepoint == 'Day 3')
+wt_cells_four <- subset(wt_cells, Timepoint == 'Day 4')
+wt_cells_five <- subset(wt_cells, Timepoint == 'Day 5')
+
+ips_cells_three <- subset(ips_cells, Timepoint == 'Day 3')
+ips_cells_four <- subset(ips_cells, Timepoint == 'Day 4')
+ips_cells_five <- subset(ips_cells, Timepoint == 'Day 5')
+
 
 #Create ligand receptor database
 CellChatDB <- CellChatDB.mouse
@@ -60,16 +71,49 @@ prep_cellchat_obj <- function(seu_obj){
 }
 
 #Create cellchat objects for mock and infected cells and look at overall senders/receivers
+custom_net_signal_scatter <- function(cc_obj, main = NULL, xlimit, ylimit){
+  p1 <- netAnalysis_signalingRole_scatter(cc_obj)+
+    xlim(c(0,xlimit))+
+    ylim(0,ylimit)+
+    ggtitle(main)+
+    theme(plot.title = element_text(size = 25))
+  plot(p1)
+}
+
+#Plots split by genotype
 mock_cells_cc <- prep_cellchat_obj(mock_cells)
-netAnalysis_signalingRole_scatter(mock_cells_cc)
+custom_net_signal_scatter(mock_cells_cc, main = 'Mock', xlimit = 33, ylimit = 33)
 
 wt_cells_cc <- prep_cellchat_obj(wt_cells)
-netAnalysis_signalingRole_scatter(wt_cells_cc)
+custom_net_signal_scatter(wt_cells_cc, main = 'WT chLGTV', xlimit = 33, ylimit = 33)
 groupSize_wt <- as.numeric(table(wt_cells_cc@idents))
 
 ips_cells_cc <- prep_cellchat_obj(ips_cells)
-netAnalysis_signalingRole_scatter(ips_cells_cc)
+custom_net_signal_scatter(ips_cells_cc, main = 'IPS1 chLGTV', xlimit = 33, ylimit = 33)
 groupSize_ips <- as.numeric(table(ips_cells_cc@idents))
+
+#Plots split by timepoint
+wt_cells_three_cc <- prep_cellchat_obj(wt_cells_three)
+wt_p3 <- custom_net_signal_scatter(wt_cells_three_cc, main = 'WT chLGTV Day 3', xlimit = 33, ylimit = 33)
+
+wt_cells_four_cc <- prep_cellchat_obj(wt_cells_four)
+wt_p4 <- custom_net_signal_scatter(wt_cells_four_cc, main = 'WT chLGTV Day 4', xlimit = 33, ylimit = 33)
+
+wt_cells_five_cc <- prep_cellchat_obj(wt_cells_five)
+wt_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'WT chLGTV Day 5', xlimit = 33, ylimit = 33)
+
+ggpubr::ggarrange(wt_p3, wt_p4, wt_p5, nrow = 1, ncol = 3)
+
+ips_cells_three_cc <- prep_cellchat_obj(ips_cells_three)
+ips_p3 <- custom_net_signal_scatter(ips_cells_three_cc, main = 'IPS chLGTV Day 3', xlimit = 33, ylimit = 33)
+
+ips_cells_four_cc <- prep_cellchat_obj(ips_cells_four)
+ips_p4 <- custom_net_signal_scatter(ips_cells_four_cc, main = 'IPS chLGTV Day 4', xlimit = 33, ylimit = 33)
+
+ips_cells_five_cc <- prep_cellchat_obj(ips_cells_five)
+ips_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'IPS chLGTV Day 5', xlimit = 33, ylimit = 33)
+
+ggpubr::ggarrange(ips_p3, ips_p4, ips_p5, nrow = 1, ncol = 3)
 
 #Plot general cell-cell trends
 netVisual_circle(wt_cells_cc@net$count, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
@@ -138,12 +182,35 @@ wt_cells_cc@net
 
 #Look at specific pathways
 CellChatDB$interaction$pathway_name
-wt_cells_cc@netP$pathways
+wt_cells_cc@netP$pathways %>% sort()
+
 #Look at ligand-receptor pairs in select pathwayy
 CellChatDB$interaction[CellChatDB$interaction$pathway_name == 'Glutamate',]$ligand %>% unique()
-#Plot pathway
-pathways.show <- c("IL1") 
-netVisual_aggregate(wt_cells_cc, signaling = pathways.show)
+
+#Plot pathways overtime
+path_over_time <- function(pathway, genotype){
+  pathways.show <- c(pathway) 
+  if(genotype == 'WT'){
+    wt_p3 <- netVisual_aggregate(wt_cells_three_cc, signaling = pathways.show)
+    wt_p4 <- netVisual_aggregate(wt_cells_four_cc, signaling = pathways.show)
+    wt_p5 <- netVisual_aggregate(wt_cells_five_cc, signaling = pathways.show)
+    return(list(wt_p3, wt_p4, wt_p5))
+  }
+  if(genotype == 'IPS1'){
+    ips_p3 <- netVisual_aggregate(ips_cells_three_cc, signaling = pathways.show)
+    ips_p4 <- netVisual_aggregate(ips_cells_four_cc, signaling = pathways.show)
+    ips_p5 <- netVisual_aggregate(ips_cells_five_cc, signaling = pathways.show)
+    return(list(ips_p3, ips_p4, ips_p5))
+  }
+}
+
+ccl_wt_plots <- path_over_time('NEGR', genotype = 'WT')
+ccl_wt_plots[[3]]
+
+ccl_ips_plots <- path_over_time('NEGR', genotype = 'IPS1')
+ccl_ips_plots[[3]]
+
+netVisual_aggregate(mock_cells_cc, signaling = 'CCL')
 
 #Aggregate pathway chord diagram
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/cellchat_agg_chord.pdf", width = 20, height =16)
