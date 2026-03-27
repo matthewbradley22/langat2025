@@ -72,7 +72,7 @@ ParseSeuratObj <- subset(ParseSeuratObj, nFeature_RNA > 200 & nFeature_RNA < 750
 
 #Use Parse barcoding plate to label cells
 #Going to try just left joining and seeing if virus expression matches up
-ParseBarcodePlate <- read_csv("ParseBarcodePlate.csv")
+ParseBarcodePlate <- read_csv("~/Documents/ÖverbyLab/ParseBarcodePlate.csv")
 ParseBarcodePlate$orig.ident <- c(paste0('0', as.character(seq(1:9))), seq(10,48))
 ParseSeuratObj[[]] <- left_join(ParseSeuratObj[[]], ParseBarcodePlate, by = 'orig.ident')
 

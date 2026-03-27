@@ -47,3 +47,5 @@ DotPlot(mock_astros, features = c(paste0('Ccl', 1:16)), group.by = 'Genotype', s
 
 DotPlot(mock_astros, features = c('Rsad2', 'Irf7', 'Ifitm3', 'Oas1a', 'Ifit1', 'Ifit2', 'Ifit3'), group.by = 'Genotype', scale = FALSE)+
   theme(axis.text.x = element_text(angle = 90))
+
+
