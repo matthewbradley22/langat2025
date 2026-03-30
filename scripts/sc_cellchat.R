@@ -3,7 +3,9 @@ library(Seurat)
 library(RColorBrewer)
 library(CellChat)
 library(ggpubr)
-source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
+library(patchwork)
+library(tidyverse)
+source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
 source('~/Documents/ÖverbyLab/scripts/cellChatBug.R')
 
 #Load data
@@ -31,7 +33,6 @@ wt_cells_five <- subset(wt_cells, Timepoint == 'Day 5')
 ips_cells_three <- subset(ips_cells, Timepoint == 'Day 3')
 ips_cells_four <- subset(ips_cells, Timepoint == 'Day 4')
 ips_cells_five <- subset(ips_cells, Timepoint == 'Day 5')
-
 
 #Create ligand receptor database
 CellChatDB <- CellChatDB.mouse
@@ -94,24 +95,24 @@ groupSize_ips <- as.numeric(table(ips_cells_cc@idents))
 
 #Plots split by timepoint
 wt_cells_three_cc <- prep_cellchat_obj(wt_cells_three)
-wt_p3 <- custom_net_signal_scatter(wt_cells_three_cc, main = 'WT chLGTV Day 3', xlimit = 33, ylimit = 33)
+wt_p3 <- custom_net_signal_scatter(wt_cells_three_cc, main = 'WT chLGTV Day 3', xlimit = 33, ylimit = 38)
 
 wt_cells_four_cc <- prep_cellchat_obj(wt_cells_four)
-wt_p4 <- custom_net_signal_scatter(wt_cells_four_cc, main = 'WT chLGTV Day 4', xlimit = 33, ylimit = 33)
+wt_p4 <- custom_net_signal_scatter(wt_cells_four_cc, main = 'WT chLGTV Day 4', xlimit = 33, ylimit = 38)
 
 wt_cells_five_cc <- prep_cellchat_obj(wt_cells_five)
-wt_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'WT chLGTV Day 5', xlimit = 33, ylimit = 33)
+wt_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'WT chLGTV Day 5', xlimit = 33, ylimit = 38)
 
 ggpubr::ggarrange(wt_p3, wt_p4, wt_p5, nrow = 1, ncol = 3)
 
 ips_cells_three_cc <- prep_cellchat_obj(ips_cells_three)
-ips_p3 <- custom_net_signal_scatter(ips_cells_three_cc, main = 'IPS chLGTV Day 3', xlimit = 33, ylimit = 33)
+ips_p3 <- custom_net_signal_scatter(ips_cells_three_cc, main = 'IPS chLGTV Day 3', xlimit = 33, ylimit = 38)
 
 ips_cells_four_cc <- prep_cellchat_obj(ips_cells_four)
-ips_p4 <- custom_net_signal_scatter(ips_cells_four_cc, main = 'IPS chLGTV Day 4', xlimit = 33, ylimit = 33)
+ips_p4 <- custom_net_signal_scatter(ips_cells_four_cc, main = 'IPS chLGTV Day 4', xlimit = 33, ylimit = 38)
 
 ips_cells_five_cc <- prep_cellchat_obj(ips_cells_five)
-ips_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'IPS chLGTV Day 5', xlimit = 33, ylimit = 33)
+ips_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'IPS chLGTV Day 5', xlimit = 33, ylimit = 38)
 
 ggpubr::ggarrange(ips_p3, ips_p4, ips_p5, nrow = 1, ncol = 3)
 
@@ -185,41 +186,56 @@ CellChatDB$interaction$pathway_name
 wt_cells_cc@netP$pathways %>% sort()
 
 #Look at ligand-receptor pairs in select pathwayy
-CellChatDB$interaction[CellChatDB$interaction$pathway_name == 'Glutamate',]$ligand %>% unique()
+CellChatDB$interaction[CellChatDB$interaction$pathway_name == 'CCL',]$ligand %>% unique()
 
 #Plot pathways overtime
 path_over_time <- function(pathway, genotype){
   pathways.show <- c(pathway) 
   if(genotype == 'WT'){
-    wt_p3 <- netVisual_aggregate(wt_cells_three_cc, signaling = pathways.show)
-    wt_p4 <- netVisual_aggregate(wt_cells_four_cc, signaling = pathways.show)
-    wt_p5 <- netVisual_aggregate(wt_cells_five_cc, signaling = pathways.show)
+    #Vertex weight being null makes dot sizes proportional to number of cells
+    wt_p3 <- netVisual_aggregate(wt_cells_three_cc, signaling = pathways.show, vertex.weight = NULL)
+    wt_p4 <- netVisual_aggregate(wt_cells_four_cc, signaling = pathways.show, vertex.weight = NULL)
+    wt_p5 <- netVisual_aggregate(wt_cells_five_cc, signaling = pathways.show, vertex.weight = NULL)
     return(list(wt_p3, wt_p4, wt_p5))
   }
   if(genotype == 'IPS1'){
-    ips_p3 <- netVisual_aggregate(ips_cells_three_cc, signaling = pathways.show)
-    ips_p4 <- netVisual_aggregate(ips_cells_four_cc, signaling = pathways.show)
-    ips_p5 <- netVisual_aggregate(ips_cells_five_cc, signaling = pathways.show)
+    ips_p3 <- netVisual_aggregate(ips_cells_three_cc, signaling = pathways.show, vertex.weight = NULL)
+    ips_p4 <- netVisual_aggregate(ips_cells_four_cc, signaling = pathways.show, vertex.weight = NULL)
+    ips_p5 <- netVisual_aggregate(ips_cells_five_cc, signaling = pathways.show, vertex.weight = NULL)
     return(list(ips_p3, ips_p4, ips_p5))
   }
 }
 
-ccl_wt_plots <- path_over_time('NEGR', genotype = 'WT')
-ccl_wt_plots[[3]]
+ccl_wt_plots <- path_over_time('TNF', genotype = 'WT')
+ccl_wt_plots[[1]]
 
-ccl_ips_plots <- path_over_time('NEGR', genotype = 'IPS1')
-ccl_ips_plots[[3]]
+ccl_ips_plots <- path_over_time('TNF', genotype = 'IPS1')
+ccl_ips_plots[[1]]
 
-netVisual_aggregate(mock_cells_cc, signaling = 'CCL')
+netVisual_aggregate(mock_cells_cc, signaling = 'CCL', vertex.weight = NULL)
 
 #Aggregate pathway chord diagram
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/cellchat_agg_chord.pdf", width = 20, height =16)
 netVisual_aggregate(wt_cells_cc, signaling = pathways.show, layout = "chord")
 dev.off()
 
-#Heatmap of il1 pathway
-netVisual_heatmap(cellchat, signaling = pathways.show, color.heatmap = "Reds")
+#Side by side pathway heatmaps for two datasets
+#Have to use patchwork to get both heatmaps to show legends, therefore have to do this draw grid grab stuff
+path_heatmap_comp <- function(cc_dat1, cc_dat2, pathway, plot_path){
+  p1 <- netVisual_heatmap(cc_dat1, signaling = pathway, color.heatmap = "Reds") %>% 
+    draw() %>% 
+    grid.grabExpr()
+  p2 <- netVisual_heatmap(cc_dat2, signaling = pathway, color.heatmap = "Reds") %>% 
+    draw() %>% 
+    grid.grabExpr()
+  wrap_plots(list(p1, p2), ncol = 2)
+}
 
+#Cannot get legends to stay seperate if plot two together (looks like an issue in cellchat docs to me as well)
+#So just plotting seperate for now
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/comp_heatmap_test.pdf', width = 10, height = 6)
+path_heatmap_comp(wt_cells_three_cc, ips_cells_three_cc, pathway = 'CCL')
+dev.off()
 #Break pathway into specific lr pairs
 netAnalysis_contribution(cellchat, signaling = pathways.show)
 
@@ -285,5 +301,52 @@ netVisual_chord_gene(wt_cells_cc, sources.use = 'Neurons', targets.use = 'Astroc
 dev.off()
 
 #Can plot select signalling pathways
-plotGeneExpression(wt_cells_cc, signaling = "NRXN", type = "violin")
-plotGeneExpression(cellchat, signaling = "TNF", type = "violin")
+plotGeneExpression(wt_cells_three_cc, signaling = "TNF", type = "violin")
+plotGeneExpression(ips_cells_three_cc, signaling = "TNF", type = "violin")
+
+
+########### Comparative analysis between wt and ips cellchat ########### 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
+#Merge datasets
+cellchat_three_merged <- mergeCellChat(list(wt = wt_cells_three_cc, ips = ips_cells_three_cc), add.names = c('WT', 'IPS1'))
+compareInteractions(cellchat_three_merged, show.legend = F, group = c(1,2))
+netVisual_diffInteraction(cellchat_three_merged, weight.scale = T)
+netVisual_heatmap(cellchat_three_merged)
+netVisual_heatmap(cellchat_three_merged, comparison = c(1,2))
+
+cellchat_four_merged <- mergeCellChat(list(wt = wt_cells_four_cc, ips = ips_cells_four_cc), add.names = c('WT', 'IPS1'))
+compareInteractions(cellchat_four_merged, show.legend = F, group = c(1,2))
+netVisual_diffInteraction(cellchat_four_merged, weight.scale = T)
+
+cellchat_five_merged <- mergeCellChat(list(wt = wt_cells_five_cc, ips = ips_cells_five_cc), add.names = c('WT', 'IPS1'))
+compareInteractions(cellchat_five_merged, show.legend = F, group = c(1,2))
+netVisual_diffInteraction(cellchat_five_merged, weight.scale = T)
+netVisual_heatmap(cellchat_five_merged)
+
+#Identifying signalling changes of specific celltypes between datasets
+netAnalysis_signalingChanges_scatter(cellchat_five_merged, idents.use = "Astrocytes")
+
+###### Differential look at signalling networks ###### 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
+reticulate::use_python("/Users/matthewbradley/miniconda3/bin/python", required=T) 
+cellchat_three_merged <- computeNetSimilarityPairwise(cellchat_three_merged, type = "functional")
+#Crashes R for some reason
+#cellchat_three_merged <- netEmbedding(cellchat_three_merged, type = "functional")
+#cellchat_three_merged <- netClustering(cellchat_three_merged, type = "functional")
+
+#Pathway barplot comparisons for each timepoint
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/day3_path_comp_bar.pdf", width = 8, height =12)
+rankNet(cellchat_three_merged, mode = "comparison", measure = "weight", sources.use = NULL, targets.use = NULL, stacked = T, do.stat = TRUE)
+dev.off()
+
+rankNet(cellchat_four_merged, mode = "comparison", measure = "weight", sources.use = NULL, targets.use = NULL, stacked = T, do.stat = TRUE)
+
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/day5_path_comp_bar.pdf", width = 8, height =12)
+rankNet(cellchat_five_merged, mode = "comparison", measure = "weight", sources.use = NULL, targets.use = NULL, stacked = T, do.stat = TRUE)
+dev.off()
+
+#Up and downregulated ligand-receptor pairs by communication probabilties
+netVisual_bubble(cellchat_three_merged, sources.use = 'Astrocytes', targets.use = c('Microglia', 'Neurons'),  comparison = c(1, 2), angle.x = 45)
+

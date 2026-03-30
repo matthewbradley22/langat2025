@@ -306,7 +306,7 @@ num_markers_df %>% tidyr::pivot_longer(cols = tidyr::starts_with('degs'), names_
 
 
 ###### Infected astrocytes vs other cell types #######
-######################################################
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 
 #Can look at degs in astrocytes in mock mice, the infected,
 #then compare which genes are upregulated in infection but not mock
@@ -359,6 +359,7 @@ DimPlot(astrocytes_cerebellum, reduction = 'astrocytes_cerebellum_umap', group.b
 
 ######### Genes upregulated by celltype for upsetplot ##########
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
+
 wt_chimeric <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment %in% c('PBS', 'rChLGTV'))
 ips_chimeric <- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment %in% c('PBS', 'rChLGTV'))
 
@@ -415,7 +416,18 @@ UpSetR::upset(upset_dat_ips, nsets = 10, order.by = 'freq', text.scale = 2)
 shared_wt_genes <- Reduce(intersect, deg_names_wt[c('Microglia', 'Choroid Plexus', 'Ependymal', 'Endothelial', 'Macro/Mono', 'T cells', 'Astrocytes')])
 shared_ips_genes <- Reduce(intersect, deg_names_ips[c('Microglia', 'Choroid Plexus', 'Ependymal', 'Endothelial', 'Macro/Mono', 'T cells', 'Astrocytes')])
 
-shared_wt_genes[!shared_wt_genes %in% shared_ips_genes]
+
+unique_wt <- length(shared_wt_genes[!shared_wt_genes %in% shared_ips_genes])
+unique_ips <- length(shared_ips_genes[!shared_ips_genes %in% shared_wt_genes])
+shared_genes <- length(intersect(x = shared_ips_genes, y = shared_wt_genes))
+
+ips_vs_wt_up_genes <- data.frame('type' = factor(c('wt_only', 'ips_only', 'shared'), levels = c('wt_only', 'ips_only', 'shared')), 
+                                 counts = c(unique_wt, unique_ips, shared_genes))
+ggplot(ips_vs_wt_up_genes, aes(x = type, y = counts, fill = type))+
+  geom_bar(stat = 'identity')+
+  theme(legend.position = 'none')+
+  scale_fill_manual(values = c("#A0AEF2", "#88BBBD",  "#AD88BD"))
+
 #Get all genes upregulated in non astrocytes in infection
 non_astros <- celltype_markers_sig[names(celltype_markers_sig) != 'Astrocytes']
 non_micro <- celltype_markers_sig[names(celltype_markers_sig) != 'Microglia']
@@ -464,4 +476,59 @@ ggplot(gene_dot, aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
         scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                              values = c(1.0,0.7,0.4,0))+
         ggtitle('Grm5')
+
+
+########### UpSet plots by timepoint ########### 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
+#Only day 3 and 5 have pbs and infected
+wt_chimeric_three <- subset(wt_chimeric, Timepoint == 'Day 3')
+wt_chimeric_five <- subset(wt_chimeric, Timepoint == 'Day 5')
+
+wt_three_degs <- list()
+wt_five_degs <- list()
+
+for(i in 1:length(celltypes)){
+  print(paste('Beginning celltype', celltypes[i]))
+  cur_dat_three <- subset(wt_chimeric_three, manualAnnotation == celltypes[i])
+  cur_dat_five <- subset(wt_chimeric_five, manualAnnotation == celltypes[i])
+  
+  celltype_markers_three <- FindMarkers(cur_dat_three, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+                                     test.use = 'MAST')
+ 
+  celltype_markers_five <- FindMarkers(cur_dat_five, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+                                       test.use = 'MAST')
+  
+  wt_three_degs[[i]] = celltype_markers_three
+  wt_five_degs[[i]] = celltype_markers_five
+  
+  names(wt_three_degs)[[i]] = celltypes[i]
+  names(wt_five_degs)[[i]] = celltypes[i]
+  
+  print(paste('Done with celltype', celltypes[i]))
+}
+
+wt_three_sig <- lapply(wt_three_degs, FUN = function(x){
+  celltype_dat <- as.data.frame(x)
+  celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
+})
+
+wt_five_sig <- lapply(wt_five_degs, FUN = function(x){
+  celltype_dat <- as.data.frame(x)
+  celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
+})
+
+deg_names_wt_three <- lapply(wt_three_sig, FUN = function(x){
+  rownames(x)
+})
+
+deg_names_wt_five <- lapply(wt_five_sig, FUN = function(x){
+  rownames(x)
+})
+
+upset_dat_wt_three <- UpSetR::fromList(deg_names_wt_three)
+upset_dat_wt_five <- UpSetR::fromList(deg_names_wt_five)
+
+UpSetR::upset(upset_dat_wt_three, nsets = 10, order.by = 'freq', text.scale = 2)
+UpSetR::upset(upset_dat_wt_five, nsets = 10, order.by = 'freq', text.scale = 2)
 
