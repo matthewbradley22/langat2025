@@ -43,7 +43,7 @@ mock_wt <- subset(chimeric_mock, Treatment == 'PBS'  & Genotype == 'WT')
 
 #IPS chLGTV
 pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/ChLgtv_ips_cellPopBars.pdf", width = 5, height = 8)
-table(chLgtv_ips$Timepoint, chLgtv_ips$manualAnnotation) %>% 
+table(chLgtv_ips$Timepoint, chLgtv_ips$manualAnnotation, chLgtv_ips$Organ) %>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
@@ -61,7 +61,7 @@ dev.off()
 
 #WT chLGTV
 pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/ChLgtv_wt_cellPopBars.pdf", width = 5, height = 8)
-table(chLgtv_wt$Timepoint, chLgtv_wt$manualAnnotation) %>% 
+table(chLgtv_wt$Timepoint, chLgtv_wt$manualAnnotation, chLgtv_wt$Organ) %>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
@@ -196,8 +196,20 @@ mavs_dat_meta <- str_split_fixed(mavs_dat$id, "_", 2)
 colnames(mavs_dat_meta) <- c('genotype', 'treatment')
 mavs_dat <- cbind(mavs_dat, mavs_dat_meta)
 
-ggplot(mavs_dat, aes(x = ))
-
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mavs_expression.pdf', height = 9, width = 7)
+ggplot(mavs_dat, aes(x = genotype, y = treatment, color = avg.exp.scaled, size = pct.exp))+
+  geom_point()+
+  scale_color_gradient2(low = 'white', mid = 'orange', high = 'red', midpoint = 0.06)+
+  theme_classic()+
+  theme(axis.text = element_text(size = 24),
+        legend.text = element_text(size = 24),
+        legend.title = element_text(size = 24),
+        plot.title = element_text(size =30))+
+  xlab('')+
+  ylab('')+
+  ggtitle('Mavs Expression')+
+  scale_size_continuous(range = c(3,9))
+dev.off()
 
 
 

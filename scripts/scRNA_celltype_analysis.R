@@ -483,16 +483,31 @@ ggplot(gene_dot, aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 
 #Only day 3 and 5 have pbs and infected
-wt_chimeric_three <- subset(wt_chimeric, Timepoint == 'Day 3')
-wt_chimeric_five <- subset(wt_chimeric, Timepoint == 'Day 5')
+wt_chimeric_three <- subset(wt_chimeric, Timepoint == 'Day 3' | Treatment == 'PBS')
+wt_chimeric_five <- subset(wt_chimeric, Timepoint == 'Day 5' | Treatment == 'PBS')
 
+ips_chimeric_three <- subset(ips_chimeric, Timepoint == 'Day 3' | Treatment == 'PBS')
+ips_chimeric_five <- subset(ips_chimeric, Timepoint == 'Day 5' | Treatment == 'PBS')
+
+#Can skip running loop and load here 
+wt_three_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_three_celltype_upset.rds')
+wt_five_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_five_celltype_upset.rds')
+ips_three_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_three_celltype_upset.rds')
+ips_five_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_five_celltype_upset.rds')
+
+#Otherwise can run from beginning
 wt_three_degs <- list()
 wt_five_degs <- list()
+ips_three_degs <- list()
+ips_five_degs <- list()
 
 for(i in 1:length(celltypes)){
   print(paste('Beginning celltype', celltypes[i]))
+  
   cur_dat_three <- subset(wt_chimeric_three, manualAnnotation == celltypes[i])
   cur_dat_five <- subset(wt_chimeric_five, manualAnnotation == celltypes[i])
+  cur_dat_three_ips <- subset(ips_chimeric_three, manualAnnotation == celltypes[i])
+  cur_dat_five_ips <- subset(ips_chimeric_five, manualAnnotation == celltypes[i])
   
   celltype_markers_three <- FindMarkers(cur_dat_three, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
                                      test.use = 'MAST')
@@ -500,38 +515,57 @@ for(i in 1:length(celltypes)){
   celltype_markers_five <- FindMarkers(cur_dat_five, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
                                        test.use = 'MAST')
   
+  celltype_markers_three_ips <- FindMarkers(cur_dat_three_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+                                        test.use = 'MAST')
+  
+  celltype_markers_five_ips <- FindMarkers(cur_dat_five_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+                                            test.use = 'MAST')
+  
   wt_three_degs[[i]] = celltype_markers_three
   wt_five_degs[[i]] = celltype_markers_five
+  ips_three_degs[[i]] = celltype_markers_three_ips
+  ips_five_degs[[i]] = celltype_markers_five_ips
   
   names(wt_three_degs)[[i]] = celltypes[i]
   names(wt_five_degs)[[i]] = celltypes[i]
+  names(ips_three_degs)[[i]] = celltypes[i]
+  names(ips_five_degs)[[i]] = celltypes[i]
   
   print(paste('Done with celltype', celltypes[i]))
 }
 
-wt_three_sig <- lapply(wt_three_degs, FUN = function(x){
-  celltype_dat <- as.data.frame(x)
-  celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
-})
+#saveRDS(wt_three_degs, file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_three_celltype_upset.rds')
+#saveRDS(wt_five_degs, file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_five_celltype_upset.rds')
+#saveRDS(ips_three_degs, file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_three_celltype_upset.rds')
+#saveRDS(ips_five_degs, file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_five_celltype_upset.rds')
 
-wt_five_sig <- lapply(wt_five_degs, FUN = function(x){
-  celltype_dat <- as.data.frame(x)
-  celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
-})
+#function to generate upset data from list of degs
+generate_upset_dat <- function(deg_list_dat){
+  sig_dat <- lapply(deg_list_dat, FUN = function(x){
+    celltype_dat <- as.data.frame(x)
+    celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
+  })
+  deg_names <- lapply(sig_dat, FUN = function(x){
+    rownames(x)
+  })
+  upset_dat<- UpSetR::fromList(deg_names)
+}
 
-deg_names_wt_three <- lapply(wt_three_sig, FUN = function(x){
-  rownames(x)
-})
+upset_dat_wt_three <- generate_upset_dat(wt_three_degs)
+upset_dat_wt_five <- generate_upset_dat(wt_five_degs)
+upset_dat_ips_three <- generate_upset_dat(ips_three_degs)
+upset_dat_ips_five <- generate_upset_dat(ips_five_degs)
 
-deg_names_wt_five <- lapply(wt_five_sig, FUN = function(x){
-  rownames(x)
-})
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_three_upset.pdf', height = 8, width = 13, onefile = FALSE)
+UpSetR::upset(upset_dat_wt_three, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
+dev.off()
 
-upset_dat_wt_three <- UpSetR::fromList(deg_names_wt_three)
-upset_dat_wt_five <- UpSetR::fromList(deg_names_wt_five)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_five_upset.pdf', height = 8, width = 13, onefile = FALSE)
+UpSetR::upset(upset_dat_wt_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
+dev.off()
 
-UpSetR::upset(upset_dat_wt_three, nsets = 10, order.by = 'freq', text.scale = 2)
-UpSetR::upset(upset_dat_wt_five, nsets = 10, order.by = 'freq', text.scale = 2)
+UpSetR::upset(upset_dat_ips_three, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
+UpSetR::upset(upset_dat_ips_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
 
 #Look at microglia genes specifically
 micro_genes_wt_three <- unqiue_celltype_markers(wt_three_sig, 'Microglia')
@@ -542,3 +576,52 @@ micro_wt_five_paths <- gprofiler2::gost(query = micro_genes_wt_five, organism = 
 
 ggplot(head(micro_wt_five_paths$result), aes(x = -log10(p_value), y = term_name))+
   geom_bar(stat = 'identity')
+
+#Number of DEGs
+get_sig_degs <- function(deg_dat){
+  sig_dat <- lapply(deg_dat, FUN = function(x){
+    celltype_dat <- as.data.frame(x)
+    celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
+  })
+}
+
+wt_three_sig <- get_sig_degs(wt_three_degs)
+wt_five_sig <- get_sig_degs(wt_five_degs)
+ips_three_sig <- get_sig_degs(ips_three_degs)
+ips_five_sig <- get_sig_degs(ips_five_degs)
+
+get_deg_count_df <- function(deg_sig_dat, label){
+  deg_counts <- lapply(deg_sig_dat, FUN = function(x){
+    nrow(x)
+  })
+  deg_counts_df <- as.data.frame(t(as.data.frame(deg_counts)))
+  colnames(deg_counts_df) <- label
+  deg_counts_df
+}
+
+wt_3_deg_counts <- get_deg_count_df(wt_three_sig, label = 'wt_3')
+wt_5_deg_counts <- get_deg_count_df(wt_five_sig, label = 'wt_5')
+ips_3_deg_counts <- get_deg_count_df(ips_three_sig, label = 'ips_3')
+ips_5_deg_counts <- get_deg_count_df(ips_five_sig, label = 'ips_5')
+
+deg_count_df <- cbind(wt_3_deg_counts, wt_5_deg_counts, ips_3_deg_counts, ips_5_deg_counts)
+
+deg_count_df <- deg_count_df %>% rownames_to_column(var = 'celltype') %>%   
+  pivot_longer(cols = c(wt_3, wt_5, ips_3, ips_5), 
+               names_to = 'comp', values_to = 'count')
+
+deg_count_df$genotype <- substr(deg_count_df$comp, start = 1, stop = 2)
+deg_count_df[deg_count_df$genotype == 'ip',]$genotype = 'ips'
+
+ggplot(deg_count_df, aes(x = count, y = celltype, fill = comp))+
+  facet_wrap(~genotype)+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  ggtitle('upregulated genes')
+
+#Pathways for significant defs
+ips_5_degs_up <- FindMarkers(ips_chimeric_five, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+                             test.use = 'MAST')
+ips_5_degs_up_sig <- ips_5_degs_up[ips_5_degs_up$p_val_ad < 0.01 & ips_5_degs_up$avg_log2FC > 1,]
+ips_5_paths <- gprofiler2::gost(query = rownames(ips_5_degs_up_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+ips_5_paths$res
+
