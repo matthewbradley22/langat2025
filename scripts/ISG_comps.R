@@ -62,8 +62,9 @@ all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
 #Look at select isg in cells
 ParseSeuratObj_int = AddModuleScore(ParseSeuratObj_int, features = list(all_ISGs_type1), name = 'ISG_score',
                                     slot = 'data', assay = 'RNA') 
+chimeric_mock <- AddModuleScore(chimeric_mock, features = list(all_ISGs_type1), name = 'ISG_score',
+                                slot = 'data', assay = 'RNA') 
 
-chimeric_mock$genotype_treatment <- paste(chimeric_mock$Genotype, chimeric_mock$Treatment, sep = '_')
 
 #Subset by genotype for plotting later
 ips <- subset(ParseSeuratObj_int, Genotype == 'IPS1')
@@ -87,12 +88,12 @@ VlnPlot(ips, features = 'ISG_score1', group.by = 'Treatment', split.by = 'Timepo
   ggtitle('ISG Module Scores IPS1')
 dev.off()
 
-isg_data <- ParseSeuratObj_int[['RNA']]$data[which(rownames(ParseSeuratObj_int[['RNA']]$data) %in% all_ISGs_type1),]
+isg_data <- chimeric_mock[['RNA']]$data[which(rownames(chimeric_mock[['RNA']]$data) %in% all_ISGs_type1),]
 isg_variances <- rowVars(as.matrix(isg_data))
 high_var_ISGs <- rev(names(tail(sort(isg_variances), n = 20)))
 
 pdf('~/Documents/ÖverbyLab/scPlots/ISG_dotplot.pdf', width = 9, height = 4)
-DotPlot(ParseSeuratObj_int, group.by = 'time_treatment', features = high_var_ISGs, assay = 'RNA',
+DotPlot(chimeric_mock, group.by = 'time_treatment', features = high_var_ISGs, assay = 'RNA',
         scale = FALSE)+
   theme(axis.text.x = element_text(angle = 90))+
   ggtitle('High variance ISGs')
@@ -665,4 +666,86 @@ ggplot(ifn_dat, aes(x = features.plot, y = celltype, color = avg.exp.scaled, siz
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","lightgrey"),
                         values = c(1.0,0.65,0.3,0))+
   theme_bw()
+
+
+############ Which ISGs are changing between IPS and WT ############ 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
+chimeric_mock_inf <- subset(chimeric_mock, Treatment != 'PBS')
+ips_wt_markers <- FindMarkers(chimeric_mock_inf, group.by = 'Genotype', ident.1 = 'WT')
+
+#Find isgs expressed in > 5% of infected cells
+present_ISGs_type1 <- all_ISGs_type1[all_ISGs_type1 %in% rownames(chimeric_mock_inf[['RNA']]$data)]
+isg_presence_props <- rowSums(chimeric_mock_inf[['RNA']]$data[present_ISGs_type1,] > 0)  / length(colnames(chimeric_mock_inf))
+relevant_isgs <- names(isg_presence_props[isg_presence_props > 0.02])
+
+pdf('~/Documents/ÖverbyLab/scPlots/isg_comp_bar.pdf', height = 14, width = 9)
+ips_wt_markers[all_ISGs_type1,] %>% as.data.frame() %>% dplyr::filter(!is.na(p_val)) %>% 
+  dplyr::mutate(significance = ifelse(p_val_adj < 0.01, yes = 'sig', no = 'insig')) %>% 
+  rownames_to_column(var = 'gene') %>% dplyr::arrange(avg_log2FC) %>% dplyr::filter(gene %in% relevant_isgs) %>% 
+  ggplot(aes(x = avg_log2FC, y = reorder(gene, avg_log2FC), fill = significance))+
+  geom_bar(stat = 'identity')
+dev.off()
+
+#Make this plot split be resident and infiltrating
+chimeric_mock_infected_infil <- subset(chimeric_mock_inf, manualAnnotation %in% c('B Cells', 'Granulocytes', 'Macrophage/Monocytes',
+                                                                                 'Nk cells', 'T cells'))
+ips_wt_markers_inf <- FindMarkers(chimeric_mock_infected_infil, group.by = 'Genotype', ident.1 = 'WT')
+
+pdf('~/Documents/ÖverbyLab/scPlots/isg_comp_bar_infil.pdf', height = 14, width = 9)
+ips_wt_markers_inf[all_ISGs_type1,] %>% as.data.frame() %>% dplyr::filter(!is.na(p_val)) %>% 
+  dplyr::mutate(significance = ifelse(p_val_adj < 0.01, yes = 'sig', no = 'insig')) %>% 
+  rownames_to_column(var = 'gene') %>% dplyr::arrange(avg_log2FC) %>% dplyr::filter(gene %in% relevant_isgs) %>% 
+  ggplot(aes(x = avg_log2FC, y = reorder(gene, avg_log2FC), fill = significance))+
+  geom_bar(stat = 'identity')
+dev.off()
+
+chimeric_mock_infected_resident <- subset(chimeric_mock_inf, !manualAnnotation %in% c('B Cells', 'Granulocytes', 'Macrophage/Monocytes',
+                                                                                     'Nk cells', 'T cells', 'unknown'))
+
+ips_wt_markers_res <- FindMarkers(chimeric_mock_infected_resident, group.by = 'Genotype', ident.1 = 'WT')
+pdf('~/Documents/ÖverbyLab/scPlots/isg_comp_bar_res.pdf', height = 14, width = 9)
+ips_wt_markers_res[all_ISGs_type1,] %>% as.data.frame() %>% dplyr::filter(!is.na(p_val)) %>% 
+  dplyr::mutate(significance = ifelse(p_val_adj < 0.01, yes = 'sig', no = 'insig')) %>% 
+  rownames_to_column(var = 'gene') %>% dplyr::arrange(avg_log2FC) %>% dplyr::filter(gene %in% relevant_isgs) %>% 
+  ggplot(aes(x = avg_log2FC, y = reorder(gene, avg_log2FC), fill = significance))+
+  geom_bar(stat = 'identity')
+dev.off()
+
+chimeric_mock_inf$geno_celltype <- paste(chimeric_mock_inf$Genotype, chimeric_mock_inf$manualAnnotation, sep = '_')
+DotPlot(chimeric_mock_inf, features = 'Ifi27', group.by = 'geno_celltype', scale = FALSE)+
+  theme(panel.grid.major = element_line(colour = "#808080"))
+
+table(chimeric_mock_inf$Genotype, chimeric_mock_inf$manualAnnotation, chimeric_mock_inf$Timepoint) %>% 
+  as.data.frame() %>% 
+  dplyr::mutate(cell_source = case_when(Var2 %in% c('B Cells', 'Granulocytes', 'Macrophage/Monocytes',
+                                                    'Nk cells', 'T cells') ~ 'infiltrating',
+                                        Var2 == 'unknown' ~ 'unknown',
+                                        .default = 'resident')) %>% 
+  dplyr::group_by(Var1, Var3, cell_source) %>% 
+  dplyr::mutate(prop = Freq / sum(Freq)) %>% 
+  ggplot(aes(x = Var2, y = prop, fill = Var1))+
+  facet_wrap(~Var3)+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  theme(axis.text.x = element_text(angle = 90))+
+  xlab('')+
+  ylab('')
+
+table(chimeric_mock_inf$Genotype, chimeric_mock_inf$manualAnnotation, chimeric_mock_inf$Timepoint) %>% 
+  as.data.frame() %>% 
+  dplyr::mutate(cell_source = case_when(Var2 %in% c('B Cells', 'Granulocytes', 'Macrophage/Monocytes',
+                                                    'Nk cells', 'T cells') ~ 'infiltrating',
+                                        Var2 == 'unknown' ~ 'unknown',
+                                        .default = 'resident')) %>% 
+  dplyr::group_by(Var1, Var3, cell_source) %>% 
+  dplyr::summarise(counts = sum(Freq)) %>% 
+  dplyr::filter(cell_source != 'unknown') %>% 
+  dplyr::group_by(Var1, Var3) %>% 
+  dplyr::mutate(prop = counts/sum(counts)) %>% 
+  ggplot(aes(x = Var1, y = prop, fill = cell_source))+
+  facet_wrap(~Var3)+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  theme(axis.text.x = element_text(angle = 90))+
+  xlab('')+
+  ylab('')
 

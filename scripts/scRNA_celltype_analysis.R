@@ -423,32 +423,33 @@ shared_genes <- length(intersect(x = shared_ips_genes, y = shared_wt_genes))
 
 ips_vs_wt_up_genes <- data.frame('type' = factor(c('wt_only', 'ips_only', 'shared'), levels = c('wt_only', 'ips_only', 'shared')), 
                                  counts = c(unique_wt, unique_ips, shared_genes))
+
 ggplot(ips_vs_wt_up_genes, aes(x = type, y = counts, fill = type))+
   geom_bar(stat = 'identity')+
   theme(legend.position = 'none')+
   scale_fill_manual(values = c("#A0AEF2", "#88BBBD",  "#AD88BD"))
 
+#Function that, given a list of findmarkers output (dataframes with lfc and pvals etc...), named by celltype,
+#returns a genes only upregulated in given celltype
+unqiue_celltype_markers <- function(markers_list, celltype){
+  all_marker_names <- lapply(markers_list, FUN = function(x){
+    rownames(x)
+  })
+  non_celltype_markers <- unname(unlist(all_marker_names[names(all_marker_names) != celltype]))
+  celltype_markers <- all_marker_names[[celltype]]
+  unique_celltype_markers <- celltype_markers[!celltype_markers %in% non_celltype_markers]
+  return(unique_celltype_markers)
+}
+
 #Get all genes upregulated in non astrocytes in infection
-non_astros <- celltype_markers_sig[names(celltype_markers_sig) != 'Astrocytes']
-non_micro <- celltype_markers_sig[names(celltype_markers_sig) != 'Microglia']
-non_astro_genes <- unique(unlist(lapply(non_astros, FUN = function(x){
-  rownames(x)
-})))
-non_micro_genes <- unique(unlist(lapply(non_micro, FUN = function(x){
-  rownames(x)
-})))
-
-astro_genes <- rownames(celltype_markers_sig$Astrocytes)
-astro_genes <- astro_genes[!astro_genes %in% non_astro_genes]
-
-micro_genes <- rownames(celltype_markers_sig$Microglia)
-micro_genes <- micro_genes[!micro_genes %in% non_micro_genes]
+astro_genes_wt <- unqiue_celltype_markers(celltype_markers_sig_wt, 'Astrocytes')
+micro_genes_wt <- unqiue_celltype_markers(celltype_markers_sig_wt, 'Microglia')
 
 #No pathways
-gprofiler2::gost(query = astro_genes, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+gprofiler2::gost(query = astro_genes_wt, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 
 #Lots of cell cycle genes
-micro_paths <- gprofiler2::gost(query = micro_genes, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+micro_paths <- gprofiler2::gost(query = micro_genes_wt, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 micro_paths$result
 
 #Dotplot specific genes
@@ -532,3 +533,12 @@ upset_dat_wt_five <- UpSetR::fromList(deg_names_wt_five)
 UpSetR::upset(upset_dat_wt_three, nsets = 10, order.by = 'freq', text.scale = 2)
 UpSetR::upset(upset_dat_wt_five, nsets = 10, order.by = 'freq', text.scale = 2)
 
+#Look at microglia genes specifically
+micro_genes_wt_three <- unqiue_celltype_markers(wt_three_sig, 'Microglia')
+micro_genes_wt_five <- unqiue_celltype_markers(wt_five_sig, 'Microglia')
+
+micro_wt_three_paths <- gprofiler2::gost(query = micro_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+micro_wt_five_paths <- gprofiler2::gost(query = micro_genes_wt_five, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+
+ggplot(head(micro_wt_five_paths$result), aes(x = -log10(p_value), y = term_name))+
+  geom_bar(stat = 'identity')
