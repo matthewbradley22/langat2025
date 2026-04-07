@@ -48,4 +48,15 @@ DotPlot(mock_astros, features = c(paste0('Ccl', 1:16)), group.by = 'Genotype', s
 DotPlot(mock_astros, features = c('Rsad2', 'Irf7', 'Ifitm3', 'Oas1a', 'Ifit1', 'Ifit2', 'Ifit3'), group.by = 'Genotype', scale = FALSE)+
   theme(axis.text.x = element_text(angle = 90))
 
+#Look at mock comp in all celltypes
+mock_markers <- FindMarkers(mock_samples, test.use = 'MAST', group.by = 'Genotype', ident.1 = 'WT')
+mock_markers_up_sig <- mock_markers[mock_markers$p_val_adj < 0.01 & (mock_markers$avg_log2FC) > 1,]
+mock_markers_down_sig <- mock_markers[mock_markers$p_val_adj < 0.01 & (mock_markers$avg_log2FC) < -1,]
+nrow(mock_markers_up_sig)
+nrow(mock_markers_down_sig)
 
+DotPlot(mock_samples, features = 'Fcrls', group.by = 'Genotype', scale = FALSE)
+wt_mock_up <- gprofiler2::gost(query = rownames(mock_markers_up_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+wt_mock_down <- gprofiler2::gost(query = rownames(mock_markers_down_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+wt_mock_up$result
+wt_mock_down$result

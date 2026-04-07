@@ -229,8 +229,8 @@ DotPlot(ependymal, features = c('Cxcl10'), scale = FALSE,
         group.by = 'geno_timepoint_treatment')+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.8))
 
-#########Look at number of degs by celltype############
-#######################################################
+######### Look at number of degs by celltype ############
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 
 
 #Pseudobulk comparison of celltype number of degs between infected and uninfected - split between genotypes to reduce time
@@ -371,9 +371,9 @@ for(i in 1:length(celltypes)){
   print(paste('Beginning celltype', celltypes[i]))
   cur_dat_wt <- subset(wt_chimeric, manualAnnotation == celltypes[i])
   cur_dat_ips <- subset(ips_chimeric, manualAnnotation == celltypes[i])
-  celltype_markers_wt <- FindMarkers(cur_dat_wt, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+  celltype_markers_wt <- FindMarkers(cur_dat_wt, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
               test.use = 'MAST')
-  celltype_markers_ips <- FindMarkers(cur_dat_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+  celltype_markers_ips <- FindMarkers(cur_dat_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
                                      test.use = 'MAST')
   degs_by_celltype_wt[[i]] = celltype_markers_wt
   degs_by_celltype_ips[[i]] = celltype_markers_ips
@@ -619,9 +619,26 @@ ggplot(deg_count_df, aes(x = count, y = celltype, fill = comp))+
   ggtitle('upregulated genes')
 
 #Pathways for significant defs
-ips_5_degs_up <- FindMarkers(ips_chimeric_five, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+ips_chimeric_five_resident <- subset(ips_chimeric_five, manualAnnotation %in% c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal', 
+                                                                                'Immature Neurons', 'Microglia', 'Muscle cells', 'Neurons',
+                                                                                'Oligodendrocytes', 'Pericytes'))
+wt_chimeric_five_resident <- subset(wt_chimeric_five, manualAnnotation %in% c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal', 
+                                                                                'Immature Neurons', 'Microglia', 'Muscle cells', 'Neurons',
+                                                                                'Oligodendrocytes', 'Pericytes'))
+
+ips_5_resident_degs_up <- FindMarkers(ips_chimeric_five_resident, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
                              test.use = 'MAST')
-ips_5_degs_up_sig <- ips_5_degs_up[ips_5_degs_up$p_val_ad < 0.01 & ips_5_degs_up$avg_log2FC > 1,]
+wt_5_resident_degs_up <- FindMarkers(wt_chimeric_five_resident, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+                                      test.use = 'MAST')
+
+ips_5_degs_up_sig <- ips_5_resident_degs_up[ips_5_resident_degs_up$p_val_ad < 0.01 & ips_5_resident_degs_up$avg_log2FC > 1,]
+wt_5_degs_up_sig <- wt_5_resident_degs_up[wt_5_resident_degs_up$p_val_ad < 0.01 & wt_5_resident_degs_up$avg_log2FC > 1,]
+
 ips_5_paths <- gprofiler2::gost(query = rownames(ips_5_degs_up_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
-ips_5_paths$res
+ips_5_paths$result
+
+DotPlot(wt_chimeric, group.by = 'Treatment', features = 'Ifit3', scale = FALSE)
+
+#Can make venn diagram of genes up in wt and ips at day 3 and 5
+sum(rownames(wt_5_degs_up_sig) %in% rownames(ips_5_degs_up_sig)) / nrow(ips_5_degs_up_sig)
 
