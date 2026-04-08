@@ -3,6 +3,7 @@ library(RColorBrewer)
 library(dplyr)
 library(UpSetR)
 library(ggplot2)
+library(stringr)
 library(tidyr)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
@@ -509,16 +510,16 @@ for(i in 1:length(celltypes)){
   cur_dat_three_ips <- subset(ips_chimeric_three, manualAnnotation == celltypes[i])
   cur_dat_five_ips <- subset(ips_chimeric_five, manualAnnotation == celltypes[i])
   
-  celltype_markers_three <- FindMarkers(cur_dat_three, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+  celltype_markers_three <- FindMarkers(cur_dat_three, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
                                      test.use = 'MAST')
  
-  celltype_markers_five <- FindMarkers(cur_dat_five, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+  celltype_markers_five <- FindMarkers(cur_dat_five, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
                                        test.use = 'MAST')
   
-  celltype_markers_three_ips <- FindMarkers(cur_dat_three_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+  celltype_markers_three_ips <- FindMarkers(cur_dat_three_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
                                         test.use = 'MAST')
   
-  celltype_markers_five_ips <- FindMarkers(cur_dat_five_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', only.pos = TRUE,
+  celltype_markers_five_ips <- FindMarkers(cur_dat_five_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS',
                                             test.use = 'MAST')
   
   wt_three_degs[[i]] = celltype_markers_three
@@ -578,17 +579,30 @@ ggplot(head(micro_wt_five_paths$result), aes(x = -log10(p_value), y = term_name)
   geom_bar(stat = 'identity')
 
 #Number of DEGs
-get_sig_degs <- function(deg_dat){
+get_sig_degs <- function(deg_dat, direction = 'up'){
   sig_dat <- lapply(deg_dat, FUN = function(x){
     celltype_dat <- as.data.frame(x)
-    celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
+    if(direction == 'up'){
+      sig_cell_dat <- celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
+    }
+    if(direction == 'down'){
+      sig_cell_dat <- celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC < -1,]
+    }
+    sig_cell_dat
   })
 }
 
-wt_three_sig <- get_sig_degs(wt_three_degs)
-wt_five_sig <- get_sig_degs(wt_five_degs)
-ips_three_sig <- get_sig_degs(ips_three_degs)
-ips_five_sig <- get_sig_degs(ips_five_degs)
+wt_three_sig <- get_sig_degs(wt_three_degs, direction = 'up')
+wt_five_sig <- get_sig_degs(wt_five_degs, direction = 'up')
+ips_three_sig <- get_sig_degs(ips_three_degs, direction = 'up')
+ips_five_sig <- get_sig_degs(ips_five_degs, direction = 'up')
+
+#Get downregulated genes too
+wt_three_sig_down <- get_sig_degs(wt_three_degs, direction = 'down')
+wt_five_sig_down <- get_sig_degs(wt_five_degs, direction = 'down')
+ips_three_sig_down <- get_sig_degs(ips_three_degs, direction = 'down')
+ips_five_sig_down <- get_sig_degs(ips_five_degs, direction = 'down')
+
 
 get_deg_count_df <- function(deg_sig_dat, label){
   deg_counts <- lapply(deg_sig_dat, FUN = function(x){
@@ -599,24 +613,48 @@ get_deg_count_df <- function(deg_sig_dat, label){
   deg_counts_df
 }
 
+#Counts of upregulated degs
 wt_3_deg_counts <- get_deg_count_df(wt_three_sig, label = 'wt_3')
 wt_5_deg_counts <- get_deg_count_df(wt_five_sig, label = 'wt_5')
 ips_3_deg_counts <- get_deg_count_df(ips_three_sig, label = 'ips_3')
 ips_5_deg_counts <- get_deg_count_df(ips_five_sig, label = 'ips_5')
 
+#Counts of downregulated degs
+wt_3_deg_count_down <- get_deg_count_df(wt_three_sig_down, label = 'wt_3')
+wt_5_deg_count_down <- get_deg_count_df(wt_five_sig_down, label = 'wt_5')
+ips_3_deg_count_down <- get_deg_count_df(ips_three_sig_down, label = 'ips_3')
+ips_5_deg_count_down <- get_deg_count_df(ips_five_sig_down, label = 'ips_5')
+
 deg_count_df <- cbind(wt_3_deg_counts, wt_5_deg_counts, ips_3_deg_counts, ips_5_deg_counts)
+deg_count_down_df <- cbind(wt_3_deg_count_down, wt_5_deg_count_down, ips_3_deg_count_down, ips_5_deg_count_down)
 
 deg_count_df <- deg_count_df %>% rownames_to_column(var = 'celltype') %>%   
   pivot_longer(cols = c(wt_3, wt_5, ips_3, ips_5), 
                names_to = 'comp', values_to = 'count')
+deg_count_down_df <- deg_count_down_df %>% rownames_to_column(var = 'celltype') %>%   
+  pivot_longer(cols = c(wt_3, wt_5, ips_3, ips_5), 
+               names_to = 'comp', values_to = 'count')
 
+#Prep data for plotting
 deg_count_df$genotype <- substr(deg_count_df$comp, start = 1, stop = 2)
 deg_count_df[deg_count_df$genotype == 'ip',]$genotype = 'ips'
+deg_count_df$day <- str_sub(deg_count_df$comp,-1,-1)
+deg_count_df$day <- paste('Day', deg_count_df$day)
 
-ggplot(deg_count_df, aes(x = count, y = celltype, fill = comp))+
-  facet_wrap(~genotype)+
+deg_count_down_df$genotype <- substr(deg_count_down_df$comp, start = 1, stop = 2)
+deg_count_down_df[deg_count_down_df$genotype == 'ip',]$genotype = 'ips'
+deg_count_down_df$day <- str_sub(deg_count_down_df$comp,-1,-1)
+deg_count_down_df$day <- paste('Day', deg_count_down_df$day)
+
+ggplot(deg_count_df, aes(x = count, y = celltype, fill = genotype))+
+  facet_wrap(~day)+
   geom_bar(stat = 'identity', position = 'dodge')+
   ggtitle('upregulated genes')
+
+ggplot(deg_count_down_df, aes(x = count, y = celltype, fill = genotype))+
+  facet_wrap(~day)+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  ggtitle('downregulated genes')
 
 #Pathways for significant defs
 ips_chimeric_five_resident <- subset(ips_chimeric_five, manualAnnotation %in% c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal', 

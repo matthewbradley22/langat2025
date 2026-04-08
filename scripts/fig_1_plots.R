@@ -196,6 +196,7 @@ mavs_dat_meta <- str_split_fixed(mavs_dat$id, "_", 2)
 colnames(mavs_dat_meta) <- c('genotype', 'treatment')
 mavs_dat <- cbind(mavs_dat, mavs_dat_meta)
 
+#Could split by time
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mavs_expression.pdf', height = 9, width = 7)
 ggplot(mavs_dat, aes(x = genotype, y = treatment, color = avg.exp.scaled, size = pct.exp))+
   geom_point()+

@@ -130,6 +130,13 @@ barDat_time %>% ggplot(aes(x = Timepoint, y = prop, fill = manualAnnotation))+
   scale_fill_manual(values = umap_color_list)+
   guides(fill=guide_legend(title="Cell Type"))
 
+#Get cell proportions as tables
+cell_props <- table(wt_cerebrum_day5$Timepoint, wt_cerebrum_day5$Genotype, wt_cerebrum_day5$manualAnnotation, wt_cerebrum_day5$Treatment) %>% 
+  as.data.frame()
+colnames(cell_props) <- c('timepoint', 'genotype', 'celltype', 'treatment', 'count')
+cell_props <- cell_props %>% dplyr::filter(count > 0) %>% 
+  dplyr::arrange(timepoint) %>% 
+  write.csv("~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_prop_table.csv")
 
 #Combine cxcl10 and select cl for plotting
 pdf('~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/select_chemokines_dotplot.pdf', width = 8, height = 6)
