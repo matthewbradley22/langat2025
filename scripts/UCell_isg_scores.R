@@ -109,34 +109,61 @@ dev.off()
 #And ideally by celltype
 
 #Data objects created in scRNA_celltype_analysis.R script
-degs_by_celltype_wt <- readRDS('~/Documents/ÖverbyLab/cell_upsetPlots/wt_celltype_degs.rds')
-degs_by_celltype_ips <- readRDS('~/Documents/ÖverbyLab/cell_upsetPlots/ips_celltype_degs.rds')
+wt_three_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_three_celltype_upset.rds')
+wt_five_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_five_celltype_upset.rds')
+ips_three_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_three_celltype_upset.rds')
+ips_five_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_five_celltype_upset.rds')
 
 #Subset deg lists to just isgs
-isg_degs_wt <- lapply(degs_by_celltype_wt, FUN = function(x){
-  dat <- as.data.frame(x)
-  isgs_only <- x[all_ISGs_type1,]
-  isgs_only[!is.na(isgs_only$p_val),]
-})
+subset_deg_to_isgs <- function(deg_lists){
+  lapply(deg_lists, FUN = function(x){
+    dat <- as.data.frame(x)
+    isgs_only <- x[all_ISGs_type1,]
+    isgs_only[!is.na(isgs_only$p_val),]
+  })
+}
 
-isg_degs_ips <- lapply(degs_by_celltype_ips, FUN = function(x){
-  dat <- as.data.frame(x)
-  isgs_only <- x[all_ISGs_type1,]
-  isgs_only[!is.na(isgs_only$p_val),]
-})
+wt_three_degs_isgs <- subset_deg_to_isgs(wt_three_degs)
+wt_five_degs_isgs <- subset_deg_to_isgs(wt_five_degs)
+ips_three_degs_isgs <- subset_deg_to_isgs(ips_three_degs)
+ips_five_degs_isgs <- subset_deg_to_isgs(ips_five_degs)
 
 #For each celltype, check which genes are upregulated
 #in wt or ips infected
-celltypes <- names(isg_degs_wt)
+celltypes <- names(wt_three_degs_isgs)[names(wt_three_degs_isgs) != 'unknown']
+isg_up_by_genotype <- data.frame('celltype' = character(), 'timepoint' = character(),
+                                 'comparison' = character(), 'count' = integer())
 
-for(i in 1:length(isg_degs_wt)){
-  celltype_wt_genes <- isg_degs_wt[[celltypes[[i]]]]
-  celltype_ips_genes <- isg_degs_ips[[celltypes[[i]]]]
+for(i in 1:length(wt_three_degs_isgs)){
+  celltype_wt_3_genes <- wt_three_degs_isgs[[celltypes[[i]]]]
+  celltype_wt_5_genes <- wt_five_degs_isgs[[celltypes[[i]]]]
+  celltype_ips_3_genes <- ips_three_degs_isgs[[celltypes[[i]]]]
+  celltype_ips_5_genes <- ips_five_degs_isgs[[celltypes[[i]]]]
   
-  celltype_wt_genes_sig <- subset(celltype_wt_genes, avg_log2FC > 1 & p_val_adj < 0.01)
-  celltype_ips_genes_sig <- subset(celltype_ips_genes, avg_log2FC > 1 & p_val_adj < 0.01)
+  celltype_wt_3_genes_sig <- subset(celltype_wt_3_genes, avg_log2FC > 1 & p_val_adj < 0.01)
+  celltype_wt_5_genes_sig <- subset(celltype_wt_5_genes, avg_log2FC > 1 & p_val_adj < 0.01)
+  celltype_ips_3_genes_sig <- subset(celltype_ips_3_genes, avg_log2FC > 1 & p_val_adj < 0.01)
+  celltype_ips_5_genes_sig <- subset(celltype_ips_5_genes, avg_log2FC > 1 & p_val_adj < 0.01)
   
+  wt_3_only = rownames(celltype_wt_3_genes_sig)[!rownames(celltype_wt_3_genes_sig) %in% rownames(celltype_ips_3_genes_sig)]
+  ips_3_only = rownames(celltype_ips_3_genes_sig)[!rownames(celltype_ips_3_genes_sig) %in% rownames(celltype_wt_3_genes_sig)]
+  up_both_3 <- rownames(celltype_wt_3_genes_sig)[rownames(celltype_wt_3_genes_sig) %in% rownames(celltype_ips_3_genes_sig)]
   
+  wt_5_only = rownames(celltype_wt_5_genes_sig)[!rownames(celltype_wt_5_genes_sig) %in% rownames(celltype_ips_5_genes_sig)]
+  ips_5_only = rownames(celltype_ips_5_genes_sig)[!rownames(celltype_ips_5_genes_sig) %in% rownames(celltype_wt_5_genes_sig)]
+  up_both_5 <- rownames(celltype_wt_5_genes_sig)[rownames(celltype_wt_5_genes_sig) %in% rownames(celltype_ips_5_genes_sig)]
+  
+  celltype_df <- data.frame(celltype = rep(celltypes[[i]], 6), comparison = rep(c('wt_only', 'ips_only', 'both'),2),
+                            timepoint = c(rep('Day 3', 3), rep('Day 5', 3)),
+                            count = c(length(wt_3_only), length(ips_3_only), length(up_both_3),
+                                      length(wt_5_only), length(ips_5_only), length(up_both_5)))
+  isg_up_by_genotype <- rbind(isg_up_by_genotype, celltype_df)
 }
 
+isg_up_by_genotype
 
+ggplot(isg_up_by_genotype, aes(x = timepoint, y = celltype, fill = count))+
+  geom_tile()+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,85))

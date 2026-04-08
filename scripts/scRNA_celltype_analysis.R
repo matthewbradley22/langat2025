@@ -491,7 +491,7 @@ ggplot(gene_dot, aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
 ########### UpSet plots by timepoint ########### 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 
-#Only day 3 and 5 have pbs and infected
+#Can include day 4 and just compare to all mock like the other ones
 wt_chimeric_three <- subset(wt_chimeric, Timepoint == 'Day 3' | Treatment == 'PBS')
 wt_chimeric_five <- subset(wt_chimeric, Timepoint == 'Day 5' | Treatment == 'PBS')
 
