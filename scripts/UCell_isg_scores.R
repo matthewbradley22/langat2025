@@ -2,6 +2,7 @@
 library(ggpubr)
 library(Seurat)
 library(UCell)
+library(msigdbr)
 library(RColorBrewer)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
@@ -24,6 +25,7 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, i
 
 #Wt cerebrum celltypes across times
 wt <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rChLGTV') & Genotype == 'WT')
+ips <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rChLGTV') & Genotype == 'IPS1')
 
 #Load in ISGs
 #Molecular signatures database
@@ -42,34 +44,55 @@ all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
 
 #Should also try ucell module scores
 wt <- AddModuleScore_UCell(wt, features = list(all_ISGs_type1), name = 'ifna_response')
+ips <- AddModuleScore_UCell(ips, features = list(all_ISGs_type1), name = 'ifna_response')
 
 #Add column to split by treatment and celltype
 wt$timepoint_celltype_treatment <- paste(wt$Timepoint, wt$manualAnnotation, wt$Treatment, sep = '_')
-wt_isg_dat <- DotPlot(wt, features = 'signature_1ifna_response', group.by = 'timepoint_celltype_treatment', scale = FALSE)$data
+ips$timepoint_celltype_treatment <- paste(ips$Timepoint, ips$manualAnnotation, ips$Treatment, sep = '_')
 
-#Split id column into three
-isg_meta <- str_split_fixed(wt_isg_dat$id, "_", 3)
-colnames(isg_meta) <- c('timepoint', 'celltype', 'treatment')
-wt_isg_dat <- cbind(wt_isg_dat, isg_meta)
+create_isg_heatmap <- function(dat, group_by_arg, title = NULL){
+  isg_dat <- DotPlot(dat, features = 'signature_1ifna_response', group.by = group_by_arg, scale = FALSE)$data
+  #Split id column into three
+  isg_meta <- str_split_fixed(isg_dat$id, "_", 3)
+  colnames(isg_meta) <- c('timepoint', 'celltype', 'treatment')
+  isg_dat <- cbind(isg_dat, isg_meta)
+  
+  #Reorder celltypes
+  isg_dat <- dplyr::filter(isg_dat, celltype != 'unknown')
+  
+  isg_dat$celltype <- factor(isg_dat$celltype, levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal',
+                                                                    'Immature Neurons', 'Microglia', 'Muscle cells', 'Neurons',
+                                                                    'Oligodendrocytes', 'Pericytes', 'B Cells', 'Granulocytes',
+                                                                    'Macrophage/Monocytes', 'Nk cells', 'T cells')))
+  #Plot isg scores
+  isg_heatmap <- ggplot(isg_dat, aes(x = timepoint, y = celltype, fill = avg.exp.scaled))+
+    geom_tile()+
+    facet_grid(~treatment, scales = 'free')+
+    scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                         values = c(1.0,0.7,0.4,0),
+                         limits = c(0,0.25))+
+    geom_text(aes(label= round(avg.exp.scaled, digits = 2)))+
+    ggtitle(title)+
+    theme(panel.background = element_rect(fill = 'white', colour = 'white'))
+  print(isg_heatmap)
+}
 
-#Reorder celltypes
-wt_isg_dat <- dplyr::filter(wt_isg_dat, celltype != 'unknown')
+create_isg_heatmap(wt, group_by_arg = 'timepoint_celltype_treatment')
 
-wt_isg_dat$celltype <- factor(wt_isg_dat$celltype, levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal',
-                                                                  'Immature Neurons', 'Microglia', 'Muscle cells', 'Neurons',
-                                                                  'Oligodendrocytes', 'Pericytes', 'B Cells', 'Granulocytes',
-                                                                  'Macrophage/Monocytes', 'Nk cells', 'T cells')))
+wt_cerebrum <- subset(wt, Organ == 'Cerebrum')
+wt_cerebellum <- subset(wt, Organ == 'Cerebellum')
 
-#Plot isg scores
-ggplot(wt_isg_dat, aes(x = timepoint, y = celltype, fill = avg.exp.scaled))+
-  geom_tile()+
-  facet_grid(~treatment, scales = 'free')+
-  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0),
-                       limits = c(0,0.25))+
-  geom_text(aes(label= round(avg.exp.scaled, digits = 2)))+
-  ggtitle('ISG scores sc wt data')+
-  theme(panel.background = element_rect(fill = 'white', colour = 'white'))
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/wt_cerebrum_isg.pdf", width = 7, height = 6)
+create_isg_heatmap(wt_cerebrum, group_by_arg = 'timepoint_celltype_treatment', title = 'wt cerebrum ISG scores')
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/wt_cerebellum_isg.pdf", width = 7, height = 6)
+create_isg_heatmap(wt_cerebellum, group_by_arg = 'timepoint_celltype_treatment', title = 'wt cerebellum ISG scores')
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/ips_isg.pdf", width = 7, height = 6)
+create_isg_heatmap(ips, group_by_arg = 'timepoint_celltype_treatment', title = 'IPS1 ISG scores')
+dev.off()
 
 #Compare wt mock and ips mock across celltypes
 mock <- subset(ParseSeuratObj_int, Treatment %in% c('PBS'))
@@ -77,30 +100,43 @@ mock <- AddModuleScore_UCell(mock, features = list(all_ISGs_type1), name = 'ifna
 
 #Add column to split by treatment and celltype
 mock$genotype_celltype_treatment <- paste(mock$Genotype, mock$manualAnnotation, mock$Treatment, sep = '_')
-mock_isg_dat <- DotPlot(mock, features = 'signature_1ifna_response', group.by = 'genotype_celltype_treatment', scale = FALSE)$data
 
-#Split id column into three
-isg_mock_meta <- str_split_fixed(mock_isg_dat$id, "_", 3)
-colnames(isg_mock_meta) <- c('genotype', 'celltype', 'treatment')
-mock_isg_dat <- cbind(mock_isg_dat, isg_mock_meta)
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/mock_isg.pdf", width = 7, height = 6)
+create_isg_heatmap(mock, group_by_arg = 'genotype_celltype_treatment', title = 'Mock ISG scores')
+dev.off()
 
-#Reorder celltypes
-mock_isg_dat <- dplyr::filter(mock_isg_dat, celltype != 'unknown')
+#Which isgs are up in wt, which in ips, which both. Also split by time
+#And ideally by celltype
 
-mock_isg_dat$celltype <- factor(mock_isg_dat$celltype, levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal',
-                                                                  'Immature Neurons', 'Microglia', 'Muscle cells', 'Neurons',
-                                                                  'Oligodendrocytes', 'Pericytes', 'B Cells', 'Granulocytes',
-                                                                  'Macrophage/Monocytes', 'Nk cells', 'T cells')))
+#Data objects created in scRNA_celltype_analysis.R script
+degs_by_celltype_wt <- readRDS('~/Documents/ÖverbyLab/cell_upsetPlots/wt_celltype_degs.rds')
+degs_by_celltype_ips <- readRDS('~/Documents/ÖverbyLab/cell_upsetPlots/ips_celltype_degs.rds')
 
-#Plot isg scores
-ggplot(mock_isg_dat, aes(x = genotype, y = celltype, fill = avg.exp.scaled))+
-  geom_tile()+
-  facet_grid(~treatment, scales = 'free')+
-  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0),
-                       limits = c(0,0.25))+
-  geom_text(aes(label= round(avg.exp.scaled, digits = 2)))+
-  ggtitle('ISG scores sc wt mock data')+
-  theme(panel.background = element_rect(fill = 'white', colour = 'white'))
+#Subset deg lists to just isgs
+isg_degs_wt <- lapply(degs_by_celltype_wt, FUN = function(x){
+  dat <- as.data.frame(x)
+  isgs_only <- x[all_ISGs_type1,]
+  isgs_only[!is.na(isgs_only$p_val),]
+})
+
+isg_degs_ips <- lapply(degs_by_celltype_ips, FUN = function(x){
+  dat <- as.data.frame(x)
+  isgs_only <- x[all_ISGs_type1,]
+  isgs_only[!is.na(isgs_only$p_val),]
+})
+
+#For each celltype, check which genes are upregulated
+#in wt or ips infected
+celltypes <- names(isg_degs_wt)
+
+for(i in 1:length(isg_degs_wt)){
+  celltype_wt_genes <- isg_degs_wt[[celltypes[[i]]]]
+  celltype_ips_genes <- isg_degs_ips[[celltypes[[i]]]]
+  
+  celltype_wt_genes_sig <- subset(celltype_wt_genes, avg_log2FC > 1 & p_val_adj < 0.01)
+  celltype_ips_genes_sig <- subset(celltype_ips_genes, avg_log2FC > 1 & p_val_adj < 0.01)
+  
+  
+}
 
 

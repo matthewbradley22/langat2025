@@ -364,6 +364,11 @@ DimPlot(astrocytes_cerebellum, reduction = 'astrocytes_cerebellum_umap', group.b
 wt_chimeric <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment %in% c('PBS', 'rChLGTV'))
 ips_chimeric <- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment %in% c('PBS', 'rChLGTV'))
 
+#Can skip for loop and read in data here
+degs_by_celltype_wt <- readRDS('~/Documents/ÖverbyLab/cell_upsetPlots/wt_celltype_degs.rds')
+degs_by_celltype_ips <- readRDS('~/Documents/ÖverbyLab/cell_upsetPlots/ips_celltype_degs.rds')
+
+#Or run for loop
 celltypes <- unique(wt_chimeric$manualAnnotation)
 degs_by_celltype_wt <- list()
 degs_by_celltype_ips <- list()
@@ -382,6 +387,9 @@ for(i in 1:length(celltypes)){
   names(degs_by_celltype_ips)[[i]] = celltypes[i]
   print(paste('Done with celltype', celltypes[i]))
 }
+
+#saveRDS(degs_by_celltype_wt, '~/Documents/ÖverbyLab/cell_upsetPlots/wt_celltype_degs.rds')
+#saveRDS(degs_by_celltype_ips, '~/Documents/ÖverbyLab/cell_upsetPlots/ips_celltype_degs.rds')
 
 celltype_markers_sig_wt <- lapply(degs_by_celltype_wt, FUN = function(x){
   celltype_dat <- as.data.frame(x)
@@ -565,8 +573,13 @@ pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_fiv
 UpSetR::upset(upset_dat_wt_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
 dev.off()
 
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_three_upset.pdf', height = 8, width = 13, onefile = FALSE)
 UpSetR::upset(upset_dat_ips_three, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_five_upset.pdf', height = 8, width = 13, onefile = FALSE)
 UpSetR::upset(upset_dat_ips_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
+dev.off()
 
 #Look at microglia genes specifically
 micro_genes_wt_three <- unqiue_celltype_markers(wt_three_sig, 'Microglia')
