@@ -39,6 +39,7 @@ mouse_gene_sets <- all_gene_sets %>%
 ifnA_response <- mouse_gene_sets$HALLMARK_INTERFERON_ALPHA_RESPONSE
 ifnA_GOBP_response <- mouse_gene_sets$GOBP_RESPONSE_TO_INTERFERON_ALPHA
 type1_response <- mouse_gene_sets$GOBP_RESPONSE_TO_TYPE_I_INTERFERON
+
 #reactome_ifn_antiviral <- mouse_gene_sets$REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES
 all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
 
@@ -135,6 +136,10 @@ wt_three_degs_isgs <- subset_deg_to_isgs(wt_three_degs)
 wt_four_degs_isgs <- subset_deg_to_isgs(wt_four_degs)
 wt_five_degs_isgs <- subset_deg_to_isgs(wt_five_degs)
 ips_three_degs_isgs <- subset_deg_to_isgs(ips_three_degs)
+
+#One of these celltypes did not have enough cells for FindMarkers, so just put in 0 to the list
+#need to do some messing around to make it work properly as a df
+ips_four_degs$`Immature Neurons` = data.frame(p_val = numeric(), avg_log2FC = numeric(), pct.1 = numeric(), pct.2 = numeric(), p_val_adj = numeric())
 ips_four_degs_isgs <- subset_deg_to_isgs(ips_four_degs)
 ips_five_degs_isgs <- subset_deg_to_isgs(ips_five_degs)
 
