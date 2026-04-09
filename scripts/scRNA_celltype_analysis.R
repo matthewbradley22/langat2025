@@ -493,60 +493,86 @@ ggplot(gene_dot, aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
 
 #Can include day 4 and just compare to all mock like the other ones
 wt_chimeric_three <- subset(wt_chimeric, Timepoint == 'Day 3' | Treatment == 'PBS')
+wt_chimeric_four <- subset(wt_chimeric, Timepoint == 'Day 4' | Treatment == 'PBS')
 wt_chimeric_five <- subset(wt_chimeric, Timepoint == 'Day 5' | Treatment == 'PBS')
 
 ips_chimeric_three <- subset(ips_chimeric, Timepoint == 'Day 3' | Treatment == 'PBS')
+ips_chimeric_four <- subset(ips_chimeric, Timepoint == 'Day 4' | Treatment == 'PBS')
 ips_chimeric_five <- subset(ips_chimeric, Timepoint == 'Day 5' | Treatment == 'PBS')
 
 #Can skip running loop and load here 
 wt_three_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_three_celltype_upset.rds')
+wt_four_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_four_celltype_upset.rds')
 wt_five_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_five_celltype_upset.rds')
 ips_three_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_three_celltype_upset.rds')
+ips_four_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_four_celltype_upset.rds')
 ips_five_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_five_celltype_upset.rds')
 
 #Otherwise can run from beginning
 wt_three_degs <- list()
+wt_four_degs <- list()
 wt_five_degs <- list()
 ips_three_degs <- list()
+ips_four_degs <- list()
 ips_five_degs <- list()
 
 for(i in 1:length(celltypes)){
   print(paste('Beginning celltype', celltypes[i]))
   
   cur_dat_three <- subset(wt_chimeric_three, manualAnnotation == celltypes[i])
+  cur_dat_four <- subset(wt_chimeric_four, manualAnnotation == celltypes[i])
   cur_dat_five <- subset(wt_chimeric_five, manualAnnotation == celltypes[i])
   cur_dat_three_ips <- subset(ips_chimeric_three, manualAnnotation == celltypes[i])
+  cur_dat_four_ips <- subset(ips_chimeric_four, manualAnnotation == celltypes[i])
   cur_dat_five_ips <- subset(ips_chimeric_five, manualAnnotation == celltypes[i])
+  
   
   celltype_markers_three <- FindMarkers(cur_dat_three, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
                                      test.use = 'MAST')
- 
+  celltype_markers_four <- FindMarkers(cur_dat_four, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
+                                        test.use = 'MAST')
   celltype_markers_five <- FindMarkers(cur_dat_five, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
                                        test.use = 'MAST')
   
   celltype_markers_three_ips <- FindMarkers(cur_dat_three_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
                                         test.use = 'MAST')
   
+  #Not enough immature neurons so have to use if statement
+  if(all(table(cur_dat_four_ips$Treatment) >3)){
+    celltype_markers_four_ips <- FindMarkers(cur_dat_four_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
+                                             test.use = 'MAST')
+  }
   celltype_markers_five_ips <- FindMarkers(cur_dat_five_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS',
                                             test.use = 'MAST')
   
   wt_three_degs[[i]] = celltype_markers_three
+  wt_four_degs[[i]] = celltype_markers_four
   wt_five_degs[[i]] = celltype_markers_five
   ips_three_degs[[i]] = celltype_markers_three_ips
+  if(all(table(cur_dat_four_ips$Treatment) >3)){
+    ips_four_degs[[i]] = celltype_markers_four_ips
+  }else{
+    ips_four_degs[[i]] = 0
+  }
   ips_five_degs[[i]] = celltype_markers_five_ips
   
   names(wt_three_degs)[[i]] = celltypes[i]
+  names(wt_four_degs)[[i]] = celltypes[i]
   names(wt_five_degs)[[i]] = celltypes[i]
   names(ips_three_degs)[[i]] = celltypes[i]
+  names(ips_four_degs)[[i]] = celltypes[i]
   names(ips_five_degs)[[i]] = celltypes[i]
   
   print(paste('Done with celltype', celltypes[i]))
 }
 
 #saveRDS(wt_three_degs, file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_three_celltype_upset.rds')
+#saveRDS(wt_four_degs, file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_four_celltype_upset.rds')
 #saveRDS(wt_five_degs, file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_five_celltype_upset.rds')
 #saveRDS(ips_three_degs, file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_three_celltype_upset.rds')
+#saveRDS(ips_four_degs, file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_four_celltype_upset.rds')
 #saveRDS(ips_five_degs, file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_five_celltype_upset.rds')
+
 
 #function to generate upset data from list of degs
 generate_upset_dat <- function(deg_list_dat){

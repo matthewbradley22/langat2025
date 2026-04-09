@@ -81,6 +81,8 @@ create_isg_heatmap(wt, group_by_arg = 'timepoint_celltype_treatment')
 
 wt_cerebrum <- subset(wt, Organ == 'Cerebrum')
 wt_cerebellum <- subset(wt, Organ == 'Cerebellum')
+ips_cerebrum <- subset(ips, Organ == 'Cerebrum')
+ips_cerebellum <- subset(ips, Organ == 'Cerebellum')
 
 pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/wt_cerebrum_isg.pdf", width = 7, height = 6)
 create_isg_heatmap(wt_cerebrum, group_by_arg = 'timepoint_celltype_treatment', title = 'wt cerebrum ISG scores')
@@ -90,8 +92,12 @@ pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/wt_cerebellum_
 create_isg_heatmap(wt_cerebellum, group_by_arg = 'timepoint_celltype_treatment', title = 'wt cerebellum ISG scores')
 dev.off()
 
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/ips_isg.pdf", width = 7, height = 6)
-create_isg_heatmap(ips, group_by_arg = 'timepoint_celltype_treatment', title = 'IPS1 ISG scores')
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/ips_cerebrum_isg.pdf", width = 7, height = 6)
+create_isg_heatmap(ips_cerebrum, group_by_arg = 'timepoint_celltype_treatment', title = 'IPS1 cerebrum ISG scores')
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/ips_cerebellum_isg.pdf", width = 7, height = 6)
+create_isg_heatmap(ips_cerebellum, group_by_arg = 'timepoint_celltype_treatment', title = 'IPS1 cerebellum ISG scores')
 dev.off()
 
 #Compare wt mock and ips mock across celltypes
@@ -110,8 +116,10 @@ dev.off()
 
 #Data objects created in scRNA_celltype_analysis.R script
 wt_three_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_three_celltype_upset.rds')
+wt_four_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_four_celltype_upset.rds')
 wt_five_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/wt_five_celltype_upset.rds')
 ips_three_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_three_celltype_upset.rds')
+ips_four_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_four_celltype_upset.rds')
 ips_five_degs <- readRDS(file = '~/Documents/ÖverbyLab/cell_upsetPlots/ips_five_celltype_upset.rds')
 
 #Subset deg lists to just isgs
@@ -124,46 +132,76 @@ subset_deg_to_isgs <- function(deg_lists){
 }
 
 wt_three_degs_isgs <- subset_deg_to_isgs(wt_three_degs)
+wt_four_degs_isgs <- subset_deg_to_isgs(wt_four_degs)
 wt_five_degs_isgs <- subset_deg_to_isgs(wt_five_degs)
 ips_three_degs_isgs <- subset_deg_to_isgs(ips_three_degs)
+ips_four_degs_isgs <- subset_deg_to_isgs(ips_four_degs)
 ips_five_degs_isgs <- subset_deg_to_isgs(ips_five_degs)
 
 #For each celltype, check which genes are upregulated
 #in wt or ips infected
-celltypes <- names(wt_three_degs_isgs)[names(wt_three_degs_isgs) != 'unknown']
+celltypes <- names(wt_three_degs_isgs)
 isg_up_by_genotype <- data.frame('celltype' = character(), 'timepoint' = character(),
                                  'comparison' = character(), 'count' = integer())
 
 for(i in 1:length(wt_three_degs_isgs)){
   celltype_wt_3_genes <- wt_three_degs_isgs[[celltypes[[i]]]]
+  celltype_wt_4_genes <- wt_four_degs_isgs[[celltypes[[i]]]]
   celltype_wt_5_genes <- wt_five_degs_isgs[[celltypes[[i]]]]
   celltype_ips_3_genes <- ips_three_degs_isgs[[celltypes[[i]]]]
+  celltype_ips_4_genes <- ips_four_degs_isgs[[celltypes[[i]]]]
   celltype_ips_5_genes <- ips_five_degs_isgs[[celltypes[[i]]]]
   
   celltype_wt_3_genes_sig <- subset(celltype_wt_3_genes, avg_log2FC > 1 & p_val_adj < 0.01)
+  celltype_wt_4_genes_sig <- subset(celltype_wt_4_genes, avg_log2FC > 1 & p_val_adj < 0.01)
   celltype_wt_5_genes_sig <- subset(celltype_wt_5_genes, avg_log2FC > 1 & p_val_adj < 0.01)
   celltype_ips_3_genes_sig <- subset(celltype_ips_3_genes, avg_log2FC > 1 & p_val_adj < 0.01)
+  celltype_ips_4_genes_sig <- subset(celltype_ips_4_genes, avg_log2FC > 1 & p_val_adj < 0.01)
   celltype_ips_5_genes_sig <- subset(celltype_ips_5_genes, avg_log2FC > 1 & p_val_adj < 0.01)
   
   wt_3_only = rownames(celltype_wt_3_genes_sig)[!rownames(celltype_wt_3_genes_sig) %in% rownames(celltype_ips_3_genes_sig)]
   ips_3_only = rownames(celltype_ips_3_genes_sig)[!rownames(celltype_ips_3_genes_sig) %in% rownames(celltype_wt_3_genes_sig)]
   up_both_3 <- rownames(celltype_wt_3_genes_sig)[rownames(celltype_wt_3_genes_sig) %in% rownames(celltype_ips_3_genes_sig)]
   
+  wt_4_only = rownames(celltype_wt_4_genes_sig)[!rownames(celltype_wt_4_genes_sig) %in% rownames(celltype_ips_4_genes_sig)]
+  ips_4_only = rownames(celltype_ips_4_genes_sig)[!rownames(celltype_ips_4_genes_sig) %in% rownames(celltype_wt_4_genes_sig)]
+  up_both_4 <- rownames(celltype_wt_4_genes_sig)[rownames(celltype_wt_4_genes_sig) %in% rownames(celltype_ips_4_genes_sig)]
+  
   wt_5_only = rownames(celltype_wt_5_genes_sig)[!rownames(celltype_wt_5_genes_sig) %in% rownames(celltype_ips_5_genes_sig)]
   ips_5_only = rownames(celltype_ips_5_genes_sig)[!rownames(celltype_ips_5_genes_sig) %in% rownames(celltype_wt_5_genes_sig)]
   up_both_5 <- rownames(celltype_wt_5_genes_sig)[rownames(celltype_wt_5_genes_sig) %in% rownames(celltype_ips_5_genes_sig)]
   
-  celltype_df <- data.frame(celltype = rep(celltypes[[i]], 6), comparison = rep(c('wt_only', 'ips_only', 'both'),2),
-                            timepoint = c(rep('Day 3', 3), rep('Day 5', 3)),
+  celltype_df <- data.frame(celltype = rep(celltypes[[i]], 9), comparison = rep(c('wt_only', 'ips_only', 'both'),3),
+                            timepoint = c(rep('Day 3', 3), rep('Day 4', 3), rep('Day 5', 3)),
                             count = c(length(wt_3_only), length(ips_3_only), length(up_both_3),
+                                      length(wt_4_only), length(ips_4_only), length(up_both_4),
                                       length(wt_5_only), length(ips_5_only), length(up_both_5)))
   isg_up_by_genotype <- rbind(isg_up_by_genotype, celltype_df)
 }
 
-isg_up_by_genotype
+isg_up_by_genotype$comparison = factor(isg_up_by_genotype$comparison, levels = c('wt_only', 'ips_only', 'both'))
+isg_up_by_genotype <- isg_up_by_genotype[isg_up_by_genotype$celltype != 'unknown',]
+isg_up_by_genotype$celltype = factor(isg_up_by_genotype$celltype, levels = rev(sort(unique(isg_up_by_genotype$celltype))))
 
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/isg_by_geno_celltype.pdf", width = 8, height = 6)
 ggplot(isg_up_by_genotype, aes(x = timepoint, y = celltype, fill = count))+
+  facet_wrap(~comparison)+
   geom_tile()+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0),
-                       limits = c(0,85))
+                       limits = c(0,95))+
+  geom_text(aes(label = count), size=3)+
+  theme(axis.text = element_text(size = 14),
+        strip.text = element_text(size = 14))
+dev.off()
+
+#Testing to make sure function works
+wt_five_astro_isgs <-  wt_five_degs_isgs$Astrocytes
+wt_five_astro_isgs <- rownames(subset(wt_five_astro_isgs, avg_log2FC > 1 & p_val_adj < 0.01))
+
+ips_five_astro_isgs <-  ips_five_degs_isgs$Astrocytes
+ips_five_astro_isgs <- rownames(subset(ips_five_astro_isgs, avg_log2FC > 1 & p_val_adj < 0.01))
+
+sum(wt_five_astro_isgs %in% ips_five_astro_isgs)
+sum(!wt_five_astro_isgs %in% ips_five_astro_isgs)
+sum(!ips_five_astro_isgs  %in% wt_five_astro_isgs)
