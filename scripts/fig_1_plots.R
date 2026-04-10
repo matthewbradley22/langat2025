@@ -189,23 +189,26 @@ DotPlot(chimeric_mock, features = c('Aqp4', 'Fgfr3','Gfap', 'Ttr','Kl',
 dev.off()
 geno_treatment
 #Mavs expression
-chimeric_mock$geno_treatment <- paste(chimeric_mock$Genotype, chimeric_mock$Treatment, sep = '_')
-mavs_dat <- DotPlot(object = chimeric_mock, features = c("Mavs"), group.by = 'geno_treatment', scale = FALSE)$data
+chimeric_mock$geno_treatment_time <- paste(chimeric_mock$Genotype, chimeric_mock$Treatment, chimeric_mock$Timepoint, sep = '_')
+mavs_dat <- DotPlot(object = chimeric_mock, features = c("Mavs"), group.by = 'geno_treatment_time', scale = FALSE)$data
 
-mavs_dat_meta <- str_split_fixed(mavs_dat$id, "_", 2)
-colnames(mavs_dat_meta) <- c('genotype', 'treatment')
+mavs_dat_meta <- str_split_fixed(mavs_dat$id, "_", 3)
+colnames(mavs_dat_meta) <- c('genotype', 'treatment', 'time')
 mavs_dat <- cbind(mavs_dat, mavs_dat_meta)
 
 #Could split by time
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mavs_expression.pdf', height = 9, width = 7)
-ggplot(mavs_dat, aes(x = genotype, y = treatment, color = avg.exp.scaled, size = pct.exp))+
+ggplot(mavs_dat, aes(x = time, y = genotype, color = avg.exp.scaled, size = pct.exp))+
+  facet_wrap(~treatment)+
   geom_point()+
   scale_color_gradient2(low = 'white', mid = 'orange', high = 'red', midpoint = 0.06)+
   theme_classic()+
   theme(axis.text = element_text(size = 24),
         legend.text = element_text(size = 24),
         legend.title = element_text(size = 24),
-        plot.title = element_text(size =30))+
+        plot.title = element_text(size =30),
+        axis.text.x = element_text(angle = 90),
+        strip.text = element_text(size = 24))+
   xlab('')+
   ylab('')+
   ggtitle('Mavs Expression')+

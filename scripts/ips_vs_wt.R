@@ -2,6 +2,7 @@ library(Seurat)
 library(RColorBrewer)
 library(dplyr)
 library(UpSetR)
+library(stringr)
 library(ggplot2)
 library(tidyr)
 library(VennDiagram)
@@ -126,6 +127,7 @@ deg_counts_by_time_m_vs_i <- list()
 #Skip for loop with
 deg_counts_by_time_m_vs_i <- readRDS('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/mock_infected_deg_lists.rds')
 
+#Can just include day 4 too since we're comparing to all pbs, doesn't need day 4 pbs to be present
 times_with_both_treatments = c('Day 3', 'Day 5')
 
 #Can skip
@@ -192,10 +194,38 @@ vd_day5 <- VennDiagram::venn.diagram(list(wt = rownames(day_5_up_wt), ips = rown
                                      fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
 grid::grid.draw(vd_day5)
 
-#Day 5 what is ips iupregulating that wt is not
+vd_day3_wt_5_ips <- VennDiagram::venn.diagram(list(wt = rownames(day_3_up_wt), ips = rownames(day_5_up_ips)), filename = NULL,
+                                     fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
+grid::grid.draw(vd_day3_wt_5_ips)
+
+#Up day 3 wt but not ips
+day_3_only_wt_up <- rownames(day_3_up_wt[!rownames(day_3_up_wt) %in% rownames(day_3_up_ips),])
+day_3_only_wt_up_paths <- gprofiler2::gost(query = day_3_only_wt_up, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+ggplot(head(day_3_only_wt_up_paths$result, n = 10), aes(x = -log10(p_value), y = reorder(term_name, p_value)))+
+  geom_bar(stat = 'identity')+
+  ylab('')+
+  xlab('')+
+  theme(axis.text = element_text(size = 20))
+
+
+#Day 5 what is ips upregulating that wt is not
 day_5_only_ips_up <- rownames(day_5_up_ips[!rownames(day_5_up_ips) %in% rownames(day_5_up_wt),])
 day_5_only_ips_up_paths <- gprofiler2::gost(query = day_5_only_ips_up, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
-day_5_only_ips_up_paths$result
+ggplot(head(day_5_only_ips_up_paths$result, n = 10), aes(x = -log10(p_value), y = reorder(term_name, p_value)))+
+  geom_bar(stat = 'identity')+
+  ylab('')+
+  xlab('')+
+  theme(axis.text = element_text(size = 20))
+
+#What is wt upregulating that ips is not
+day_5_only_wt_up <- rownames(day_5_up_wt[!rownames(day_5_up_wt) %in% rownames(day_5_up_ips),])
+day_5_only_wt_up_paths <- gprofiler2::gost(query = day_5_only_wt_up, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+
+ggplot(head(day_5_only_wt_up_paths$result, n = 10), aes(x = -log10(p_value), y = reorder(term_name, p_value)))+
+  geom_bar(stat = 'identity')+
+  ylab('')+
+  xlab('')+
+  theme(axis.text = element_text(size = 20))
 
 #Downregulated differences
 day_5_down_wt <- deg_counts_by_time_m_vs_i$WT_down_5
@@ -222,15 +252,57 @@ plot_gene_across_groups <- function(dat, gene){
     facet_wrap(~genotype)+
     geom_point()+
     ggtitle(gene)+
-    scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                          values = c(1.0,0.7,0.4,0))
+    scale_color_gradientn(colours = c("#F03C0C","#FFF0A3","white"), 
+                          values = c(1.0,0.5,0))
   print(dot_plot_gene)
 }
 
-plot_gene_across_groups(chimeric_mock, 'Ccnb1ip1')
+plot_gene_across_groups(chimeric_mock, 'Cdca5')
 
 
+#Do above analysis by celltype, seems like trends may differ alot across celltypes
+deg_counts_time_m_vs_i_celltype <- list()
 
+#Skip slow for loop
+deg_counts_time_m_vs_i_celltype <- readRDS("~/Documents/ÖverbyLab/celltype_venn_data.rds")
 
+celltypes_of_interest = c('Microglia', 'Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal')
+times = c('Day 3', 'Day 4', 'Day 5')
+
+#Can skip
+for(i in 1:length(celltypes_of_interest)){
+  print(paste("starting cell", celltypes_of_interest[i]))
+  current_celltype <- celltypes_of_interest[[i]]
+  current_cell_data_wt <- subset(chimeric_mock_wt, manualAnnotation == current_celltype)
+  current_cell_data_ips <- subset(chimeric_mock_ips, manualAnnotation == current_celltype)
+  for(j in 1:length(times)){
+    print(paste("starting time", times[j]))
+    cur_timepoint_wt <- subset(current_cell_data_wt, Timepoint == times[[j]] | Treatment == 'PBS')
+    cur_timepoint_ips <- subset(current_cell_data_ips, Timepoint == times[[j]] | Treatment == 'PBS')
+    
+    wt_markers <- FindMarkers(cur_timepoint_wt, test.use = 'MAST', group.by = 'Treatment', ident.1 = 'rChLGTV')
+    wt_markers_up_sig <- wt_markers[wt_markers$p_val_adj < 0.01 & (wt_markers$avg_log2FC) > 1,]
+    wt_markers_down_sig <- wt_markers[wt_markers$p_val_adj < 0.01 & (wt_markers$avg_log2FC) < -1,]
+    
+    ips_markers <- FindMarkers(cur_timepoint_ips, test.use = 'MAST', group.by = 'Treatment', ident.1 = 'rChLGTV')
+    ips_markers_up_sig <- ips_markers[ips_markers$p_val_adj < 0.01 & (ips_markers$avg_log2FC) > 1,]
+    ips_markers_down_sig <- ips_markers[ips_markers$p_val_adj < 0.01 & (ips_markers$avg_log2FC) < -1,]
+    
+    deg_counts_time_m_vs_i_celltype[[length(deg_counts_time_m_vs_i_celltype) + 1]] <- wt_markers_up_sig
+    deg_counts_time_m_vs_i_celltype[[length(deg_counts_time_m_vs_i_celltype) + 1]] <- wt_markers_down_sig
+    deg_counts_time_m_vs_i_celltype[[length(deg_counts_time_m_vs_i_celltype) + 1]] <- ips_markers_up_sig
+    deg_counts_time_m_vs_i_celltype[[length(deg_counts_time_m_vs_i_celltype) + 1]] <- ips_markers_down_sig
+    
+  }
+}
+
+#Create names for new list
+name_of_each_comp = c('wt_up', 'wt_down', 'ips_up', 'ips_down')
+names_without_comps <- paste(rep(celltypes_of_interest, each = length(times) * length(name_of_each_comp)), rep(times, each = length(name_of_each_comp)), sep = '_')
+names_with_comps <- paste(names_without_comps, name_of_each_comp, sep = '_')
+names_with_comps <- gsub(' ', '', names_with_comps)
+names(deg_counts_time_m_vs_i_celltype) = names_with_comps
+
+#saveRDS(deg_counts_time_m_vs_i_celltype, file = "~/Documents/ÖverbyLab/celltype_venn_data.rds")
 
 

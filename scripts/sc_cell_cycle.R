@@ -1,4 +1,4 @@
-
+library(gprofiler2)
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 
@@ -35,5 +35,10 @@ DotPlot(chimeric_mock, features = 'S.Score', group.by = 'time_geno_treatment')
 table(chimeric_mock$Genotype, chimeric_mock$Treatment, chimeric_mock$Phase)
 
 chimeric_mock[[]] %>% dplyr::group_by(Genotype, Treatment, Timepoint) %>% 
+  dplyr::summarise(s_score = mean(S.Score), g2m_score = mean(G2M.Score))
+
+#Is this effect only because of standout microglia
+chimeric_mock_no_microglia <- subset(chimeric_mock, manualAnnotation != 'Microglia')
+chimeric_mock_no_microglia[[]] %>% dplyr::group_by(Genotype, Treatment, Timepoint) %>% 
   dplyr::summarise(s_score = mean(S.Score), g2m_score = mean(G2M.Score))
 
