@@ -1,4 +1,5 @@
 library(gprofiler2)
+
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 
@@ -31,8 +32,31 @@ mmus_g2m = gorth(g2m.genes, source_organism = "hsapiens", target_organism = "mmu
 chimeric_mock <- CellCycleScoring(chimeric_mock, s.features = mmus_s, g2m.features = mmus_g2m, set.ident = TRUE)
 DimPlot(chimeric_mock, group.by = 'Phase', reduction = 'umap.integrated')
 
-DotPlot(chimeric_mock, features = 'S.Score', group.by = 'time_geno_treatment')
-table(chimeric_mock$Genotype, chimeric_mock$Treatment, chimeric_mock$Phase)
+#S score plot
+DotPlot(chimeric_mock, features = 'S.Score', group.by = 'time_geno_treatment', scale = FALSE)$data %>%
+  separate(id, into = c('time', 'genotype', 'treatment'),
+           sep = '_') %>% 
+  ggplot(aes(x = genotype, y = treatment, fill = avg.exp.scaled))+
+  facet_wrap(~time)+
+  geom_tile()+
+  scale_fill_gradientn(colours = c("#F03C0C","#FFC182","#FFF2E8"), 
+                        values = c(1.0,0.5,0))+
+  theme_classic() + 
+  ggtitle('S.Score')
+
+#G2m score plot
+DotPlot(chimeric_mock, features = 'G2M.Score', group.by = 'time_geno_treatment', scale = FALSE)$data %>%
+  separate(id, into = c('time', 'genotype', 'treatment'),
+           sep = '_') %>% 
+  ggplot(aes(x = genotype, y = treatment, fill = avg.exp.scaled))+
+  facet_wrap(~time)+
+  geom_tile()+
+  scale_fill_gradientn(colours = c("#F03C0C","#FFC182","#FFF2E8"), 
+                       values = c(1.0,0.5,0))+
+  theme_classic() + 
+  ggtitle('G2M.Score')
+
+ntable(chimeric_mock$Genotype, chimeric_mock$Treatment, chimeric_mock$Phase)
 
 chimeric_mock[[]] %>% dplyr::group_by(Genotype, Treatment, Timepoint) %>% 
   dplyr::summarise(s_score = mean(S.Score), g2m_score = mean(G2M.Score))
