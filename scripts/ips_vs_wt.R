@@ -201,12 +201,16 @@ grid::grid.draw(vd_day3_wt_5_ips)
 #Up day 3 wt but not ips
 day_3_only_wt_up <- rownames(day_3_up_wt[!rownames(day_3_up_wt) %in% rownames(day_3_up_ips),])
 day_3_only_wt_up_paths <- gprofiler2::gost(query = day_3_only_wt_up, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
-ggplot(head(day_3_only_wt_up_paths$result, n = 10), aes(x = -log10(p_value), y = reorder(term_name, p_value)))+
-  geom_bar(stat = 'identity')+
-  ylab('')+
-  xlab('')+
-  theme(axis.text = element_text(size = 20))
 
+plot_go_results <- function(go_dat){
+  ggplot(head(go_dat$result, n = 10), aes(x = -log10(p_value), y = reorder(term_name, p_value)))+
+    geom_bar(stat = 'identity')+
+    ylab('')+
+    xlab('')+
+    theme(axis.text = element_text(size = 20))
+}
+
+plot_go_results(day_3_only_wt_up_paths)
 
 #Day 5 what is ips upregulating that wt is not
 day_5_only_ips_up <- rownames(day_5_up_ips[!rownames(day_5_up_ips) %in% rownames(day_5_up_wt),])
@@ -305,4 +309,46 @@ names(deg_counts_time_m_vs_i_celltype) = names_with_comps
 
 #saveRDS(deg_counts_time_m_vs_i_celltype, file = "~/Documents/ÖverbyLab/celltype_venn_data.rds")
 
+#Need to remove space from choroid plexus as this wasn't how list was named
+celltypes_of_interest_nospace = c('Microglia', 'Astrocytes', 'ChoroidPlexus', 'Endothelial', 'Ependymal')
 
+#Do not let venndiagram write log files for every comp
+futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
+
+#Generate ven diagrams for each celltype
+for(i in 1:length(celltypes_of_interest_nospace)){
+  current_celltype <- celltypes_of_interest_nospace[i]
+  for(j in 1:length(times)){
+    cur_time <- gsub(' ', '', times[[j]])
+    cur_celltype_wt_up_name <- paste(current_celltype, cur_time, 'wt_up', sep = '_')
+    cur_celltype_ips_up_name <- paste(current_celltype, cur_time, 'ips_up', sep = '_')
+    cur_wt_up_genes <- rownames(deg_counts_time_m_vs_i_celltype[[cur_celltype_wt_up_name]])
+    cur_ips_up_genes <- rownames(deg_counts_time_m_vs_i_celltype[[cur_celltype_ips_up_name]])
+    
+    path_to_save <-  '~/Documents/ÖverbyLab/celltype_venns/'
+    current_comp <- paste(current_celltype, cur_time, 'wt_vs_ips_up', sep = '_')
+    VennDiagram::venn.diagram(list(wt = cur_wt_up_genes, ips = cur_ips_up_genes), filename = paste0(path_to_save, current_comp, '.png'),
+                              fill = brewer.pal(3, "Pastel2")[1:2], cex = 3, cat.cex = 1.5)
+  }
+}
+
+#Path analysis for select differences
+#Microglia day 5
+micro_5_wt_only <- rownames(deg_counts_time_m_vs_i_celltype$Microglia_Day5_wt_up)[!rownames(deg_counts_time_m_vs_i_celltype$Microglia_Day5_wt_up) %in% 
+                                                       rownames(deg_counts_time_m_vs_i_celltype$Microglia_Day5_ips_up)]
+micro_5_wt_only_paths <- gprofiler2::gost(query = micro_5_wt_only, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+plot_go_results(micro_5_wt_only_paths)
+
+#Endothelial day 5
+endo_5_wt_only <- rownames(deg_counts_time_m_vs_i_celltype$Endothelial_Day5_wt_up)[!rownames(deg_counts_time_m_vs_i_celltype$Endothelial_Day5_wt_up) %in% 
+                                                                                    rownames(deg_counts_time_m_vs_i_celltype$Endothelial_Day5_ips_up)]
+endo_5_wt_only_paths <- gprofiler2::gost(query = endo_5_wt_only, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+plot_go_results(endo_5_wt_only_paths)
+plot_gene_across_groups(subset(chimeric_mock, manualAnnotation == 'Endothelial'), 'Cx3cl1')
+
+#Ependymal day 5
+epen_5_wt_only <- rownames(deg_counts_time_m_vs_i_celltype$Ependymal_Day5_wt_up)[!rownames(deg_counts_time_m_vs_i_celltype$Ependymal_Day5_wt_up) %in% 
+                                                                                     rownames(deg_counts_time_m_vs_i_celltype$Ependymal_Day5_ips_up)]
+epen_5_wt_only_paths <- gprofiler2::gost(query = epen_5_wt_only, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+plot_go_results(epen_5_wt_only_paths)
+plot_gene_across_groups((chimeric_mock), 'Cx3cl1')
