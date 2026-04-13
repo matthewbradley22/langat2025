@@ -30,7 +30,14 @@ mmus_s = gorth(s.genes, source_organism = "hsapiens", target_organism = "mmuscul
 mmus_g2m = gorth(g2m.genes, source_organism = "hsapiens", target_organism = "mmusculus")$ortholog_name
 
 chimeric_mock <- CellCycleScoring(chimeric_mock, s.features = mmus_s, g2m.features = mmus_g2m, set.ident = TRUE)
-DimPlot(chimeric_mock, group.by = 'Phase', reduction = 'umap.integrated')
+
+png('~/Documents/ÖverbyLab/single_cell_ISG_figures/cell_cycle_figure/cell_cycle_plots/cell_cycle_umap.png', width = 800, height = 800)
+DimPlot(chimeric_mock, group.by = 'Phase', reduction = 'umap.integrated')+
+  xlab('')+
+  ylab('')+
+  theme(legend.text = element_text(size = 26))+
+  ggtitle('')
+dev.off()
 
 #S score plot
 DotPlot(chimeric_mock, features = 'S.Score', group.by = 'time_geno_treatment', scale = FALSE)$data %>%
@@ -65,4 +72,81 @@ chimeric_mock[[]] %>% dplyr::group_by(Genotype, Treatment, Timepoint) %>%
 chimeric_mock_no_microglia <- subset(chimeric_mock, manualAnnotation != 'Microglia')
 chimeric_mock_no_microglia[[]] %>% dplyr::group_by(Genotype, Treatment, Timepoint) %>% 
   dplyr::summarise(s_score = mean(S.Score), g2m_score = mean(G2M.Score))
+
+DotPlot(chimeric_mock_no_microglia, features = 'S.Score', group.by = 'time_geno_treatment', scale = FALSE)$data %>%
+  separate(id, into = c('time', 'genotype', 'treatment'),
+           sep = '_') %>% 
+  ggplot(aes(x = genotype, y = treatment, fill = avg.exp.scaled))+
+  facet_wrap(~time)+
+  geom_tile()+
+  scale_fill_gradientn(colours = c("#F03C0C","#FFC182","#FFF2E8"), 
+                       values = c(1.0,0.5,0))+
+  theme_classic() + 
+  ggtitle('S.Score')
+
+#Look by celltype
+chimeric_mock$celltype_treatment_time <- paste(chimeric_mock$manualAnnotation, chimeric_mock$Treatment, chimeric_mock$Timepoint, sep = '_')
+chimeric_mock$celltype_genotype_time <- paste(chimeric_mock$manualAnnotation, chimeric_mock$Genotype, chimeric_mock$Timepoint, sep = '_')
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/cell_cycle_figure/cell_cycle_plots/s_score_treatment.pdf', height = 7, width = 9)
+DotPlot(chimeric_mock, features = 'S.Score', group.by = 'celltype_treatment_time', scale = FALSE)$data %>% 
+  separate(id, into = c('celltype', 'treatment', 'time'),
+           sep = '_') %>% 
+  ggplot(aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
+  facet_wrap(~time)+
+  geom_tile()+
+  scale_fill_gradientn(colours = c("#F03C0C","#FFC182","#FFF2E8"), 
+                       values = c(1.0,0.5,0))+
+  theme_classic() + 
+  ggtitle('S.Score')+
+  theme(axis.text = element_text(size = 24),
+        legend.text = element_text(size = 24), 
+        strip.text = element_text(size = 24),
+        axis.text.x = element_text(angle = 90),
+        plot.title = element_text(size = 24))+
+  xlab('')+
+  ylab('')
+dev.off()
+
+#Split by genotype
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/cell_cycle_figure/cell_cycle_plots/s_score_genotype.pdf', height = 7, width = 9)
+DotPlot(chimeric_mock, features = 'S.Score', group.by = 'celltype_genotype_time', scale = FALSE)$data %>% 
+  separate(id, into = c('celltype', 'genotype', 'time'),
+           sep = '_') %>% 
+  ggplot(aes(x = genotype, y = celltype, fill = avg.exp.scaled))+
+  facet_wrap(~time)+
+  geom_tile()+
+  scale_fill_gradientn(colours = c("#F03C0C","#FFC182","#FFF2E8"), 
+                       values = c(1.0,0.5,0))+
+  theme_classic() + 
+  ggtitle('S.Score')+
+  theme(axis.text = element_text(size = 24),
+        legend.text = element_text(size = 24), 
+        strip.text = element_text(size = 24),
+        axis.text.x = element_text(angle = 90),
+        plot.title = element_text(size = 24))+
+  xlab('')+
+  ylab('')
+dev.off()
+
+#G2m by time
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/cell_cycle_figure/cell_cycle_plots/g2m_score_treatment.pdf', height = 7, width = 9)
+DotPlot(chimeric_mock, features = 'G2M.Score', group.by = 'celltype_treatment_time', scale = FALSE)$data %>% 
+  separate(id, into = c('celltype', 'treatment', 'time'),
+           sep = '_') %>% 
+  ggplot(aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
+  facet_wrap(~time)+
+  geom_tile()+
+  scale_fill_gradientn(colours = c("#F03C0C","#FFC182","#FFF2E8"), 
+                       values = c(1.0,0.5,0))+
+  theme_classic() + 
+  ggtitle('G2M.Score')+
+  theme(axis.text = element_text(size = 24),
+        legend.text = element_text(size = 24), 
+        strip.text = element_text(size = 24),
+        axis.text.x = element_text(angle = 90),
+        plot.title = element_text(size = 24))+
+  xlab('')+
+  ylab('')
+dev.off()
 
