@@ -32,7 +32,7 @@ chimeric_infected <- subset(ParseSeuratObj_int, Treatment == 'rChLGTV')
 chimeric_infected <- prepSeuratObj(chimeric_infected)
 ElbowPlot(chimeric_infected, ndims = 30)
 chimeric_infected <- prepUmapSeuratObj(chimeric_infected, nDims = 20, reductionName = 'ch_umap')
-DimPlot(chimeric_infected, group.by = 'Genotype', reduction = 'ch_umap')
+DimPlot(chimeric_infected, group.by = 'manualAnnotation', reduction = 'ch_umap', cols = newCols)
 
 #Markers upregulated in wt
 wt_up <- FindMarkers(chimeric_infected, group.by = 'Genotype', ident.1 = 'WT', only.pos = TRUE, test.use = 'MAST')
@@ -185,7 +185,10 @@ day_3_up_wt <- deg_counts_by_time_m_vs_i$WT_up_3
 day_3_up_ips <- deg_counts_by_time_m_vs_i$IPS_up_3
 day_5_up_wt <- deg_counts_by_time_m_vs_i$WT_up_5
 day_5_up_ips <- deg_counts_by_time_m_vs_i$IPS_up_5
+day_5_down_ips <- deg_counts_by_time_m_vs_i$IPS_down_5
 
+#Do not produce log file
+futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
 vd_day3 <- VennDiagram::venn.diagram(list(wt = rownames(day_3_up_wt), ips = rownames(day_3_up_ips)), filename = NULL,
                                      fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
 grid::grid.draw(vd_day3)
@@ -244,6 +247,10 @@ common_down_5 <- rownames(day_5_down_wt)[rownames(day_5_down_wt) %in% rownames(d
 day_5_down_paths <- gprofiler2::gost(query = (common_down_5), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 day_5_down_paths$result
 
+#Downregulated at day 5 ips
+day_5_ips_down_paths <- gprofiler2::gost(query = rownames(day_5_down_ips), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+head(day_5_ips_down_paths$result, n = 10)
+
 #look at specific genes across groups
 chimeric_mock$time_geno_treatment <- paste(chimeric_mock$Timepoint, chimeric_mock$Genotype, chimeric_mock$Treatment, sep = '_')
 
@@ -261,7 +268,7 @@ plot_gene_across_groups <- function(dat, gene){
   print(dot_plot_gene)
 }
 
-plot_gene_across_groups(chimeric_mock, 'Cdca5')
+plot_gene_across_groups(chimeric_mock, 'Isg20')
 
 
 #Do above analysis by celltype, seems like trends may differ alot across celltypes

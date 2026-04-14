@@ -44,13 +44,14 @@ mock_wt <- subset(chimeric_mock, Treatment == 'PBS'  & Genotype == 'WT')
 #IPS chLGTV
 pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/ChLgtv_ips_cellPopBars.pdf", width = 5, height = 8)
 table(chLgtv_ips$Timepoint, chLgtv_ips$manualAnnotation, chLgtv_ips$Organ) %>% 
-  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
-  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  as.data.frame() %>% dplyr::group_by(Var1, Var3) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var3, y = freq_props, fill = Var2))+
+  facet_wrap(~Var1)+
   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
   scale_fill_manual(values = newCols)+
   theme_classic()+
   theme(legend.position = 'none',
-        axis.text.x = element_text(size = 22),
+        axis.text.x = element_text(size = 18, angle = 90),
         axis.text.y = element_text(size = 22),
         axis.title=element_text(size=22),
         plot.title = element_text(size = 22))+
