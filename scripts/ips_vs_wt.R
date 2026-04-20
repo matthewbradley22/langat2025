@@ -59,6 +59,9 @@ deg_counts_by_time <- list()
 mock_only <- subset(chimeric_mock, Treatment == 'PBS')
 
 #Number of markers mock vs mock
+#Can skip findmarkers and for loop by loading data
+deg_counts_by_time <- readRDS('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/deg_counts_by_time.rds')
+
 mock_markers <- FindMarkers(mock_only, test.use = 'MAST', group.by = 'Genotype', ident.1 = 'WT')
 mock_markers_up_sig <- mock_markers[mock_markers$p_val_adj < 0.01 & (mock_markers$avg_log2FC) > 1,]
 mock_markers_down_sig <- mock_markers[mock_markers$p_val_adj < 0.01 & (mock_markers$avg_log2FC) < -1,]
@@ -89,11 +92,13 @@ for(i in 1:length(times)){
 names(deg_counts_by_time) = c('mock_up', 'mock_down', 'day3_up', 'day3_down',
                               'day4_up', 'day4_down', 'day5_up', 'day5_down')
 
+#saveRDS(deg_counts_by_time, '~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/deg_counts_by_time.rds')
+
 deg_counts_by_time_counts = lapply(deg_counts_by_time, nrow)
 ips_wt_deg_counts <- data.frame(comp = names(deg_counts_by_time), count = unlist(deg_counts_by_time_counts),
                                 comp_type = factor(c('mock', 'mock', 'day3', 'day3', 'day4', 'day4', 'day5', 'day5'),
                                                    levels = c('mock', 'day3', 'day4', 'day5')),
-                                comp_direction = rep(c('wt_up', 'ips_up'), 4))
+                                comp_direction = factor(rep(c('wt_up', 'ips_up'), 4), levels = c('wt_up', 'ips_up')))
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/deg_count_time.pdf', height = 8, width = 10)
 ggplot(ips_wt_deg_counts, aes(x = comp_type, y = count, fill = comp_direction)) +
@@ -101,7 +106,7 @@ ggplot(ips_wt_deg_counts, aes(x = comp_type, y = count, fill = comp_direction)) 
   ylab('Number of DEGs')+
   xlab('')+
   ggtitle('Number of DEGs')+
-  scale_fill_manual(values = c(newCols[4], newCols[7]))+
+  scale_fill_manual(values = c("#6D92F8", "#F76363"))+
   theme(axis.text = element_text(size = 24),
         plot.title = element_text(size = 26),
         legend.text = element_text(size = 24),
@@ -112,6 +117,9 @@ ggplot(ips_wt_deg_counts, aes(x = comp_type, y = count, fill = comp_direction)) 
 dev.off()
 
 #Pathway analysis of up in wt and ips at each timepoint
+wt_mock_up_paths <- gprofiler2::gost(query = rownames(mock_markers_up_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+wt_mock_down_paths <- gprofiler2::gost(query = rownames(mock_markers_down_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+
 wt_day3_up_paths <- gprofiler2::gost(query = rownames(deg_counts_by_time$day3_up), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 ips_day3_up_paths <- gprofiler2::gost(query = rownames(deg_counts_by_time$day3_down), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 wt_day5_up_paths <- gprofiler2::gost(query = rownames(deg_counts_by_time$day5_up), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
@@ -169,7 +177,6 @@ ggplot(m_vs_i_deg_df, aes(x = comp_time, y = deg_count, fill = comp_direction))+
   xlab('')+
   ylab('')+
   ggtitle('DEGs infected vs mock')+
-  scale_fill_manual(values = c(newCols[8], newCols[10]))+
   theme(axis.text = element_text(size = 24),
         plot.title = element_text(size = 26),
         legend.text = element_text(size = 24),
@@ -254,22 +261,23 @@ head(day_5_ips_down_paths$result, n = 10)
 #look at specific genes across groups
 chimeric_mock$time_geno_treatment <- paste(chimeric_mock$Timepoint, chimeric_mock$Genotype, chimeric_mock$Treatment, sep = '_')
 
-plot_gene_across_groups <- function(dat, gene){
+plot_gene_across_groups <- function(dat, gene, lims = NULL){
   select_gene_data <- DotPlot(dat, features = gene, group.by = 'time_geno_treatment', scale = FALSE)$data 
   select_gene_data_meta <- str_split_fixed(select_gene_data$id, pattern = '_', n = 3)
   colnames(select_gene_data_meta) <- c('timepoint', 'genotype', 'treatment')
   select_gene_data <- cbind(select_gene_data, select_gene_data_meta)
+  select_gene_data$genotype <- factor(select_gene_data$genotype, levels = c('WT', 'IPS1'))
   dot_plot_gene <- ggplot(select_gene_data, aes(x = timepoint, y = treatment, size = pct.exp, color = avg.exp.scaled))+
     facet_wrap(~genotype)+
     geom_point()+
     ggtitle(gene)+
     scale_color_gradientn(colours = c("#F03C0C","#FFF0A3","white"), 
-                          values = c(1.0,0.5,0))
+                          values = c(1.0,0.5,0),
+                          limits = lims)
   print(dot_plot_gene)
 }
 
-plot_gene_across_groups(chimeric_mock, 'Isg20')
-
+plot_gene_across_groups(subset(chimeric_mock, manualAnnotation == 'Nk cells'), 'Ifng', lims = c(0, 2))
 
 #Do above analysis by celltype, seems like trends may differ alot across celltypes
 deg_counts_time_m_vs_i_celltype <- list()
@@ -359,3 +367,25 @@ epen_5_wt_only <- rownames(deg_counts_time_m_vs_i_celltype$Ependymal_Day5_wt_up)
 epen_5_wt_only_paths <- gprofiler2::gost(query = epen_5_wt_only, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 plot_go_results(epen_5_wt_only_paths)
 plot_gene_across_groups((chimeric_mock), 'Cx3cl1')
+
+#Generate heatmap rather than venn diagrams
+deg_genes_by_celltype_names = names(deg_counts_time_m_vs_i_celltype)
+deg_genes_by_celltype <- data.frame(gene_name = character(), comp = character())
+
+for(i in 1:length(deg_genes_by_celltype_names)){
+  genes <- rownames(deg_counts_time_m_vs_i_celltype[[i]])
+  genes_labelled <- data.frame(gene_name = genes, comp = deg_genes_by_celltype_names[i])
+  deg_genes_by_celltype = rbind(deg_genes_by_celltype, genes_labelled)
+}
+
+deg_genes_by_celltype_split <- deg_genes_by_celltype %>% tidyr::separate(comp, c('celltype', 'time', 'geno', 'direction'), sep = '_')
+deg_genes_by_celltype_heatmap_dat <- data.frame(celltype = character(), time = character(), geno = character(), direction = character(), count = integer())
+celltypes <- unique(deg_genes_by_celltype_split$celltype)
+
+for(i in 1:length(celltypes)){
+  current_celltype_dat <- dplyr::filter(deg_genes_by_celltype_split, celltype == celltypes[i])
+  for(j in 1:length(deg_genes_by_celltype_split$time)){
+    print(current_celltype)
+  }
+}
+

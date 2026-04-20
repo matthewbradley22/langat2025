@@ -189,15 +189,16 @@ isg_up_by_genotype <- isg_up_by_genotype[isg_up_by_genotype$celltype != 'unknown
 isg_up_by_genotype$celltype = factor(isg_up_by_genotype$celltype, levels = rev(sort(unique(isg_up_by_genotype$celltype))))
 
 pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/isg_by_geno_celltype.pdf", width = 8, height = 6)
-ggplot(isg_up_by_genotype, aes(x = timepoint, y = celltype, fill = count))+
-  facet_wrap(~comparison)+
+ggplot(isg_up_by_genotype, aes(x = comparison, y = celltype, fill = count))+
+  facet_wrap(~timepoint)+
   geom_tile()+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0),
                        limits = c(0,95))+
   geom_text(aes(label = count), size=3)+
   theme(axis.text = element_text(size = 14),
-        strip.text = element_text(size = 14))
+        strip.text = element_text(size = 14),
+        axis.text.x = element_text(angle = 90))
 dev.off()
 
 #Testing to make sure function works

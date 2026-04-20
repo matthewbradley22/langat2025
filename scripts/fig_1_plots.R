@@ -1,17 +1,19 @@
 library(Seurat)
 library(ggplot2)
 library(dplyr)
+library(networkD3)
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
 
 #Check data
-newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
-newCols[11] =  '#FF8AEF'
+umap_color_list <- c( "#7047A1", "#6D92F8", "#FF96A2","#F76363", "#D6644B",
+                        "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", "#B370AE","#6DC3F8", "#166DF0", "#292270",
+                        "gray")
 
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
-        cols = newCols)+
+        cols = umap_color_list)+
   theme(axis.ticks = element_blank(),
         axis.text=element_blank(),
         legend.text=element_text(size=17))+
@@ -22,12 +24,12 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 
 chimeric_mock <- subset(ParseSeuratObj_int, Treatment != 'rLGTV' & manualAnnotation != 'unknown')
 
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/chimeric_mock_umap.pdf", width = 9, height = 7)
+png("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/chimeric_mock_umap.png", width = 900, height = 700)
 DimPlot(chimeric_mock, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
-        cols = newCols)+
+        cols = umap_color_list)+
   theme(axis.ticks = element_blank(),
         axis.text=element_blank(),
-        legend.text=element_text(size=17))+
+        legend.text=element_text(size=24))+
   xlab('Umap1')+
   ylab('Umap2')+
   guides(color=guide_legend(override.aes=list(size=8)))+
@@ -190,11 +192,13 @@ DotPlot(chimeric_mock, features = c('Aqp4', 'Fgfr3','Gfap', 'Ttr','Kl',
 dev.off()
 geno_treatment
 #Mavs expression
-chimeric_mock$geno_treatment_time <- paste(chimeric_mock$Genotype, chimeric_mock$Treatment, chimeric_mock$Timepoint, sep = '_')
-mavs_dat <- DotPlot(object = chimeric_mock, features = c("Mavs"), group.by = 'geno_treatment_time', scale = FALSE)$data
+chimeric_mock$geno_treatment_time_celltype <- paste(chimeric_mock$Genotype, chimeric_mock$Treatment, 
+                                                    chimeric_mock$Timepoint, chimeric_mock$manualAnnotation, sep = '_')
 
-mavs_dat_meta <- str_split_fixed(mavs_dat$id, "_", 3)
-colnames(mavs_dat_meta) <- c('genotype', 'treatment', 'time')
+mavs_dat <- DotPlot(object = chimeric_mock, features = c("Mavs"), group.by = 'geno_treatment_time_celltype', scale = FALSE)$data
+
+mavs_dat_meta <- str_split_fixed(mavs_dat$id, "_", 4)
+colnames(mavs_dat_meta) <- c('genotype', 'treatment', 'time', 'celltype')
 mavs_dat <- cbind(mavs_dat, mavs_dat_meta)
 
 #Could split by time
@@ -215,6 +219,59 @@ ggplot(mavs_dat, aes(x = time, y = genotype, color = avg.exp.scaled, size = pct.
   ggtitle('Mavs Expression')+
   scale_size_continuous(range = c(3,9))
 dev.off()
+
+#Split by celltype as well, not splitting by time for the sake of plotting
+chimeric_mock$geno_treatment_celltype <- paste(chimeric_mock$Genotype, chimeric_mock$Treatment, 
+                                                    chimeric_mock$manualAnnotation, sep = '_')
+mavs_dat <- DotPlot(object = chimeric_mock, features = c("Mavs"), group.by = 'geno_treatment_celltype', scale = FALSE)$data
+mavs_dat_meta <- str_split_fixed(mavs_dat$id, "_", 3)
+colnames(mavs_dat_meta) <- c('genotype', 'treatment', 'celltype')
+mavs_dat <- cbind(mavs_dat, mavs_dat_meta)
+
+#Remove groups with low cell counts
+table(chimeric_mock$Genotype, chimeric_mock$manualAnnotation, chimeric_mock$Treatment)
+mavs_dat <- mavs_dat[!mavs_dat$celltype %in% c('Granulocytes', 'Nk cells') | !mavs_dat$treatment == 'PBS',]
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mavs_expression_celltype.pdf', height = 13, width = 13)
+ggplot(mavs_dat, aes(x = genotype, y = avg.exp.scaled, color = celltype))+
+  facet_wrap(~treatment)+
+  geom_point(aes(size = pct.exp))+
+  geom_line(aes(group = celltype))+
+  theme_classic()+
+  theme(axis.text = element_text(size = 24),
+        legend.text = element_text(size = 24),
+        legend.title = element_text(size = 24),
+        plot.title = element_text(size =30),
+        axis.text.x = element_text(angle = 90),
+        strip.text = element_text(size = 24))+
+  xlab('')+
+  ylab('')+
+  ggtitle('Mavs Expression')+
+  scale_size_continuous(range = c(3,9))
+dev.off()
+
+#Plot of neo resistance gene reads 
+#Data created on hpc2n at /home/m/mahogny/mystore/dataset/250729_scflavi/neo_read_counts from bam files
+#Also reading in original barcoding data
+final_neo_count <- read_table("~/Documents/ÖverbyLab/data/final_neo_count.txt",  col_names = FALSE)
+colnames(final_neo_count) = c('total_reads', 'orig_id')
+final_neo_count$orig_id = as.numeric(final_neo_count$orig_id)
+
+ParseBarcodePlate <- read_csv("ParseBarcodePlate.csv")
+ParseBarcodePlate$orig_id = 1:48
+
+neo_data_to_plot <- left_join(ParseBarcodePlate, final_neo_count, by = 'orig_id')
+neo_data_to_plot$total_reads[is.na(neo_data_to_plot$total_reads)] <- 0
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/neomycin_levels.pdf', height = 8, width = 8)
+ggplot(neo_data_to_plot, aes(x = Genotype, y = total_reads, fill = Treatment))+
+  geom_boxplot()+
+  ggtitle('Neomycin-resistance gene')+
+  ylab('Count')+
+  theme_classic()+
+  theme(text = element_text(size = 20))
+dev.off()
+
 
 
 
