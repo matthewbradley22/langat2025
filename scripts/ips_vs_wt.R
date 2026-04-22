@@ -201,7 +201,7 @@ vd_day3 <- VennDiagram::venn.diagram(list(wt = rownames(day_3_up_wt), ips = rown
 grid::grid.draw(vd_day3)
 
 vd_day5 <- VennDiagram::venn.diagram(list(wt = rownames(day_5_up_wt), ips = rownames(day_5_up_ips)), filename = NULL,
-                                     fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
+                                     fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5, rotation.degree = 180)
 grid::grid.draw(vd_day5)
 
 vd_day3_wt_5_ips <- VennDiagram::venn.diagram(list(wt = rownames(day_3_up_wt), ips = rownames(day_5_up_ips)), filename = NULL,
@@ -277,7 +277,7 @@ plot_gene_across_groups <- function(dat, gene, lims = NULL){
   print(dot_plot_gene)
 }
 
-plot_gene_across_groups(chimeric_mock, 'Ccl12', lims = c(0, 0.8))
+plot_gene_across_groups(chimeric_mock, 'Mavs', lims = c(0, 0.14))
 
 #Do above analysis by celltype, seems like trends may differ alot across celltypes
 deg_counts_time_m_vs_i_celltype <- list()
@@ -285,6 +285,8 @@ deg_counts_time_m_vs_i_celltype <- list()
 #Skip slow for loop
 deg_counts_time_m_vs_i_celltype <- readRDS("~/Documents/ÖverbyLab/celltype_venn_data.rds")
 
+#Read in data for all celltypes (ran on hpc2n at /proj/nobackup/overby/langat_singlecell_analysis/sc_data/)
+deg_counts_time_m_vs_i_celltype <- readRDS("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/deg_counts_time_celltype.rds")
 celltypes_of_interest = c('Microglia', 'Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal')
 times = c('Day 3', 'Day 4', 'Day 5')
 
@@ -354,19 +356,34 @@ for(i in 1:length(celltypes_of_interest_nospace)){
   }
 }
 
+####### Celltype GO pathways analyses ####### 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
 #Path analysis for select differences
+names(deg_counts_time_m_vs_i_celltype) <- gsub(' ', '', names(deg_counts_time_m_vs_i_celltype))
 #Microglia day 5
 micro_5_wt_only <- rownames(deg_counts_time_m_vs_i_celltype$Microglia_Day5_wt_up)[!rownames(deg_counts_time_m_vs_i_celltype$Microglia_Day5_wt_up) %in% 
                                                        rownames(deg_counts_time_m_vs_i_celltype$Microglia_Day5_ips_up)]
 micro_5_wt_only_paths <- gprofiler2::gost(query = micro_5_wt_only, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 plot_go_results(micro_5_wt_only_paths)
 
-#Are genes that are unique to wt day 3, expressed by ips day 5?
-astro_day_3_vs_5 <- sum(rownames(deg_counts_time_m_vs_i_celltype$Astrocytes_Day3_wt_up) %in% 
-                          rownames(deg_counts_time_m_vs_i_celltype$Astrocytes_Day5_ips_up)) / nrow(deg_counts_time_m_vs_i_celltype$Astrocytes_Day3_wt_up)
+#Endothelial day 3 wt only
+endo_3_wt_only <- rownames(deg_counts_time_m_vs_i_celltype$Endothelial_Day3_wt_up)[!rownames(deg_counts_time_m_vs_i_celltype$Endothelial_Day3_wt_up) %in% 
+                                                                                    rownames(deg_counts_time_m_vs_i_celltype$Endothelial_Day3_ips_up)]
+endo_3_wt_only_paths <- gprofiler2::gost(query = endo_3_wt_only, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+endo_3_wt_only_paths$result$term_name[grep('interferon', endo_3_wt_only_paths$result$term_name, ignore.case = TRUE)]
 
-micro_day_3_vs_5 <- sum(rownames(deg_counts_time_m_vs_i_celltype$Microglia_Day3_wt_up) %in% 
-                          rownames(deg_counts_time_m_vs_i_celltype$Microglia_Day5_ips_up)) / nrow(deg_counts_time_m_vs_i_celltype$Microglia_Day3_wt_up)
+#day 5 ips vs wt
+astro_day5_wt <- rownames(deg_counts_time_m_vs_i_celltype$Astrocytes_Day5_wt_up)
+astro_day5_wt_paths <- gprofiler2::gost(query = astro_day5_wt, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+top_wt_astro <- head(astro_day5_wt_paths$result$term_name, n = 50)
+
+astro_day5_ips <- rownames(deg_counts_time_m_vs_i_celltype$Astrocytes_Day5_ips_up)
+astro_day5_ips_paths <- gprofiler2::gost(query = astro_day5_ips, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+top_ips_astro <- head(astro_day5_ips_paths$result$term_name, n = 50)
+
+top_wt_astro[!top_wt_astro %in% top_ips_astro]
+top_ips_astro[!top_ips_astro %in% top_wt_astro]
 
 #Generate heatmap rather than venn diagrams
 deg_genes_by_celltype_names = names(deg_counts_time_m_vs_i_celltype)
@@ -374,8 +391,10 @@ deg_genes_by_celltype <- data.frame(gene_name = character(), comp = character())
 
 for(i in 1:length(deg_genes_by_celltype_names)){
   genes <- rownames(deg_counts_time_m_vs_i_celltype[[i]])
+  if(length(genes) > 0){
   genes_labelled <- data.frame(gene_name = genes, comp = deg_genes_by_celltype_names[i])
-  deg_genes_by_celltype = rbind(deg_genes_by_celltype, genes_labelled)
+    deg_genes_by_celltype = rbind(deg_genes_by_celltype, genes_labelled)
+  }
 }
 
 deg_genes_by_celltype_split <- deg_genes_by_celltype %>% tidyr::separate(comp, c('celltype', 'time', 'geno', 'direction'), sep = '_')
@@ -395,18 +414,58 @@ deg_genes_by_celltype_heatmap_dat <- deg_genes_by_celltype_split %>%
     values_to = "count"
   )
 
-deg_genes_by_celltype_heatmap_dat$geno = factor(deg_genes_by_celltype_heatmap_dat$geno, levels = c('wt', 'both', 'ips'))
-deg_genes_by_celltype_heatmap_dat$celltype <- factor(deg_genes_by_celltype_heatmap_dat$celltype, 
-                                                     levels = c('Microglia', 'Ependymal', 'Endothelial', 'ChoroidPlexus', 'Astrocytes'))
+deg_genes_by_celltype_heatmap_dat_down <- deg_genes_by_celltype_split %>%  
+  filter(direction == "down") %>%
+  group_by(celltype, time) %>% 
+  summarise(
+    wt  = sum(geno == "wt"  & !gene_name %in% gene_name[geno == "ips"]),
+    ips = sum(geno == "ips" & !gene_name %in% gene_name[geno == "wt"]),
+    both     = sum(geno == "wt"  &  gene_name %in% gene_name[geno == "ips"]),
+    .groups = "drop"
+  )%>%
+  tidyr::pivot_longer(
+    cols = c(wt, ips, both),
+    names_to = "geno",
+    values_to = "count"
+  )
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/deg_count_time_geno_cell.pdf', height = 10, width = 10)
+deg_genes_by_celltype_heatmap_dat$geno = factor(deg_genes_by_celltype_heatmap_dat$geno, levels = c('wt', 'both', 'ips'))
+deg_genes_by_celltype_heatmap_dat_down$geno = factor(deg_genes_by_celltype_heatmap_dat_down$geno, levels = c('wt', 'both', 'ips'))
+deg_genes_by_celltype_heatmap_dat$celltype <- factor(deg_genes_by_celltype_heatmap_dat$celltype, 
+                                                     levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial',
+                                                                'Ependymal', 'Immature Neurons', 'Microglia', 'Muscle cells',
+                                                                'Neurons', 'Oligodendrocytes', 'Pericytes', 'B Cells',
+                                                                'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 
+                                                                'T cells', 'unknown')))
+deg_genes_by_celltype_heatmap_dat_down$celltype <- factor(deg_genes_by_celltype_heatmap_dat_down$celltype, 
+                                                     levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial',
+                                                                    'Ependymal', 'Immature Neurons', 'Microglia', 'Muscle cells',
+                                                                    'Neurons', 'Oligodendrocytes', 'Pericytes', 'B Cells',
+                                                                    'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 
+                                                                    'T cells', 'unknown')))
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/deg_count_time_geno_cell.pdf', height = 10, width = 12)
 ggplot(deg_genes_by_celltype_heatmap_dat, aes(x = geno, y = celltype, fill = count))+
   facet_wrap(~time)+
   geom_tile()+
   geom_text(aes(label=count), size = 7)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0))+
-  theme(text = element_text(size = 24))
+  theme(text = element_text(size = 24))+
+  ylab('')+
+  xlab('')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/deg_count_time_geno_cell_downreg.pdf', height = 10, width = 12)
+ggplot(deg_genes_by_celltype_heatmap_dat_down, aes(x = geno, y = celltype, fill = count))+
+  facet_wrap(~time)+
+  geom_tile()+
+  geom_text(aes(label=count), size = 7)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0))+
+  theme(text = element_text(size = 24))+
+  ylab('')+
+  xlab('')
 dev.off()
 
 deg_celltypes_split_filtered <- deg_genes_by_celltype_split %>% 
@@ -432,11 +491,69 @@ ggplot(deg_genes_by_celltype_3_vs_5, aes(x = celltype, y = count, fill = final_g
   ylab('')
 dev.off()
 
+#Any genes consistently only in wt 3?
+deg_celltypes_split_filtered %>% dplyr::group_by(gene_name, final_geno) %>%
+  dplyr::summarise(counts =  n()) %>% dplyr::arrange(gene_name) %>%
+  pivot_wider(names_from = final_geno, values_from = counts) %>% 
+  dplyr::arrange(desc(wt))
+
 #Pathway analysis of difference between wt day 3 and ips day 5
 
 #Astro wt only
 astro_wt_3_genes <- dplyr::filter(deg_celltypes_split_filtered, celltype == 'Astrocytes' & final_geno == 'wt')$gene_name
 astro_wt_3_genes_paths <- gprofiler2::gost(query = astro_wt_3_genes, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 
+#Astro ips only
+astro_ips_5_genes <- dplyr::filter(deg_celltypes_split_filtered, celltype == 'Astrocytes' & final_geno == 'ips')$gene_name
+astro_ips_5_genes_paths <- gprofiler2::gost(query = astro_ips_5_genes, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+astro_ips_5_genes_paths$result$term_name
+#Endo ips
+endo_ips_5_genes <- dplyr::filter(deg_celltypes_split_filtered, celltype == 'Endothelial' & final_geno == 'ips')$gene_name
 
+#FInd celltype degs between mock ips and mock wt
+deg_counts_mock_celltype <- list()
+celltypes_of_interest <- unique(mock_only$manualAnnotation)
 
+for(i in 1:length(celltypes_of_interest)){
+  current_celltype <- celltypes_of_interest[[i]]
+  print(paste("starting cell", current_celltype))
+  current_cell_data <- subset(mock_only, manualAnnotation == current_celltype)
+  
+  if(all(table(current_cell_data$Genotype) > 3)){
+      
+    #Find up and downregulated degs
+    mock_markers <- FindMarkers(current_cell_data, test.use = 'MAST', group.by = 'Genotype', ident.1 = 'WT')
+    mock_markers_up_sig <- mock_markers[mock_markers$p_val_adj < 0.01 & (mock_markers$avg_log2FC) > 1,]
+    mock_markers_down_sig <- mock_markers[mock_markers$p_val_adj < 0.01 & (mock_markers$avg_log2FC) < -1,]
+      
+    #Append degs to list
+    deg_counts_mock_celltype[[length(deg_counts_mock_celltype) + 1]] <- mock_markers_up_sig
+    names(deg_counts_mock_celltype)[length(deg_counts_mock_celltype)] = paste(current_celltype, 'wt_up', sep = '_')
+    deg_counts_mock_celltype[[length(deg_counts_mock_celltype) + 1]] <- mock_markers_down_sig
+    names(deg_counts_mock_celltype)[length(deg_counts_mock_celltype)] = paste(current_celltype, 'ips_up', sep = '_')
+  }else{
+    print(paste('Not enough cells in group', current_celltype))
+  }
+}
+
+deg_mock_counts <- unlist(lapply(deg_counts_mock_celltype, nrow))
+deg_mock_counts_df <- data.frame(comp = names(deg_mock_counts), count = deg_mock_counts)
+deg_mock_counts_df <- deg_mock_counts_df %>% tidyr::separate(comp, into = c('celltype', 'geno', 'direction'), sep = '_') %>% 
+  dplyr::filter(celltype != 'unknown')
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mock_ips_vs_wt_celltype.pdf', height = 10, width = 8)
+ggplot(deg_mock_counts_df, aes(x = celltype, y = count, fill = geno))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  coord_flip()+
+  xlab('Count upregulated genes')+
+  ylab('')+
+  ggtitle('Mock WT vs IPS1')+
+  theme_classic()+
+  theme(text = element_text(size = 24))
+dev.off()
+
+mock_cp_up <- gprofiler2::gost(query = rownames(deg_counts_mock_celltype$`Choroid Plexus_wt_up`), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG')) 
+mock_cp_up$result
+
+mock_astro_up <- gprofiler2::gost(query = rownames(deg_counts_mock_celltype$Astrocytes_wt_up), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG')) 
+mock_astro_up$result
