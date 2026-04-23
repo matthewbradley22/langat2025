@@ -444,8 +444,8 @@ unqiue_celltype_markers <- function(markers_list, celltype){
   all_marker_names <- lapply(markers_list, FUN = function(x){
     rownames(x)
   })
-  non_celltype_markers <- unname(unlist(all_marker_names[names(all_marker_names) != celltype]))
-  celltype_markers <- all_marker_names[[celltype]]
+  non_celltype_markers <- unname(unlist(all_marker_names[!names(all_marker_names) %in% celltype]))
+  celltype_markers <- unname(unlist(all_marker_names[celltype]))
   unique_celltype_markers <- celltype_markers[!celltype_markers %in% non_celltype_markers]
   return(unique_celltype_markers)
 }
@@ -592,7 +592,7 @@ upset_dat_ips_three <- generate_upset_dat(ips_three_degs)
 upset_dat_ips_five <- generate_upset_dat(ips_five_degs)
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_three_upset.pdf', height = 8, width = 13, onefile = FALSE)
-UpSetR::upset(upset_dat_wt_three, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
+UpSetR::upset(upset_dat_wt_three, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785)
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_five_upset.pdf', height = 8, width = 13, onefile = FALSE)
@@ -600,22 +600,62 @@ UpSetR::upset(upset_dat_wt_five, nsets = 5, order.by = 'freq', text.scale = 3, p
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_three_upset.pdf', height = 8, width = 13, onefile = FALSE)
-UpSetR::upset(upset_dat_ips_three, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
+UpSetR::upset(upset_dat_ips_three, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785)
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_five_upset.pdf', height = 8, width = 13, onefile = FALSE)
 UpSetR::upset(upset_dat_ips_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
 dev.off()
 
+#Regenerate upset data manually in order to run pathway analyses on gene lists
+
+#Only keep top 5 celltypes as these are what are included in the plot
+wt_three_degs_select <- wt_three_degs[names(wt_three_degs) %in% c('Microglia', 'Endothelial', 'Ependymal', 'Astrocytes', 'Choroid Plexus')]
+
+#Get list of all significant degs by celltype
+sig_dat <- lapply(wt_three_degs_select, FUN = function(x){
+    celltype_dat <- as.data.frame(x)
+    celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
+  })
+deg_names <- lapply(sig_dat, FUN = function(x){
+    rownames(x)
+  })
+
+#Label each deg by which group(s) it belongs to
+mmaual_upset_dat <- lapply(unique(unlist(deg_names)), FUN = function(x){
+  #Find which celltypes contain current deg
+  which_celltypes <- lapply(deg_names, FUN = function(y){
+    if(x %in% y){
+      return(y)
+    }
+  })
+  
+  #Filter out celltypes without
+  cells_to_keep <- names(which_celltypes[sapply(which_celltypes, function(i) length(i) > 0)])
+  cells_to_keep <- paste(cells_to_keep, collapse = '|')
+  data.frame(gene = x, celltypes = cells_to_keep)
+})
+
+mmaual_upset_df <- do.call(rbind, mmaual_upset_dat)
+
 #Look at microglia genes specifically
-micro_genes_wt_three <- unqiue_celltype_markers(wt_three_sig, 'Microglia')
-micro_genes_wt_five <- unqiue_celltype_markers(wt_five_sig, 'Microglia')
-
+micro_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Microglia',]$gene
 micro_wt_three_paths <- gprofiler2::gost(query = micro_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
-micro_wt_five_paths <- gprofiler2::gost(query = micro_genes_wt_five, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 
-ggplot(head(micro_wt_five_paths$result), aes(x = -log10(p_value), y = term_name))+
-  geom_bar(stat = 'identity')
+common_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Astrocytes|Microglia|Endothelial|Choroid Plexus|Ependymal',]$gene
+common_genes_wt_three_paths <- gprofiler2::gost(query = common_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+
+endo_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Endothelial',]$gene
+endo_genes_wt_three_paths <- gprofiler2::gost(query = endo_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+
+astro_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Astrocytes',]$gene
+astro_genes_wt_three_paths <- gprofiler2::gost(query = astro_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+
+epen_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Ependymal',]$gene
+epen_genes_wt_three_paths <- gprofiler2::gost(query = epen_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+
+cp_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Choroid Plexus',]$gene
+cp_genes_wt_three_paths <- gprofiler2::gost(query = cp_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 
 #Number of DEGs
 get_sig_degs <- function(deg_dat, direction = 'up'){
