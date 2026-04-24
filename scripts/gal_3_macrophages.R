@@ -203,14 +203,12 @@ ggplot(deg_counts, aes(x = direction, y = num_genes, fill = direction))+
 dev.off()
 
 #Gene ontology 
-day5_paths <- gprofiler2::gost(query = rownames(day5_up_markers), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
-day5_paths$result[8,]
+day5_paths <- gprofiler2::gost(query = rownames(day5_up_markers), organism = 'mmusculus', evcodes = TRUE, sources = c())
 
-day_5_down_paths <- gprofiler2::gost(query = rownames(day5_down_markers), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
-day_5_down_paths$result
+day_5_down_paths <- gprofiler2::gost(query = rownames(day5_down_markers), organism = 'mmusculus', evcodes = TRUE, sources = c())
 
 #Pathway barplots
-day_5_down_paths_head <- day_5_down_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source == 'GO:BP') %>% head(n = 10)
+day_5_down_paths_head <- day_5_down_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source == 'REAC') %>% head(n = 10)
 day_5_down_paths_head$term_name = factor(day_5_down_paths_head$term_name, levels = rev(day_5_down_paths_head$term_name))
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/day5_downregulated_paths.pdf", width = 6, height = 4)
@@ -272,7 +270,7 @@ ggplot(day_5_up_paths_gobp_head, aes(x = -log10(p_value), y = term_name, fill = 
 dev.off()
 
 #Same plot but with kegg annotations instead
-day_5_up_paths_gobp_head_kegg <- day5_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source == 'KEGG') %>%  head(n = 10)
+day_5_up_paths_gobp_head_kegg <- day5_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source == 'REAC') %>%  head(n = 10)
 day_5_up_paths_gobp_head_kegg$term_name = factor(day_5_up_paths_gobp_head_kegg$term_name, levels = rev(day_5_up_paths_gobp_head_kegg$term_name))
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/day5_upregulated_paths_kegg.pdf", width = 6, height = 4)
@@ -289,7 +287,7 @@ ggplot(day_5_up_paths_gobp_head_kegg, aes(x = -log10(p_value), y = term_name, fi
   #geom_vline(xintercept = -log10(0.01), color = 'orange', linetype = 'dashed', linewidth = 1.1)+
   ylab('')+
   xlab('-log10 p-value')+
-  ggtitle('Day 5 KEGG paths')
+  ggtitle('Day 5 paths')
 dev.off()
 
 

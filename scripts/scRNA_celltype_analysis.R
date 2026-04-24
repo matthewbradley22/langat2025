@@ -611,52 +611,114 @@ dev.off()
 
 #Only keep top 5 celltypes as these are what are included in the plot
 wt_three_degs_select <- wt_three_degs[names(wt_three_degs) %in% c('Microglia', 'Endothelial', 'Ependymal', 'Astrocytes', 'Choroid Plexus')]
+ips_three_degs_select <- ips_three_degs[names(ips_three_degs) %in% c('Microglia', 'Ependymal', 'Choroid Plexus', 'Macro/Mono', 'Endothelial')]
 
 #Get list of all significant degs by celltype
-sig_dat <- lapply(wt_three_degs_select, FUN = function(x){
+recreate_upset_dat <- function(df){
+  sig_dat <- lapply(df, FUN = function(x){
     celltype_dat <- as.data.frame(x)
     celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
   })
-deg_names <- lapply(sig_dat, FUN = function(x){
+  
+  deg_names <- lapply(sig_dat, FUN = function(x){
     rownames(x)
   })
-
-#Label each deg by which group(s) it belongs to
-mmaual_upset_dat <- lapply(unique(unlist(deg_names)), FUN = function(x){
-  #Find which celltypes contain current deg
-  which_celltypes <- lapply(deg_names, FUN = function(y){
-    if(x %in% y){
-      return(y)
-    }
+  
+  #Label each deg by which group(s) it belongs to
+  mmaual_upset_dat <- lapply(unique(unlist(deg_names)), FUN = function(x){
+    #Find which celltypes contain current deg
+    which_celltypes <- lapply(deg_names, FUN = function(y){
+      if(x %in% y){
+        return(y)
+      }
+    })
+    
+    #Filter out celltypes without
+    cells_to_keep <- names(which_celltypes[sapply(which_celltypes, function(i) length(i) > 0)])
+    cells_to_keep <- paste(cells_to_keep, collapse = '|')
+    data.frame(gene = x, celltypes = cells_to_keep)
   })
   
-  #Filter out celltypes without
-  cells_to_keep <- names(which_celltypes[sapply(which_celltypes, function(i) length(i) > 0)])
-  cells_to_keep <- paste(cells_to_keep, collapse = '|')
-  data.frame(gene = x, celltypes = cells_to_keep)
-})
+  mmaual_upset_final_df <- do.call(rbind, mmaual_upset_dat)
+  mmaual_upset_final_df
+}
 
-mmaual_upset_df <- do.call(rbind, mmaual_upset_dat)
+mmaual_upset_df <- recreate_upset_dat(wt_three_degs_select)
+mmaual_upset_ips_df <- recreate_upset_dat(ips_three_degs_select)
 
 #Look at microglia genes specifically
-micro_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Microglia',]$gene
-micro_wt_three_paths <- gprofiler2::gost(query = micro_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+wt_cell_groupings <- c('Microglia', 'Astrocytes|Microglia|Endothelial|Choroid Plexus|Ependymal', 'Endothelial', 'Astrocytes',
+                       'Ependymal', 'Choroid Plexus')
 
-common_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Astrocytes|Microglia|Endothelial|Choroid Plexus|Ependymal',]$gene
-common_genes_wt_three_paths <- gprofiler2::gost(query = common_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+ips_cell_groupings <- names(table(mmaual_upset_ips_df$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 4))
 
-endo_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Endothelial',]$gene
-endo_genes_wt_three_paths <- gprofiler2::gost(query = endo_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+wt_upset_gene_groups <- lapply(wt_cell_groupings, FUN = function(x){
+  mmaual_upset_df[mmaual_upset_df$celltypes == x,]$gene
+})
+names(wt_upset_gene_groups) = wt_cell_groupings
 
-astro_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Astrocytes',]$gene
-astro_genes_wt_three_paths <- gprofiler2::gost(query = astro_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+ips_upset_gene_groups <- lapply(ips_cell_groupings, FUN = function(x){
+  mmaual_upset_ips_df[mmaual_upset_ips_df$celltypes == x,]$gene
+})
+names(ips_upset_gene_groups) = ips_cell_groupings
 
-epen_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Ependymal',]$gene
-epen_genes_wt_three_paths <- gprofiler2::gost(query = epen_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+wt_upset_pathways <- lapply(wt_upset_gene_groups, FUN = function(x){
+  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+})
+names(wt_upset_pathways) <- c('micro', 'common', 'endo', 'astro', 'epen', 'cp')
 
-cp_genes_wt_three <- mmaual_upset_df[mmaual_upset_df$celltypes == 'Choroid Plexus',]$gene
-cp_genes_wt_three_paths <- gprofiler2::gost(query = cp_genes_wt_three, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+ips_upset_pathways <- lapply(ips_upset_gene_groups, FUN = function(x){
+  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+})
+names(ips_upset_pathways) <- c('micro', 'epen', 'common', 'endo')
 
+#Map function easier than lapply for me to keep names as a column
+select_path_columns <- Map(function(df,name){
+  df_final <- head(df$result[c('term_name', 'p_value')], n = 5)
+  df_final$source = name
+  df_final
+}, wt_upset_pathways, names(wt_upset_pathways))
+
+select_path_columns_ips <- Map(function(df,name){
+  df_final <- head(df$result[c('term_name', 'p_value')], n = 5)
+  df_final$source = name
+  df_final
+}, ips_upset_pathways, names(ips_upset_pathways))
+
+#No endothelial paths, make blank df
+select_path_columns_ips$endo <- data.frame(term_name = '', p_value =1, source = 'endo')
+
+select_path_columns_df <- do.call(rbind, select_path_columns)
+select_path_columns_ips_df <- do.call(rbind, select_path_columns_ips)
+
+select_path_columns_df$source = factor(select_path_columns_df$source, levels = c('micro', 'common', 'endo', 'astro', 'epen', 'cp'))
+select_path_columns_ips_df$source <- factor(select_path_columns_ips_df$source, levels = c('micro', 'epen', 'common', 'endo'))
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day_3_wt_paths.pdf', height = 8, width = 19)
+ggplot(select_path_columns_df, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
+  geom_bar(stat = 'identity')+
+  coord_flip()+
+  facet_wrap(~source, scales = 'free_y', ncol = 2)+
+  xlab('')+
+  theme_classic()+
+  theme(text = element_text(size= 26))+
+  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F')+
+  ylim(c(0,113))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day_3_ips_paths.pdf', height = 8, width = 19)
+ggplot(select_path_columns_ips_df, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
+  geom_bar(stat = 'identity')+
+  coord_flip()+
+  facet_wrap(~source, scales = 'free_y')+
+  xlab('')+
+  theme_classic()+
+  theme(text = element_text(size= 26))+
+  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F')+
+  ylim(c(0,113))
+dev.off()
+
+#Compare wt day 3 common upset genes w ips day 3 common
 #Number of DEGs
 get_sig_degs <- function(deg_dat, direction = 'up'){
   sig_dat <- lapply(deg_dat, FUN = function(x){
