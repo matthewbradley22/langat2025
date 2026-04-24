@@ -719,6 +719,12 @@ ggplot(select_path_columns_ips_df, aes(x = reorder(term_name, rev(p_value)), y =
 dev.off()
 
 #Compare wt day 3 common upset genes w ips day 3 common
+#Only looking at what wt has that ips doesn't
+common_gene_diffs <- c(setdiff(wt_upset_gene_groups$`Astrocytes|Microglia|Endothelial|Choroid Plexus|Ependymal`, 
+                               ips_upset_gene_groups$`Microglia|Endothelial|Choroid Plexus|Macro/Mono|Ependymal`))
+common_gene_diffs
+
+
 #Number of DEGs
 get_sig_degs <- function(deg_dat, direction = 'up'){
   sig_dat <- lapply(deg_dat, FUN = function(x){

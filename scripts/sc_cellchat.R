@@ -4,6 +4,7 @@ library(RColorBrewer)
 library(CellChat)
 library(ggpubr)
 library(patchwork)
+library(ComplexHeatmap)
 library(tidyverse)
 source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
 source('~/Documents/ÖverbyLab/scripts/cellChatBug.R')
@@ -23,7 +24,11 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, manualAnnotation != 'unknown')
 ParseSeuratObj_int$samples = factor(ParseSeuratObj_int$orig.ident)
 wt_cells <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment == 'rChLGTV')
 ips_cells <- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment == 'rChLGTV')
-mock_cells <- subset(ParseSeuratObj_int, Treatment == 'PBS')
+mock_wt_cells <- subset(ParseSeuratObj_int, Treatment == 'PBS' & Genotype == 'WT')
+mock_ips_cells <- subset(ParseSeuratObj_int, Treatment == 'PBS' & Genotype == 'IPS1')
+
+#Remove original data object to save space
+rm(ParseSeuratObj_int)
 
 #Split into timepoints as well
 wt_cells_three <- subset(wt_cells, Timepoint == 'Day 3')
@@ -81,17 +86,26 @@ custom_net_signal_scatter <- function(cc_obj, main = NULL, xlimit, ylimit){
   plot(p1)
 }
 
-#Plots split by genotype
-mock_cells_cc <- prep_cellchat_obj(mock_cells)
-custom_net_signal_scatter(mock_cells_cc, main = 'Mock', xlimit = 33, ylimit = 33)
 
-wt_cells_cc <- prep_cellchat_obj(wt_cells)
-custom_net_signal_scatter(wt_cells_cc, main = 'WT chLGTV', xlimit = 33, ylimit = 33)
-groupSize_wt <- as.numeric(table(wt_cells_cc@idents))
 
-ips_cells_cc <- prep_cellchat_obj(ips_cells)
-custom_net_signal_scatter(ips_cells_cc, main = 'IPS1 chLGTV', xlimit = 33, ylimit = 33)
-groupSize_ips <- as.numeric(table(ips_cells_cc@idents))
+mock_wt_cells_cc <- prep_cellchat_obj(mock_wt_cells)
+mock_ips_cells_cc <- prep_cellchat_obj(mock_ips_cells)
+custom_net_signal_scatter(mock_wt_cells_cc, main = 'Mock wt', xlimit = 33, ylimit = 33)
+custom_net_signal_scatter(mock_ips_cells_cc, main = 'Mock ips', xlimit = 33, ylimit = 33)
+
+netAnalysis_signalingRole_heatmap(mock_wt_cells_cc, pattern = "outgoing", cluster.cols = TRUE)
+netAnalysis_signalingRole_heatmap(mock_ips_cells_cc, pattern = "outgoing", cluster.cols = TRUE)
+
+if(FALSE){
+  #Plots split by genotype
+  wt_cells_cc <- prep_cellchat_obj(wt_cells)
+  custom_net_signal_scatter(wt_cells_cc, main = 'WT chLGTV', xlimit = 33, ylimit = 33)
+  groupSize_wt <- as.numeric(table(wt_cells_cc@idents))
+  
+  ips_cells_cc <- prep_cellchat_obj(ips_cells)
+  custom_net_signal_scatter(ips_cells_cc, main = 'IPS1 chLGTV', xlimit = 33, ylimit = 33)
+  groupSize_ips <- as.numeric(table(ips_cells_cc@idents))
+}
 
 #Plots split by timepoint
 wt_cells_three_cc <- prep_cellchat_obj(wt_cells_three)
@@ -115,6 +129,7 @@ ips_cells_five_cc <- prep_cellchat_obj(ips_cells_five)
 ips_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'IPS chLGTV Day 5', xlimit = 33, ylimit = 38)
 
 ggpubr::ggarrange(ips_p3, ips_p4, ips_p5, nrow = 1, ncol = 3)
+ggpubr::ggarrange(wt_p3, ips_p3, nrow = 1, ncol = 2)
 
 #Plot general cell-cell trends
 netVisual_circle(wt_cells_cc@net$count, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
@@ -364,93 +379,55 @@ object <- ips_cells_three_cc
 pattern = 'outgoing'
 slot.name = "netP"
 
-#modified Cellchat function to try to pull out actual data
-netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern = c("outgoing", "incoming","all"), slot.name = "netP",
-                                              color.use = NULL, color.heatmap = "BuGn", title = NULL,
-                                              width = 10, height = 8, ylim.top = NULL, ylim.right = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE){
+########### Comparative analysis between day 3 and mock by genotype ########### 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+cellchat_wt_merged<- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_three_cc), add.names = c('PBS', 'WT_inf'))
+compareInteractions(cellchat_wt_merged, show.legend = F, group = c(1,2))
+netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count')
+netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
+netVisual_heatmap(cellchat_wt_merged, measure = 'count')
 
-  centr <- slot(object, slot.name)$centr
-  outgoing <- matrix(0, nrow = nlevels(object@idents), ncol = length(centr))
-  incoming <- matrix(0, nrow = nlevels(object@idents), ncol = length(centr))
-  dimnames(outgoing) <- list(levels(object@idents), names(centr))
-  dimnames(incoming) <- dimnames(outgoing)
-  for (i in 1:length(centr)) {
-    outgoing[,i] <- centr[[i]]$outdeg
-    incoming[,i] <- centr[[i]]$indeg
+#Can subtract total interactions between mock and infected:
+wt_celltype_count_diff <- cellchat_wt_merged@net[[2]][['count']] - cellchat_wt_merged@net[[1]][['count']]
+rowSums(wt_celltype_count_diff)
+
+cellchat_ips_merged<- mergeCellChat(list(mock = mock_ips_cells_cc, ips_inf = ips_cells_three_cc), add.names = c('PBS', 'IPS_inf'))
+compareInteractions(cellchat_ips_merged, show.legend = F, group = c(1,2))
+netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count')
+netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
+netVisual_heatmap(cellchat_ips_merged, measure = 'count')
+
+#total difference between inf and mock astrocytes (based on comapreInteractions function)
+#Diff in outgoing
+rowSums(cellchat_wt_merged@net$WT_inf$count)['Astrocytes'] - rowSums(cellchat_wt_merged@net$PBS$count)['Astrocytes']
+rowSums(cellchat_ips_merged@net$IPS_inf$count)['Astrocytes'] - rowSums(cellchat_ips_merged@net$PBS$count)['Astrocytes']
+
+#Diff in incoming
+colSums(cellchat_wt_merged@net$WT_inf$count)['Astrocytes'] - colSums(cellchat_wt_merged@net$PBS$count)['Astrocytes']
+colSums(cellchat_ips_merged@net$IPS_inf$count)['Astrocytes'] - colSums(cellchat_ips_merged@net$PBS$count)['Astrocytes']
+
+#Identifying signalling changes of specific celltypes between datasets
+netAnalysis_signalingChanges_scatter(cellchat_wt_merged, idents.use = "Astrocytes", xlims = c(-0.5,3.5))
+netAnalysis_signalingChanges_scatter(cellchat_ips_merged, idents.use = "Astrocytes", xlims = c(-0.5,3.5))
+
+#Plot dotplots of overall interaction together
+merged_dot_comp <- function(cc_obj){
+  num.link <- sapply(cc_obj, function(x) {rowSums(x@net$count) + colSums(x@net$count)-diag(x@net$count)})
+  weight.MinMax <- c(min(num.link), max(num.link)) # control the dot size in the different datasets
+  gg <- list()
+  for (i in 1:length(cc_obj)) {
+    gg[[i]] <- netAnalysis_signalingRole_scatter(cc_obj[[i]], title = names(cc_obj)[i], weight.MinMax = weight.MinMax)+
+      xlim(c(0, 40))+
+      ylim(c(0,40))
   }
-  if (pattern == "outgoing") {
-    mat <- t(outgoing)
-    legend.name <- "Outgoing"
-  } else if (pattern == "incoming") {
-    mat <- t(incoming)
-    legend.name <- "Incoming"
-  } else if (pattern == "all") {
-    mat <- t(outgoing+ incoming)
-    legend.name <- "Overall"
-  }
-  if (is.null(title)) {
-    title <- paste0(legend.name, " signaling patterns")
-  } else {
-    title <- paste0(paste0(legend.name, " signaling patterns"), " - ",title)
-  }
-  
-  if (!is.null(signaling)) {
-    mat1 <- mat[rownames(mat) %in% signaling, , drop = FALSE]
-    mat <- matrix(0, nrow = length(signaling), ncol = ncol(mat))
-    idx <- match(rownames(mat1), signaling)
-    mat[idx[!is.na(idx)], ] <- mat1
-    dimnames(mat) <- list(signaling, colnames(mat1))
-  }
-  mat.ori <- mat
-  mat <- sweep(mat, 1L, apply(mat, 1, max), '/', check.margin = FALSE)
-  mat[mat == 0] <- NA
-  
-  
-  if (is.null(color.use)) {
-    color.use <- scPalette(length(colnames(mat)))
-  }
-  color.heatmap.use = grDevices::colorRampPalette((RColorBrewer::brewer.pal(n = 9, name = color.heatmap)))(100)
-  
-  df<- data.frame(group = colnames(mat)); rownames(df) <- colnames(mat)
-  names(color.use) <- colnames(mat)
-  col_annotation <- HeatmapAnnotation(df = df, col = list(group = color.use),which = "column",
-                                      show_legend = FALSE, show_annotation_name = FALSE,
-                                      simple_anno_size = grid::unit(0.2, "cm"))
-  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(mat.ori), border = FALSE,gp = gpar(fill = color.use, col=color.use),add_numbers=FALSE,ylim = ylim.top), show_annotation_name = FALSE)
-  pSum <- rowSums(mat.ori)
-  pSum.original <- pSum
-  pSum <- -1/log(pSum)
-  pSum[is.na(pSum)] <- 0
-  idx1 <- which(is.infinite(pSum) | pSum < 0)
-  if (length(idx1) > 0) {
-    values.assign <- seq(max(pSum)*1.1, max(pSum)*1.5, length.out = length(idx1))
-    position <- sort(pSum.original[idx1], index.return = TRUE)$ix
-    pSum[idx1] <- values.assign[match(1:length(idx1), position)]
-  }
-  
-  ha1 = rowAnnotation(Strength = anno_barplot(pSum, border = FALSE, add_numbers=FALSE,ylim = ylim.right), show_annotation_name = FALSE)
-  
-  if (min(mat, na.rm = T) == max(mat, na.rm = T)) {
-    legend.break <- max(mat, na.rm = T)
-  } else {
-    legend.break <- c(round(min(mat, na.rm = T), digits = 1), round(max(mat, na.rm = T), digits = 1))
-  }
-  ht1 = Heatmap(mat, col = color.heatmap.use, na_col = "white", name = "Relative strength",
-                bottom_annotation = col_annotation, top_annotation = ha2, right_annotation = ha1,
-                cluster_rows = cluster.rows,cluster_columns = cluster.rows,
-                row_names_side = "left",row_names_rot = 0,row_names_gp = gpar(fontsize = font.size),column_names_gp = gpar(fontsize = font.size),
-                width = unit(width, "cm"), height = unit(height, "cm"),
-                column_title = title,column_title_gp = gpar(fontsize = font.size.title),column_names_rot = 90,
-                heatmap_legend_param = list(title_gp = gpar(fontsize = 8, fontface = "plain"),title_position = "leftcenter-rot",
-                                            border = NA, at = legend.break,
-                                            legend_height = unit(20, "mm"),labels_gp = gpar(fontsize = 8),grid_width = unit(2, "mm"))
-  )
-  #  draw(ht1)
-  return(ht1)
+  #> Signaling role analysis on the aggregated cell-cell communication network from all signaling pathways
+  #> Signaling role analysis on the aggregated cell-cell communication network from all signaling pathways
+  patchwork::wrap_plots(plots = gg)
 }
 
-as.data.frame(pSum) %>% rownames_to_column(var = 'path') %>%  
-  dplyr::filter(pSum > 5) %>% 
-  ggplot(aes(x = pSum, y = reorder(path, pSum)))+
-  geom_bar(stat = 'identity')
-
+wt_cc_objects <- list(mock_wt = mock_wt_cells_cc, inf_wt = wt_cells_three_cc)
+ips_cc_objects <- list(mock_ips= mock_ips_cells_cc, inf_ips = ips_cells_three_cc)
+merged_dot_comp(wt_cc_objects)
+merged_dot_comp(ips_cc_objects)
+patchwork::wrap_plots(plots = list(merged_dot_comp(wt_cc_objects), merged_dot_comp(ips_cc_objects)),
+                       nrow = 2)
