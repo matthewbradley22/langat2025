@@ -100,6 +100,20 @@ dev.off()
 wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
                               Genotype == 'WT' & (Timepoint == 'Day 5' | Treatment == 'PBS'))
 
+#Upregulated in macrophages vs other cells
+mac_markers <- FindMarkers(wt_cerebrum, group.by = 'manualAnnotation', ident.1 = 'Macrophage/Monocytes', test.use = 'MAST')
+mac_markers_up_sig <- dplyr::filter(mac_markers, p_val_adj < 0.01 & avg_log2FC > 1)
+
+FeaturePlot(wt_cerebrum, features = rownames(mac_markers)[3], reduction = 'wt.infected.mac.umap')
+mac_pathways <- gprofiler2::gost(query = rownames(mac_markers_up_sig)[1:100], organism = 'mmusculus', evcodes = TRUE)
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/all_macrophages_markers.pdf", width = 13, height = 8)
+ggplot(head(mac_pathways$result, n = 10), aes(x = -log10(p_value), y = reorder(term_name, p_value)))+
+  geom_bar(stat = 'identity')+
+  ylab('')+
+  xlab('')+
+  theme(axis.text = element_text(size = 20))
+dev.off()
 #For figure after imaging figures - going to see what separates day 5 from day 3 and 4 macs 
 #Earlier figures only focus on day 5 LGTV
 wt_cerebrum_macrophages <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
@@ -200,6 +214,47 @@ ggplot(deg_counts, aes(x = direction, y = num_genes, fill = direction))+
   xlab('')+
   ggtitle('DEG Count')+
   scale_x_discrete(labels= c('Day 3/4 up', 'Day 5 up'))
+dev.off()
+
+#Feature plots of differentially regulated genes
+macrophages_wt_infected <- AddModuleScore_UCell(macrophages_wt_infected, features = list(rownames(day5_up_markers)), name = 'day_5_up')
+macrophages_wt_infected <- AddModuleScore_UCell(macrophages_wt_infected, features = list(rownames(day5_down_markers)), name = 'day_5_down')
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macro_day_5_up_featureplot.pdf", width = 5, height = 6)
+FeaturePlot(macrophages_wt_infected, features = 'signature_1day_5_up', reduction = 'wt.infected.mac.umap') + ggtitle('Day 5 Upregulated')
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macro_day_5_down_featureplot.pdf", width = 5, height = 6)
+FeaturePlot(macrophages_wt_infected, features = 'signature_1day_5_down', reduction = 'wt.infected.mac.umap')+ ggtitle('Day 5 Downregulated')
+dev.off()
+
+avg_marker_exp <- as.data.frame(AverageExpression(object = macrophages_wt_infected, 
+                                                  group.by = c('Timepoint'))$RNA[c(rownames(day5_up_markers), rownames(day5_down_markers)),])
+avg_marker_exp$direction = c(rep('up', nrow(day5_up_markers)), rep('down', nrow(day5_down_markers)))
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/deg_over_time_lineplot.pdf", width = 5, height = 6)
+avg_marker_exp %>% rownames_to_column(var = 'gene') %>% 
+  pivot_longer(cols = starts_with('Day'), names_to = 'timepoint') %>% 
+  ggplot(aes(x = timepoint, y = value, color = direction))+
+  geom_line(aes(group = gene))+
+  facet_wrap(~direction)+
+  scale_color_manual(values = c('blue', 'lightblue'))+
+  theme_classic()+
+  theme(legend.position = 'none',
+        text = element_text(size = 14))
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/deg_grouped_over_time_lineplot.pdf", width = 5, height = 6)
+avg_marker_exp %>% rownames_to_column(var = 'gene') %>% 
+  pivot_longer(cols = starts_with('Day'), names_to = 'timepoint') %>% 
+  dplyr::group_by(direction, timepoint) %>% 
+  dplyr::summarise(mean_exp = mean(value))%>% 
+  ggplot(aes(x = timepoint, y = mean_exp, color = direction, group = direction))+
+  geom_smooth(SE = FALSE)+
+  scale_color_manual(values = c('blue', 'lightblue'))+
+  theme_classic()+
+  theme(text = element_text(size = 14))+
+  ylab('Mean Expression All DEGS')
 dev.off()
 
 #Gene ontology 

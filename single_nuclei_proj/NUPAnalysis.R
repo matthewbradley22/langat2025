@@ -134,16 +134,14 @@ FeaturePlot(sn_integrated_dat, 'Gad1', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Gad2', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Dlx6os1', reduction = 'umap.integrated')
 
-#Microglia
+#Microglia. Seems to align with uninfected section of micro/macro cluster
 FeaturePlot(sn_integrated_dat, 'Csf1r', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Tmem119', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'P2ry12', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Cx3cr1', reduction = 'umap.integrated')
-FeaturePlot(sn_integrated_dat, 'Itgam', reduction = 'umap.integrated')
 
 #microglia/monocytes
 FeaturePlot(sn_integrated_dat, 'Ctss', reduction = 'umap.integrated')
-FeaturePlot(sn_integrated_dat, 'Cx3cr1', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Csf1r', reduction = 'umap.integrated')
 
 #Macrophage/monocyte markers
@@ -194,8 +192,12 @@ FeaturePlot(sn_integrated_dat, 'Pecam1', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Adgrl4', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Slco1a4', reduction = 'umap.integrated')
 
-#NK cells 
+#NK cells / CD8 cells
 #This paper supp table 2 also has some https://academic.oup.com/bioinformatics/article/38/3/785/6390798
+FeaturePlot(sn_integrated_dat, 'Cd3e', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Cd8a', reduction = 'umap.integrated')
+FeaturePlot(sn_integrated_dat, 'Gzmb', reduction = 'umap.integrated')
+
 FeaturePlot(sn_integrated_dat, 'Nkg7', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Klrd1', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Ncr1', reduction = 'umap.integrated')
@@ -220,6 +222,9 @@ clust19[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/sin
 
 clust11 <- subset(sn_integrated_dat, seurat_clusters == 11)
 clust11[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/single_nuclei_proj/mapMyCellsData/clust11.csv', row.names = TRUE)
+
+clust0_31_29 <- subset(sn_integrated_dat, seurat_clusters %in% c(0, 29, 31))
+clust0_31_29[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/single_nuclei_proj/mapMyCellsData/clust0_29_31.csv', row.names = TRUE)
 
 #From allen brain atlas mapping
 cluster22Map <- readr::read_csv("~/Documents/ÖverbyLab/single_nuclei_proj/mapMyCellsData/clust22_snData_mapMy/clust22csv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1764931715314.csv", 
@@ -247,6 +252,10 @@ neuron_labels_11 <- cluster11Map %>% dplyr::select(cell_id, class_name) %>%
                                      grepl('Astro', class_name) ~ 'Astrocytes',
                                      .default = 'unknown'))
 
+cluster0_29_31Map <- readr::read_csv("~/Documents/ÖverbyLab/single_nuclei_proj/mapMyCellsData/clust0_29_31csv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1773656729060/clust0_29_31csv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1773656729060.csv", 
+                                skip = 4)
+table(cluster0_29_31Map$class_name)
+
 #Label cells
 sn_integrated_dat$manualAnnotation <- 
   case_when(sn_integrated_dat$seurat_clusters %in% c(2, 12, 30) ~ 'Oligo',
@@ -254,27 +263,35 @@ sn_integrated_dat$manualAnnotation <-
             sn_integrated_dat$seurat_clusters %in% c(18, 10, 8, 19) ~ 'In Neurons',
             sn_integrated_dat$seurat_clusters %in% c(1, 5, 6, 7, 9, 25, 28, 13, 27, 23, 15, 14, 4,
                                                      17, 26, 11) ~ 'Ex Neurons',
-            sn_integrated_dat$seurat_clusters %in% c(3, 21) ~ 'Micro/MO',
+            sn_integrated_dat$seurat_clusters %in% c(3, 21) & sn_integrated_dat$new_inf != 'LGTV' ~ 'Microglia',
+            sn_integrated_dat$seurat_clusters %in% c(3, 21) & sn_integrated_dat$new_inf == 'LGTV' ~ 'Macrophages',
             sn_integrated_dat$seurat_clusters %in% c(0) ~ 'Astrocytes',
             sn_integrated_dat$seurat_clusters %in% c() ~ 'ChP',
-            sn_integrated_dat$seurat_clusters %in% c() ~ 'VLMCs',
             sn_integrated_dat$seurat_clusters %in% c(24) ~ 'Endothelial',
+            sn_integrated_dat$seurat_clusters %in% c(29) ~ 'Peri',
+            sn_integrated_dat$seurat_clusters %in% c(20) ~ 'VLMCs',
             .default = 'unknown')
+
+#Change astrocytes with high ttr to ChP cells
+sn_integrated_dat$ttr_exp <-  FetchData(object = sn_integrated_dat, vars = c("Ttr"), layer = "data")
+sn_integrated_dat[[]][sn_integrated_dat$manualAnnotation == 'Astrocytes' & sn_integrated_dat$ttr_exp > 1,]$manualAnnotation = 'ChP'
 
 sn_integrated_dat$manualAnnotation[neuron_labels$cell_id] = neuron_labels$neu_type
 sn_integrated_dat$manualAnnotation[neuron_labels_19$cell_id] = neuron_labels_19$neu_type
 sn_integrated_dat$manualAnnotation[neuron_labels_11$cell_id] = neuron_labels_11$neu_type
 
+sn_integrated_dat <- subset(sn_integrated_dat, manualAnnotation != 'unknown')
 #SaveSeuratRds(sn_integrated_dat, './LGTVscCombined.rds')
 
 #Look at other variables
-newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
+newCols <-  c(brewer.pal(10, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
+
 pdf("~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/celltype_umap.pdf", width = 8, height = 6)
 DimPlot(sn_integrated_dat, group.by =   'manualAnnotation', cols = newCols, reduction = 'umap.integrated')
 dev.off()
 
 DimPlot(sn_integrated_dat, group.by = 'treatment')
-DimPlot(sn_integrated_dat, group.by = 'infected')
+DimPlot(sn_integrated_dat, group.by = 'infected', reduction = 'umap.integrated')
 DimPlot(sn_integrated_dat, group.by = 'new_genotype')
 
 
@@ -443,7 +460,10 @@ excitatoryNeurons <- subset(scCombined, SingleR.labels == 'Neurons' & excitatory
 DotPlot(excitatoryNeurons, features = c('Nup98', 'Nup153'), group.by = 'category')
 VlnPlot(excitatoryNeurons, features = c('Nup98', 'Nup153'), group.by = 'category')
 
-
-
-#SaveSeuratRds(scCombined, '~/LGTVscCombined.rds')
+#Add nk/cd8 + cells
+sn_integrated_dat <- AddModuleScore(object = sn_integrated_dat, features = list(c('Cd3e', 'Cd8a', 'Gzmb')), name = 'cd8_nk_score')
+clust3 <- subset(sn_integrated_dat, seurat_clusters == 3)
+VlnPlot(clust3, 'cd8_nk_score1')
+sn_integrated_dat[[]][sn_integrated_dat$seurat_clusters == 3 & sn_integrated_dat$cd8_nk_score1 > 1,]$manualAnnotation = 'Cd8+NK'
+#SaveSeuratRds(sn_integrated_dat, '~/Documents/ÖverbyLab/single_nuclei_proj/LGTVscCombined.rds')
 

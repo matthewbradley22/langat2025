@@ -6,6 +6,8 @@ library(SingleR)
 library(celldex)
 library(scran)
 library(RColorBrewer)
+library(UCell)
+library(msigdbr)
 
 ### SUBSET TO JUST WILDTYPE ###
 #Source function
@@ -58,7 +60,7 @@ type1_response <- mouse_gene_sets$GOBP_RESPONSE_TO_TYPE_I_INTERFERON
 all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
 
 #ISG module score
-sn_integrated_dat_wt <- AddModuleScore(sn_integrated_dat_wt, features = list(all_ISGs_type1), name = 'ISG_score')
+sn_integrated_dat_wt <- AddModuleScore_UCell(sn_integrated_dat_wt, features = list(all_ISGs_type1), name = 'ISG_score')
 
 #Split by infection for plotting
 sn_integrated_dat_wt_inf <- subset(sn_integrated_dat_wt, new_inf == 'LGTV')
@@ -73,17 +75,25 @@ DotPlot(sn_integrated_dat_wt_uninf, features = c(all_ISGs_type1[30:50], 'Rsad2')
   theme(axis.text.x = element_text(angle = 90))+
   ggtitle('Single Nuclei uninfected ISGs samples')
 
-sn_isg_treatment_dat <- DotPlot(sn_integrated_dat_wt, features = 'ISG_score1', group.by = 'treatment_celltype')$data
-infection_celltype <- str_split_fixed(sn_isg_treatment_dat$id, " ", 2)
+sn_integrated_dat_wt$health <- ifelse(sn_integrated_dat_wt$new_inf == 'LGTV', 'infected', 'healthy')
+sn_integrated_dat_wt$treatment_celltype <- paste(sn_integrated_dat_wt$health, sn_integrated_dat_wt$manualAnnotation, sep = '_')
+
+sn_isg_treatment_dat <- DotPlot(sn_integrated_dat_wt, features = 'signature_1ISG_score', group.by = 'treatment_celltype', scale = FALSE)$data
+infection_celltype <- str_split_fixed(sn_isg_treatment_dat$id, "_", 2)
 colnames(infection_celltype) <- c('infection', 'celltype')
 sn_isg_treatment_dat_final <- cbind(sn_isg_treatment_dat, infection_celltype)
+sn_isg_treatment_dat_final$celltype <- factor(sn_isg_treatment_dat_final$celltype, levels = rev(c('Astrocytes', 'ChP', 'Endothelial',
+                                                                                              'Ex Neurons', 'In Neurons', 'Microglia',
+                                                                                              'Oligo', 'OPC', 'Peri', 'VLMCs', 'Cd8+NK', 'Macrophages')))
 ggplot(sn_isg_treatment_dat_final, aes(x = infection, y = celltype,  fill = avg.exp))+
   geom_tile()+
-  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white", "lightblue"), 
-                        values = c(1.0,0.7,0.4,0.2,0),
-                        limits = c(-0.15, 0.55))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0),
+                        limits = c(0, 0.2))+
   geom_text(aes(label=round(avg.exp, digits = 2)))+
-  ggtitle('Single nuclei ISG scores')
+  scale_x_discrete(labels = c('healthy', 'infected'))+
+  ggtitle('Single nuclei ISG scores')+
+  theme(panel.background = element_rect(fill = 'white', colour = 'white'))
 
 #Arrest and transmigration genes from https://academic.oup.com/view-large/3854487
 arrest_only_markers <- c('Vcam1', 'Ccr1')
