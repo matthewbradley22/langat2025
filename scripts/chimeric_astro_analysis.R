@@ -58,7 +58,13 @@ wt_astro_degs_sig <- wt_astro_degs[wt_astro_degs$p_val_adj<0.01 & wt_astro_degs$
 ips_astro_degs <- FindMarkers(ips_astro, group.by = 'Treatment', ident.1 = 'rChLGTV', test.use = 'MAST')
 ips_astro_degs_sig <- ips_astro_degs[ips_astro_degs$p_val_adj<0.01 & ips_astro_degs$avg_log2FC > 1,]
 
-#DO pathyway on wt only, ips only, and intersection
+#GO pathyway on wt only, ips only, and intersection
+wt_paths_all <- gprofiler2::gost(query = rownames(wt_astro_degs_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+wt_paths_all$result$term_name
+
+ips_paths_all <- gprofiler2::gost(query = rownames(ips_astro_degs_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+ips_paths_all$result$term_name
+
 wt_only <- setdiff(rownames(wt_astro_degs_sig), rownames(ips_astro_degs_sig))
 wt_paths <- gprofiler2::gost(query = wt_only, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 wt_paths$result$term_name
@@ -71,6 +77,12 @@ both <- intersect(rownames(wt_astro_degs_sig), rownames(ips_astro_degs_sig))
 both_paths <- gprofiler2::gost(query = both, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 both_paths$result$term_name
 
+#Do not produce log file for venn diagram
+futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
+
+astro_day3 <- VennDiagram::venn.diagram(list(wt = rownames(wt_astro_degs_sig), ips = rownames(ips_astro_degs_sig)), filename = NULL,
+                                     fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
+grid::grid.draw(astro_day3)
 #Look at all cell types to see if trend is the same
 ips <- subset(ParseSeuratObj_int, Treatment != 'rLGTV' & (Timepoint == 'Day 3' | Treatment == 'PBS') & Genotype == 'IPS1')
 wt <- subset(ParseSeuratObj_int, Treatment != 'rLGTV' & (Timepoint == 'Day 3' | Treatment == 'PBS') & Genotype == 'WT')

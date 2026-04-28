@@ -15,6 +15,10 @@ ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaInt
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
 newCols[11] =  '#FF8AEF'
 
+umap_color_list <- c( "#7047A1", "#B370AE","#292270",  "#166DF0","#6D92F8",  "#6DC3F8", "#8a0000","#F76363", "#FF96A2", "#D6644B", 
+                      "#F08C3A", "#fdc087","#074F00", "#208d1f","#7bcd79", 
+                      "gray")
+
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)+
   theme(axis.ticks = element_blank(),
@@ -541,15 +545,16 @@ deg_mock_counts_df <- data.frame(comp = names(deg_mock_counts), count = deg_mock
 deg_mock_counts_df <- deg_mock_counts_df %>% tidyr::separate(comp, into = c('celltype', 'geno', 'direction'), sep = '_') %>% 
   dplyr::filter(celltype != 'unknown')
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mock_ips_vs_wt_celltype.pdf', height = 10, width = 8)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mock_ips_vs_wt_celltype.pdf', height = 12, width = 10)
 ggplot(deg_mock_counts_df, aes(x = celltype, y = count, fill = geno))+
   geom_bar(stat = 'identity', position = 'dodge')+
   coord_flip()+
-  xlab('Count upregulated genes')+
-  ylab('')+
+  xlab('')+
+  ylab('Number upregulated genes')+
   ggtitle('Mock WT vs IPS1')+
   theme_classic()+
-  theme(text = element_text(size = 24))
+  theme(text = element_text(size = 38))+
+  scale_fill_manual(values = c(umap_color_list[4], umap_color_list[10]))
 dev.off()
 
 mock_cp_up <- gprofiler2::gost(query = rownames(deg_counts_mock_celltype$`Choroid Plexus_wt_up`), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG')) 

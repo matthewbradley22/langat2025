@@ -257,6 +257,24 @@ avg_marker_exp %>% rownames_to_column(var = 'gene') %>%
   ylab('Mean Expression All DEGS')
 dev.off()
 
+#Volcano plot
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/deg_volcano_plot.pdf", width = 5, height = 6)
+day5_macro_markers %>% dplyr::mutate(direction = case_when(p_val_adj < 0.01 & (avg_log2FC) > 1 ~ 'Day 5',
+                                                       p_val_adj < 0.01 & (avg_log2FC) < -1 ~ 'Day 3/4',
+                                                       .default = 'not_sig')) %>%
+ggplot(aes(x = avg_log2FC, y = -log10(p_val_adj), color = direction))+
+  geom_point(alpha = 1)+
+  scale_color_manual(values = c("#166DF0", "#6DC3F8", 'lightgrey'))+
+  theme_classic()+
+  geom_hline(yintercept = -log10(0.01))+
+  geom_vline(xintercept = -1)+
+  geom_vline(xintercept = 1)
+dev.off()
+
+#Try alluvial/sankey plot
+alluv_dat <- data.frame(genes = c(rownames(day5_up_markers), rownames(day5_down_markers)),
+                        direction = c(rep('up', nrow(day5_up_markers)), rep('down', nrow(day5_down_markers))))
+
 #Gene ontology 
 day5_paths <- gprofiler2::gost(query = rownames(day5_up_markers), organism = 'mmusculus', evcodes = TRUE, sources = c())
 

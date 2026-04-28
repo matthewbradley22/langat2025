@@ -49,7 +49,10 @@ ifn_gamma_response <- mouse_gene_sets$HALLMARK_INTERFERON_GAMMA_RESPONSE
 #reactome_ifn_antiviral <- mouse_gene_sets$REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES
 all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
 all_ISGs_type2 = unique(c(type2_response, type2_cell_response, type_2_pathway, ifn_gamma_response))
+all_ISGs_type1_unique = all_ISGs_type1[!all_ISGs_type1 %in% all_ISGs_type2]
 all_ISGs_type2_unique = all_ISGs_type2[!all_ISGs_type2 %in% all_ISGs_type1]
+ISGs_in_both <- intersect(all_ISGs_type1, all_ISGs_type2)
+
 #Should also try ucell module scores
 wt <- AddModuleScore_UCell(wt, features = list(all_ISGs_type1), name = 'ifna_response')
 ips <- AddModuleScore_UCell(ips, features = list(all_ISGs_type1), name = 'ifna_response')
