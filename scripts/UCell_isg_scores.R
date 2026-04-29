@@ -201,8 +201,15 @@ compare_gene_up_count <- function(gene_list){
   isg_up_by_genotype
 }
 
+celltype_order <- c( 'T cells',   'Nk cells', 'Macro/Mono', 
+                     'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                     'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
+                     'Choroid Plexus', 'Astrocytes')
 isg_up_by_genotype_isg1 <- compare_gene_up_count(all_ISGs_type1)
+isg_up_by_genotype_isg1$celltype = factor(isg_up_by_genotype_isg1$celltype, levels = celltype_order)
 isg_up_by_genotype_isg2 <- compare_gene_up_count(all_ISGs_type2_unique)
+isg_up_by_genotype_isg2$celltype = factor(isg_up_by_genotype_isg2$celltype, levels = celltype_order)
+
 
 pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/isg_by_geno_celltype.pdf", width = 8, height = 6)
 ggplot(isg_up_by_genotype_isg1, aes(x = comparison, y = celltype, fill = count))+

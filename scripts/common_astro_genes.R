@@ -23,9 +23,23 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 
 #Setting treatment to NOT equal lgtv, so we keep mock and chimeric
 sc_astros <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Genotype == 'WT' & Treatment != 'rLGTV')
+
+#Going to split by timepoint for comparison as well, comparing day 3 wt infected to all pbs (same for ips)
+sc_astros_day3 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
+                           (Timepoint == 'Day 3' & Genotype == 'WT'| Treatment == 'PBS'))
+
+sc_astros_day45 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
+                            ((Timepoint == 'Day 4' | Timepoint =='Day 5') & Genotype == 'WT'| Treatment == 'PBS'))
+
 sc_astros_ips <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Genotype == 'IPS1' & Treatment != 'rLGTV')
+sc_astros_ips_day3 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
+                           (Timepoint == 'Day 3' & Genotype == 'IPS1'| Treatment == 'PBS'))
+sc_astros_ips_day45 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
+                            ((Timepoint == 'Day 4' | Timepoint =='Day 5') & Genotype == 'IPS1'| Treatment == 'PBS'))
+
 VlnPlot(sc_astros, features = 'Socs1', group.by = 'Treatment')
 VlnPlot(sc_astros_ips, features = 'Stat1', group.by = 'Treatment')
+
 ## Loading bulk data takes quite a few lines, so will just run bulk_astrocyte_heatmaps.R to load both datasets
 #Just check that they're loaded
 dds_mavs
@@ -37,11 +51,22 @@ plotPCA(vsd_wt, intgroup=c("treatment_time"))
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 
 #SC markers
-sc_astro_markers <- FindAllMarkers(sc_astros, group.by = 'Treatment',test.use = 'MAST', only.pos = TRUE)
+sc_astro_markers <- FindAllMarkers(sc_astros, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
 sc_astro_markers_chlgtv <- subset(sc_astro_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
 
 sc_astro_markers_mavs <- FindAllMarkers(sc_astros_ips, group.by = 'Treatment',test.use = 'MAST', only.pos = TRUE)
 sc_astro_markers_mavs_chlgtv <- subset(sc_astro_markers_mavs, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
+
+#Day 3 markers
+sc_astro_wt_3_markers <- FindAllMarkers(sc_astros_day3, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
+sc_astro_wt_3_markers_sig <- subset(sc_astro_wt_3_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
+
+sc_astro_ips_3_markers <- FindAllMarkers(sc_astros_ips_day3, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
+sc_astro_ips_3_markers_sig <- subset(sc_astro_ips_3_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
+
+#Day 4/5 markers
+sc_astro_wt_45_markers <- FindAllMarkers(sc_astros_day45, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
+sc_astro_wt_45_markers_sig <- subset(sc_astro_wt_45_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
 
 #Bulk markers
 
@@ -68,6 +93,12 @@ dds_mavs_res_sig <- dds_mavs_res %>% as.data.frame() %>% dplyr::filter(padj < 0.
 plotCounts(dds_mavs, gene = 'ENSMUSG00000054160', intgroup = 'Treatment')
 dds_mavs_res_sig$GENEID = rownames(dds_mavs_res_sig)
 
+#Venn diagram, turn off log file saving
+futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
+
+bulk_wt_vs_ips <- VennDiagram::venn.diagram(list(wt = rownames(dds_wt_res_sig), ips = rownames(dds_mavs_res_sig)), filename = NULL,
+                                        fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
+grid::grid.draw(bulk_wt_vs_ips)
 
 ########## Comapre up and downregulated genes between datasets ########## 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
@@ -84,13 +115,18 @@ bulk_sig_genes_mavs_symbols <- geneConversion_mavs$SYMBOL
 dds_mavs_res_sig <- left_join(dds_mavs_res_sig, geneConversion_mavs, by = c("GENEID"))
 
 #Proportion of overlap between sc and bulk
-total_gene_overlap <- sum(sc_astro_markers_chlgtv$gene %in% bulk_sig_gene_symbols)
-total_gene_overlap/nrow(sc_astro_markers_chlgtv) #45% sc genes in bulk
-total_gene_overlap/length(bulk_sig_gene_symbols) #17% bulk genes in sc
+total_gene_overlap <- sum(sc_astro_wt_3_markers_sig$gene %in% bulk_sig_gene_symbols)
+total_gene_overlap/nrow(sc_astro_wt_3_markers_sig) #45% sc genes in bulk
+total_gene_overlap/length(bulk_sig_gene_symbols) #14% bulk genes in sc
 
-VennDiagram::venn.diagram(x = list(sc_astro_markers_chlgtv$gene, bulk_sig_gene_symbols),
+sc_day_3_vs_bulk_wt <- VennDiagram::venn.diagram(list(single_cell = sc_astro_wt_3_markers_sig$gene, bulk = bulk_sig_gene_symbols), filename = NULL,
+                                            fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
+grid::grid.draw(sc_day_3_vs_bulk_wt)
+
+#Save plot
+VennDiagram::venn.diagram(x = list(sc_astro_wt_3_markers_sig$gene, bulk_sig_gene_symbols),
                           category.names = c('SC', 'bulk'),
-                          filename = '~/Documents/ÖverbyLab/scPlots/bulk_sc_astro_venn.png',
+                          filename = '~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/bulk_sc_astro_wt_3_venn.png',
                           resolution = 300,
                           fill = c("#B3E2CD", "#FDCDAC"),
                           cat.cex = 3,

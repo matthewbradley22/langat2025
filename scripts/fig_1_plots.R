@@ -52,7 +52,7 @@ mock_wt <- subset(chimeric_mock, Treatment == 'PBS'  & Genotype == 'WT')
 #IPS chLGTV
 pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/ChLgtv_ips_cellPopBars.pdf", width = 5, height = 8)
 table(chLgtv_ips$Timepoint, chLgtv_ips$manualAnnotation) %>% 
-  as.data.frame() %>% dplyr::group_by() %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
   scale_fill_manual(values = umap_color_list)+
@@ -299,8 +299,8 @@ wt_chimeric_infiltrating[[]] %>% dplyr::group_by(Timepoint, manualAnnotation, Ge
   dplyr::mutate(manualAnnotation = factor(manualAnnotation, levels = c('B Cells', 'Granulocytes', 
                                                                        'Macro', 'Nk cells',
                                                                        'T cells'))) %>% 
-  ggplot(aes(x = Genotype, y = pct.change, fill = Timepoint))+
-  geom_bar(stat = 'identity', position = 'dodge')+
+  ggplot(aes(x = Timepoint, y = pct.change, fill = Genotype))+
+  geom_bar(stat = 'identity', position = 'dodge', color = 'black')+
   facet_wrap(~manualAnnotation, nrow = 1) +
   theme_classic()+
   theme(text = element_text(size = 24))+

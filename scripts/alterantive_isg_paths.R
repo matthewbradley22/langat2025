@@ -49,7 +49,9 @@ ggplot(alternative_path_celltype_levels$Astrocytes, aes(x = time, y = features.p
   geom_point()+
   scale_color_gradientn(colours = c("#F03C0C","#F0A451","white"), 
                         values = c(1.0,0.6,0))+
-  theme_classic()
+  theme_classic()+
+  theme(text = element_text(size = 24))+
+  scale_size_continuous(range = c(1,9))
 
 #Which genes are differentially expressed 
 day4_infected <- subset(chimeric_mock, Treatment == 'rChLGTV' & Timepoint == 'Day 4')

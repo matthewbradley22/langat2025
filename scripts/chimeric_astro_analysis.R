@@ -25,31 +25,49 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
   guides(color=guide_legend(override.aes=list(size=8)))+
   ggtitle('')
 
-#Chimeric day 3 astrocytes
+#Split astros by day and to just chimeric
 astrocytes <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' & (Timepoint == 'Day 3' | Treatment == 'PBS'))
+astrocytes_5 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' & (Timepoint == 'Day 5' | Treatment == 'PBS'))
+
+#Split astros by geno
 ips_astro <- subset(astrocytes, Genotype == 'IPS1')
 wt_astro <- subset(astrocytes, Genotype == 'WT')
+ips_astro_5 <- subset(astrocytes_5, Genotype == 'IPS1')
+wt_astro_5 <- subset(astrocytes_5, Genotype == 'WT')
 
 #Plot astros
-wt_astro <- prepSeuratObj(wt_astro, use_all_genes = FALSE)
-ElbowPlot(wt_astro, ndims = 40)
-wt_astro <- prepUmapSeuratObj(wt_astro, nDims = 20, reductionName = 'astrocytes_umap', resolution_value = 0.8)
-wt_astro$treatment_organ = paste(wt_astro$Treatment, wt_astro$Organ, sep = '_')
-DimPlot(wt_astro, reduction = 'astrocytes_umap', group.by = 'treatment_organ')+
-  ggtitle('WT Day 3 Astrocytes')+
-  scale_color_manual(values = c('#39B6E3', '#3986E3', '#E35539', '#E36F39'))+
-  ylab('Umap2')+
-  xlab('Umap1')
+umap_astro_group <- function(astro_dat, num_dims = 20, returnElbow = FALSE, main = NULL){
+  astro_dat <- prepSeuratObj(astro_dat, use_all_genes = FALSE)
+  if(returnElbow){
+    print(ElbowPlot(astro_dat, ndims = 40))
+    return()
+  }
+  astro_dat <- prepUmapSeuratObj(astro_dat, nDims = num_dims, reductionName = 'astrocytes_umap', resolution_value = 0.8)
+  astro_dat$treatment_organ = paste(astro_dat$Treatment, astro_dat$Organ, sep = '_')
+  p1 <- DimPlot(astro_dat, reduction = 'astrocytes_umap', group.by = 'treatment_organ')+
+    ggtitle(main)+
+    scale_color_manual(values = c('#39B6E3', '#3986E3', '#E35539', '#E36F39'))+
+    ylab('Umap2')+
+    xlab('Umap1')+
+    theme(text = element_text(size = 24))
+  print(p1)
+}
 
-ips_astro <- prepSeuratObj(ips_astro, use_all_genes = FALSE)
-ElbowPlot(ips_astro, ndims = 40)
-ips_astro <- prepUmapSeuratObj(ips_astro, nDims = 20, reductionName = 'astrocytes_umap_ips', resolution_value = 0.8)
-ips_astro$treatment_organ = paste(ips_astro$Treatment, ips_astro$Organ, sep = '_')
-DimPlot(ips_astro, reduction = 'astrocytes_umap_ips', group.by = 'treatment_organ')+
-  scale_color_manual(values = c('#39B6E3', '#3986E3', '#E35539', '#E36F39'))+
-  ggtitle('IPS1 Day 3 Astrocytes')+
-  ylab('Umap2')+
-  xlab('Umap1')
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day3_plots/wt_astro_umap.pdf', width = 6, height = 6)
+umap_astro_group(wt_astro)
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day3_plots/ips_astro_umap.pdf', width = 6, height = 6)
+umap_astro_group(ips_astro)
+dev.off()
+
+png('~/Documents/ÖverbyLab/single_cell_ISG_figures/day4wt_day5ips/day5_astro_wt_umap.png', width = 600, height = 600)
+umap_astro_group(wt_astro_5, main = 'WT astros')
+dev.off()
+
+png('~/Documents/ÖverbyLab/single_cell_ISG_figures/day4wt_day5ips/day5_astro_ips_umap.png', width = 600, height = 600)
+umap_astro_group(ips_astro_5, main = 'IPS astros')
+dev.off()
 
 #Find DEGs
 wt_astro_degs <- FindMarkers(wt_astro, group.by = 'Treatment', ident.1 = 'rChLGTV', test.use = 'MAST')

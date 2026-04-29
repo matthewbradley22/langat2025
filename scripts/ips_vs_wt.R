@@ -20,7 +20,7 @@ umap_color_list <- c( "#7047A1", "#B370AE","#292270",  "#166DF0","#6D92F8",  "#6
                       "gray")
 
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
-        cols = newCols)+
+        cols = umap_color_list)+
   theme(axis.ticks = element_blank(),
         axis.text=element_blank(),
         legend.text=element_text(size=17))+
@@ -271,17 +271,18 @@ plot_gene_across_groups <- function(dat, gene, lims = NULL){
   colnames(select_gene_data_meta) <- c('timepoint', 'genotype', 'treatment')
   select_gene_data <- cbind(select_gene_data, select_gene_data_meta)
   select_gene_data$genotype <- factor(select_gene_data$genotype, levels = c('WT', 'IPS1'))
-  dot_plot_gene <- ggplot(select_gene_data, aes(x = timepoint, y = treatment, size = pct.exp, color = avg.exp.scaled))+
+  dot_plot_gene <- ggplot(select_gene_data, aes(x = timepoint, y = treatment, size = pct.exp, fill = avg.exp.scaled))+
     facet_wrap(~genotype)+
-    geom_point()+
+    geom_point(pch = 21)+
     ggtitle(gene)+
-    scale_color_gradientn(colours = c("#F03C0C","#FFF0A3","white"), 
+    scale_fill_gradientn(colours = c("#F03C0C","#FFF0A3","white"), 
                           values = c(1.0,0.5,0),
-                          limits = lims)
+                          limits = lims)+
+    theme_classic()
   print(dot_plot_gene)
 }
 
-plot_gene_across_groups(chimeric_mock, 'Mavs', lims = c(0, 0.14))
+plot_gene_across_groups(chimeric_mock, 'Ep300', lims = c(0, 1.4))
 
 #Do above analysis by celltype, seems like trends may differ alot across celltypes
 deg_counts_time_m_vs_i_celltype <- list()
@@ -544,10 +545,14 @@ deg_mock_counts <- unlist(lapply(deg_counts_mock_celltype, nrow))
 deg_mock_counts_df <- data.frame(comp = names(deg_mock_counts), count = deg_mock_counts)
 deg_mock_counts_df <- deg_mock_counts_df %>% tidyr::separate(comp, into = c('celltype', 'geno', 'direction'), sep = '_') %>% 
   dplyr::filter(celltype != 'unknown')
+deg_mock_counts_df$celltype <- factor(deg_mock_counts_df$celltype, levels = c('unknown',  'T cells',   'Nk cells', 'Macrophage/Monocytes', 
+                                                                              'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                                                                              'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
+                                                                              'Choroid Plexus', 'Astrocytes'))
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mock_ips_vs_wt_celltype.pdf', height = 12, width = 10)
 ggplot(deg_mock_counts_df, aes(x = celltype, y = count, fill = geno))+
-  geom_bar(stat = 'identity', position = 'dodge')+
+  geom_bar(stat = 'identity', position = 'dodge', color = 'black')+
   coord_flip()+
   xlab('')+
   ylab('Number upregulated genes')+
@@ -562,3 +567,6 @@ mock_cp_up$result
 
 mock_astro_up <- gprofiler2::gost(query = rownames(deg_counts_mock_celltype$Astrocytes_wt_up), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG')) 
 mock_astro_up$result
+
+mock_astro_down <- gprofiler2::gost(query = rownames(deg_counts_mock_celltype$Astrocytes_ips_up), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG')) 
+mock_astro_down$result
