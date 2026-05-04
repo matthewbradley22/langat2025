@@ -7,7 +7,7 @@ library(ggplot2)
 library(Matrix)
 
 #Load in data
-ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDatNoDoublets.rds")
+ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 
 #color palette for plotting 
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E',  '#FF8AEF','#737272')
@@ -52,11 +52,18 @@ ParseSeuratObj_int[[]] %>%  group_by(manualAnnotation, hasVirus) %>%
   theme(axis.text.x = element_text(angle = 90))
 
 
+#Plot viral counts across celltypes in wt by day
+chimeric <- subset(ParseSeuratObj_int, Treatment %in% c('rChLGTV', 'PBS'))
+chimeric$genotype_treatment_timepoint <- paste(chimeric$Genotype, chimeric$Treatment, chimeric$Timepoint, sep = '_')
+chimeric[[]] %>% dplyr::group_by(genotype_treatment_timepoint) %>% dplyr::summarise(mean_virus = mean(virusCountPAdj))
+
+chimeric_infection <- DotPlot(chimeric, features = 'virusCountPAdj', group.by = 'genotype_treatment_timepoint', scale = FALSE)$data
+DimPlot(wt_chimeric, group.by = 'hasVirus', reduction = 'umap.integrated')
 
 #Create gene counts table with virus
 #This is not perfect as virus counts have not been corrected for fragmentation 
 
-createCountsWithVirus <- function(countDataObj, viralCounts){
+createCountsWithVirus <- function(countDataObj){
   geneCounts <- countDataObj[['RNA']]$counts
   totalInfected <- sum(countDataObj$virusCountPAdj > 0)
   numSamples = dim(geneCounts)[2]
@@ -81,6 +88,7 @@ lgtvWithVirus <- createCountsWithVirus(lgtvSamples)
 
 chLgtvSamples <- subset(ParseSeuratObj_int, Treatment == 'rChLGTV')
 chLgtvWithVirus <- createCountsWithVirus(chLgtvSamples)
+
 #### Function to prep data for two variable dot plot ####
 #Taken from article here https://divingintogeneticsandgenomics.com/post/how-to-make-a-multi-group-dotplot-for-single-cell-rnaseq-data/
 
@@ -89,7 +97,8 @@ chLgtvSamples$timeGenotype <- factor(paste(chLgtvSamples$Timepoint, chLgtvSample
 
 #Not even sure this should be a function, keep running through it line by line, we'll see
 twoVarDotPlot <- function(datObj, metaDatObj, feature){
-  exp_mat<- datObj[['RNA']]$scale.data[feature,, drop = FALSE]
+  #Data rather than scale.data 
+  exp_mat<- datObj[['RNA']]$data[feature,, drop = FALSE]
   count_mat<- datObj[['RNA']]$counts[feature,,drop=FALSE ]
   meta<- metaDatObj[[]] 
   
@@ -161,26 +170,31 @@ groupsWithEnoughCellsCh <- chLgtvSamples[[]] %>% dplyr::group_by(manualAnnotatio
 
 LGTV_dat_subset <- left_join(x = groupsWithEnoughCells, y = LGTV_dat, by = c('timeGenotype', 'cellType'))
 
-chLGTV_dat_subset <- left_join(x = groupsWithEnoughCells, y = chLGTV_dat, by = c('timeGenotype', 'cellType'))
-
-ggplot(chLGTV_dat_subset, aes(x = timeGenotype, y = cellType, col = exp, size = percent))+
+chLGTV_dat_subset <- left_join(x = groupsWithEnoughCellsCh, y = chLGTV_dat, by = c('timeGenotype', 'cellType'))
+chLGTV_dat_subset <- chLGTV_dat_subset[chLGTV_dat_subset$manualAnnotation != 'unknown',]
+chLGTV_dat_subset <- tidyr::separate(chLGTV_dat_subset, col = timeGenotype, into = c('placeholder', 'day', 'genotype'), sep = ' ')
+pdf('~/Documents/ÖverbyLab/for_anna_plots/chimeric_virus_counts_sc.pdf', width = 7, height = 6)
+ggplot(chLGTV_dat_subset, aes(x = day, y = cellType, col = exp, size = percent))+
   geom_point()+
+  facet_wrap(~genotype)+
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank()) +
-  scale_colour_gradient2 (low = "#2389A8" ,mid = "#D8E9F0", high = "#A82323", midpoint = 0,
-                          name = "Average scaled expression")+
-  theme(legend.title = element_text(size = 12, angle = 90))+
-  guides( colour = guide_colourbar(theme = theme(
-           legend.key.width  = unit(1, "lines"),
-           legend.key.height = unit(10, "lines")),
-           title.position = "left"))+
-  ggtitle('chLGTV Virus')
-  
+  #scale_colour_gradient2 (low = "white" ,mid = "orange", high = "#A82323", midpoint = 1.5,
+   #                       name = "Average scaled expression")+
+  #theme(legend.title = element_text(size = 12, angle = 90))+
+  #guides( colour = guide_colourbar(theme = theme(
+   #        legend.key.width  = unit(1, "lines"),
+    #       legend.key.height = unit(10, "lines")),
+     #      title.position = "left"))+
+  ggtitle('chLGTV Virus')+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                      values = c(1.0,0.7,0.4,0))
+dev.off()
 
-ParseSeuratObj_int[[]] %>% mutate(virusHigh = ifelse(virusCountPAdj >= 10, 1, 0)) %>% 
+,ParseSeuratObj_int[[]] %>% mutate(virusHigh = ifelse(virusCountPAdj >= 10, 1, 0)) %>% 
   group_by(manualAnnotation, Genotype) %>% dplyr::summarise(virusHighProp = mean(virusHigh))
 
 table(ParseSeuratObj_int$Genotype, ParseSeuratObj_int$Treatment)

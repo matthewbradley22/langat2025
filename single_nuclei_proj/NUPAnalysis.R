@@ -467,3 +467,33 @@ VlnPlot(clust3, 'cd8_nk_score1')
 sn_integrated_dat[[]][sn_integrated_dat$seurat_clusters == 3 & sn_integrated_dat$cd8_nk_score1 > 1,]$manualAnnotation = 'Cd8+NK'
 #SaveSeuratRds(sn_integrated_dat, '~/Documents/ÖverbyLab/single_nuclei_proj/LGTVscCombined.rds')
 
+#LRP8 levels across celltypes
+sn_wt <- subset(sn_integrated_dat, new_genotype %in% c('wt', 'wt (same)'))
+sn_wt$manualAnnotation[sn_wt$manualAnnotation == 'In Neurons'] = 'In_Neurons'
+sn_wt$manualAnnotation[sn_wt$manualAnnotation == 'Ex Neurons'] = 'Ex_Neurons'
+sn_wt$treatment_celltype = paste(sn_wt$infected, sn_wt$manualAnnotation, sep = ' ')
+
+sn_wt_lrp8_dat <- DotPlot(sn_wt, features = 'Lrp8', group.by = 'treatment_celltype', scale = FALSE)$data 
+sn_wt_lrp8_dat <- sn_wt_lrp8_dat %>% tidyr::separate(col = id, into = c('treatment', 'celltype'), sep = ' ') %>% 
+  dplyr::mutate(expression = avg.exp.scaled)
+sn_wt_lrp8_dat$infected <- ifelse(sn_wt_lrp8_dat$treatment == 'TRUE', 'LGTV', 'mock')
+
+pdf('~/Documents/ÖverbyLab/for_anna_plots/LRP8_sinlge_nuclei_expression.pdf', height = 6, width = 5)
+ggplot(sn_wt_lrp8_dat, aes(x = infected, y = celltype, size = pct.exp, fill = expression))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0))+
+  ggtitle('LRP8 Expression single nuclei')+
+  theme_classic()
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/for_anna_plots/Lrp8_featureplot.pdf', height = 6, width = 7)
+FeaturePlot(wt_dat, features = 'Lrp8', reduction = 'umap.integrated')+
+  xlab('UMAP 1')+
+  ylab('UMAP 2')+
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())
+dev.off()
+
+
+

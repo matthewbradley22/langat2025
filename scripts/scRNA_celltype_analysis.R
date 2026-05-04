@@ -827,3 +827,25 @@ DotPlot(wt_chimeric, group.by = 'Treatment', features = 'Ifit3', scale = FALSE)
 #Can make venn diagram of genes up in wt and ips at day 3 and 5
 sum(rownames(wt_5_degs_up_sig) %in% rownames(ips_5_degs_up_sig)) / nrow(ips_5_degs_up_sig)
 
+#LRP8 levels across celltypes
+
+wt_lrp8_dat <- DotPlot(subset(wt_dat, manualAnnotation != 'unknown' & Treatment != 'rLGTV'), features = 'Lrp8', group.by = 'Treatment_celltype', scale = FALSE)$data 
+wt_lrp8_dat <- wt_lrp8_dat %>% tidyr::separate(col = id, into = c('treatment', 'celltype'), sep = '_') %>% 
+  dplyr::mutate(expression = avg.exp.scaled)
+
+pdf('~/Documents/ÖverbyLab/for_anna_plots/LRP8_expression.pdf', height = 6, width = 5)
+ggplot(wt_lrp8_dat, aes(x = treatment, y = celltype, size = pct.exp, fill = expression))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                     values = c(1.0,0.7,0.4,0))+
+  ggtitle('LRP8 Expression')+
+  theme_classic()
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/for_anna_plots/Lrp8_featureplot.pdf', height = 6, width = 7)
+FeaturePlot(wt_dat, features = 'Lrp8', reduction = 'umap.integrated')+
+  xlab('UMAP 1')+
+  ylab('UMAP 2')+
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())
+dev.off()

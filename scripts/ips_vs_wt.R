@@ -282,7 +282,7 @@ plot_gene_across_groups <- function(dat, gene, lims = NULL){
   print(dot_plot_gene)
 }
 
-plot_gene_across_groups(chimeric_mock, 'Ep300', lims = c(0, 1.4))
+plot_gene_across_groups(chimeric_mock, 'Mapk6', lims = c(0, 0.8))
 
 #Do above analysis by celltype, seems like trends may differ alot across celltypes
 deg_counts_time_m_vs_i_celltype <- list()
