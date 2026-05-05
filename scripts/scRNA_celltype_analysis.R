@@ -422,9 +422,9 @@ UpSetR::upset(upset_dat_wt, nsets = 10, order.by = 'freq', text.scale = 2)
 UpSetR::upset(upset_dat_ips, nsets = 10, order.by = 'freq', text.scale = 2)
 
 #Get commonly upregulated genes between celltypes in upset data
-shared_wt_genes <- Reduce(intersect, deg_names_wt[c('Microglia', 'Choroid Plexus', 'Ependymal', 'Endothelial', 'Macro/Mono', 'T cells', 'Astrocytes')])
-shared_ips_genes <- Reduce(intersect, deg_names_ips[c('Microglia', 'Choroid Plexus', 'Ependymal', 'Endothelial', 'Macro/Mono', 'T cells', 'Astrocytes')])
-
+#If these return null for some reason, check that macrophage/monocytes are labelled as such in the deg_names dataframes
+shared_wt_genes <- Reduce(intersect, deg_names_wt[c('Microglia', 'Choroid Plexus', 'Ependymal', 'Macrophage/Monocytes', 'Endothelial', 'T cells', 'Astrocytes')])
+shared_ips_genes <- Reduce(intersect, deg_names_ips[c('Microglia', 'Choroid Plexus', 'Ependymal', 'Endothelial', 'Macrophage/Monocytes', 'T cells', 'Astrocytes')])
 
 unique_wt <- length(shared_wt_genes[!shared_wt_genes %in% shared_ips_genes])
 unique_ips <- length(shared_ips_genes[!shared_ips_genes %in% shared_wt_genes])
@@ -694,6 +694,9 @@ select_path_columns_ips_df <- do.call(rbind, select_path_columns_ips)
 select_path_columns_df$source = factor(select_path_columns_df$source, levels = c('micro', 'common', 'endo', 'astro', 'epen', 'cp'))
 select_path_columns_ips_df$source <- factor(select_path_columns_ips_df$source, levels = c('micro', 'epen', 'common', 'endo'))
 
+wt_common <- dplyr::filter(select_path_columns_df, source == 'common')
+ips_common <- dplyr::filter(select_path_columns_ips_df, source == 'common')
+
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day_3_wt_paths.pdf', height = 8, width = 19)
 ggplot(select_path_columns_df, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
   geom_bar(stat = 'identity')+
@@ -716,6 +719,30 @@ ggplot(select_path_columns_ips_df, aes(x = reorder(term_name, rev(p_value)), y =
   theme(text = element_text(size= 26))+
   scale_fill_gradient(low = '#FFD9BA', high = '#FF874F')+
   ylim(c(0,113))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day_3_wt_common_paths.pdf', height = 4, width = 8)
+ggplot(wt_common, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
+  geom_bar(stat = 'identity')+
+  coord_flip()+
+  xlab('')+
+  theme_classic()+
+  theme(text = element_text(size= 26))+
+  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F')+
+  ylim(c(0,65))+
+  theme(legend.position = 'none')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day_3ipst_common_paths.pdf', height = 4, width = 8)
+ggplot(ips_common, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
+  geom_bar(stat = 'identity')+
+  coord_flip()+
+  xlab('')+
+  theme_classic()+
+  theme(text = element_text(size= 26))+
+  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F')+
+  ylim(c(0,65))+
+  theme(legend.position = 'none')
 dev.off()
 
 #Compare wt day 3 common upset genes w ips day 3 common

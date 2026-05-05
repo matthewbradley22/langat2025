@@ -36,7 +36,8 @@ ips_astro_5 <- subset(astrocytes_5, Genotype == 'IPS1')
 wt_astro_5 <- subset(astrocytes_5, Genotype == 'WT')
 
 #Plot astros
-umap_astro_group <- function(astro_dat, num_dims = 20, returnElbow = FALSE, main = NULL){
+umap_astro_group <- function(astro_dat, num_dims = 20, returnElbow = FALSE, main = NULL, grouping = 'treatment_organ',
+                             group_colors = c('#39B6E3', '#3986E3', '#FFAA70', '#C25610')){
   astro_dat <- prepSeuratObj(astro_dat, use_all_genes = FALSE)
   if(returnElbow){
     print(ElbowPlot(astro_dat, ndims = 40))
@@ -44,14 +45,20 @@ umap_astro_group <- function(astro_dat, num_dims = 20, returnElbow = FALSE, main
   }
   astro_dat <- prepUmapSeuratObj(astro_dat, nDims = num_dims, reductionName = 'astrocytes_umap', resolution_value = 0.8)
   astro_dat$treatment_organ = paste(astro_dat$Treatment, astro_dat$Organ, sep = '_')
-  p1 <- DimPlot(astro_dat, reduction = 'astrocytes_umap', group.by = 'treatment_organ')+
+  p1 <- DimPlot(astro_dat, reduction = 'astrocytes_umap', group.by = grouping)+
     ggtitle(main)+
-    scale_color_manual(values = c('#39B6E3', '#3986E3', '#E35539', '#E36F39'))+
+    scale_color_manual(values = group_colors)+
     ylab('Umap2')+
     xlab('Umap1')+
     theme(text = element_text(size = 24))
   print(p1)
 }
+
+astrocytes$treatment_genotype <- paste(astrocytes$Treatment, astrocytes$Genotype, sep = '_')
+
+png('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day3_plots/astro_day3_umap.png', width = 600, height = 450)
+umap_astro_group(astrocytes, grouping = 'treatment_genotype')
+dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day3_plots/wt_astro_umap.pdf', width = 6, height = 6)
 umap_astro_group(wt_astro)

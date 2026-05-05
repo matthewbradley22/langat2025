@@ -46,6 +46,9 @@ cerebrum_plvap %>% tidyr::separate(col = 'id', into = c('treatment', 'timepoint'
   theme(text = element_text(size = 20))
 dev.off()
 
+cerebrum_langat_markers <- FindMarkers(langat_mock_cerebrum, group.by = 'Treatment', ident.1 = 'rLGTV', test.use = 'MAST')
+cerebrum_langat_markers['Plvap',] #returns NA, no sig difference
+
 #Choroid plexus only
 cerebrum_plvap_cp <- DotPlot(langat_mock_cerebrum_cp, features = 'Plvap', group.by = 'treatment_time_geno', scale = FALSE)$data
 
@@ -61,6 +64,8 @@ cerebrum_plvap_cp %>% tidyr::separate(col = 'id', into = c('treatment', 'timepoi
   theme(text = element_text(size = 20))
 dev.off()
 
+cp_langat_markers <- FindMarkers(langat_mock_cerebrum_cp, group.by = 'Treatment', ident.1 = 'rLGTV', test.use = 'MAST')
+cp_langat_markers['Plvap',] 
 #Do not have infected cerebellum samples with langat infection
 cerebellum_plvap <- DotPlot(langat_mock_cerebellum, features = 'Plvap', group.by = 'treatment_time_geno', scale = FALSE)$data
 cerebellum_plvap %>% tidyr::separate(col = 'id', into = c('treatment', 'timepoint', 'genotype'), sep = '_') %>% 

@@ -6,6 +6,7 @@ library(gprofiler2)
 library(UCell)
 library(RColorBrewer)
 library(rstatix)
+library(irGSEA)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -386,6 +387,43 @@ ggplot(deg_dotplot_dat, aes(x = features.plot, y = id))+
   ylab('')+
   xlab('')
 dev.off()
+
+#GSEA attempt
+#Takes a while to run
+macrophages_wt_infected <- irGSEA.score(object = macrophages_wt_infected, assay = "RNA", 
+                             slot = "data", seeds = 123, ncores = 1,
+                             min.cells = 3, min.feature = 0,
+                             custom = F, geneset = NULL, msigdb = T, 
+                             species = "Mus musculus", category = "H",  
+                             subcategory = NULL, geneid = "symbol",
+                             method = c("AUCell", "UCell", "singscore", 
+                                        "ssgsea", "JASMINE", "viper"),
+                             aucell.MaxRank = NULL, ucell.MaxRank = NULL, 
+                             kcdf = 'Gaussian')
+
+macrophages_wt_infected$timepoint_simplified <- ifelse(macrophages_wt_infected$Timepoint == 'Day 5', 'Day 5', 'Day 3/4')
+result.gsea <- irGSEA.integrate(object = macrophages_wt_infected, 
+                               group.by = "timepoint_simplified",
+                               metadata = NULL, col.name = NULL,
+                               method = c("AUCell","UCell","singscore",
+                                          "ssgsea", "JASMINE", "viper"))
+#Plot gsea results
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/rra_gsea.pdf', height = 7, width = 8)
+irGSEA.heatmap(object = result.gsea,
+               method = "RRA",
+               top = 50, 
+               show.geneset = NULL)
+dev.off()
+
+irGSEA.bubble(object = result.gsea, 
+              method = "RRA", 
+              top = 50)
+
+irGSEA.density.scatterplot(object = result.gsea,
+                           method = "UCell",
+                           show.geneset = "HALLMARK-INFLAMMATORY-RESPONSE",
+                           reduction = "umap")
+
 
 #Function for nicer featureplots
 featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim = 0, maxLim = 5){

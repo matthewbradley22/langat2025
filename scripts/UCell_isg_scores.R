@@ -41,10 +41,10 @@ ifnA_GOBP_response <- mouse_gene_sets$GOBP_RESPONSE_TO_INTERFERON_ALPHA
 type1_response <- mouse_gene_sets$GOBP_RESPONSE_TO_TYPE_I_INTERFERON
 
 #Type 2 responses
+ifn_gamma_response <- mouse_gene_sets$HALLMARK_INTERFERON_GAMMA_RESPONSE
 type2_response <- mouse_gene_sets$GOBP_RESPONSE_TO_TYPE_II_INTERFERON
 type2_cell_response <- mouse_gene_sets$GOBP_CELLULAR_RESPONSE_TO_TYPE_II_INTERFERON
 type_2_pathway <-mouse_gene_sets$GOBP_TYPE_II_INTERFERON_MEDIATED_SIGNALING_PATHWAY
-ifn_gamma_response <- mouse_gene_sets$HALLMARK_INTERFERON_GAMMA_RESPONSE
 
 #reactome_ifn_antiviral <- mouse_gene_sets$REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES
 all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
@@ -52,6 +52,17 @@ all_ISGs_type2 = unique(c(type2_response, type2_cell_response, type_2_pathway, i
 all_ISGs_type1_unique = all_ISGs_type1[!all_ISGs_type1 %in% all_ISGs_type2]
 all_ISGs_type2_unique = all_ISGs_type2[!all_ISGs_type2 %in% all_ISGs_type1]
 ISGs_in_both <- intersect(all_ISGs_type1, all_ISGs_type2)
+
+#Corssover between type 1 and 2
+#Do not produce log file for venn diagram
+isg_intersections <- euler(c('Type1' = length(all_ISGs_type1_unique),
+                             'Type2' = length(all_ISGs_type2_unique),
+                             'Type1&Type2' = length(ISGs_in_both)))
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day3_plots/isg_venn_diagram.pdf', width = 6, height = 5)
+plot(isg_intersections, quantities = list(type = "counts"),
+     fill = c(brewer.pal(3, "Pastel2")[1:2]))
+dev.off()
 
 #Should also try ucell module scores
 wt <- AddModuleScore_UCell(wt, features = list(all_ISGs_type1), name = 'ifna_response')
