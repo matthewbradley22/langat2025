@@ -104,35 +104,52 @@ ParseSeuratObj_int$Genotype = factor(ParseSeuratObj_int$Genotype, levels = c('WT
 
 #Look at viral expression in pbs samples
 hist(subset(ParseSeuratObj_int, Treatment == 'PBS')$virus_count_normalized)
+quantile(subset(ParseSeuratObj_int, Treatment == 'PBS')$virus_count_normalized, 0.95)
 viral_level_to_remove <- sd(subset(ParseSeuratObj_int, Treatment == 'PBS')$virus_count_normalized) * 3
 #Remove amount of virus that seems to account for most contamination
 ParseSeuratObj_int$virusCountFinalAdj_corrected = ParseSeuratObj_int$virus_count_normalized - viral_level_to_remove
 ParseSeuratObj_int$virusCountFinalAdj_corrected[ParseSeuratObj_int$virusCountFinalAdj_corrected < 0] = 0
 
+#Prepare celltype order for plotting
+ParseSeuratObj_int$manualAnnotation <- factor(ParseSeuratObj_int$manualAnnotation, levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal',
+                                        'Immature Neurons', 'Microglia', 'Muscle cells', 'Neurons',
+                                        'Oligodendrocytes', 'Pericytes', 'B Cells', 'Granulocytes',
+                                        'Macrophage/Monocytes', 'Nk cells', 'T cells')))
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/corrected_viral_counts_mock.pdf', width = 8, height = 5)
 ParseSeuratObj_int[[]] %>% dplyr::filter(Treatment == 'PBS') %>% 
   dplyr::filter(manualAnnotation != 'unknown') %>% 
   dplyr::group_by(Genotype, Timepoint, manualAnnotation) %>% 
   dplyr::summarise(pct.exp = sum(virusCountFinalAdj_corrected > 0)*100/length(virusCountFinalAdj_corrected),
-                   mean.exp = mean(virusCountFinalAdj_corrected)) %>% 
+                   corrected.viral.counts = mean(virusCountFinalAdj_corrected)) %>% 
   ggplot(aes(x = Timepoint, y = manualAnnotation))+
   facet_wrap(~Genotype)+
-  geom_point(aes(size = pct.exp, fill = mean.exp), pch = 21)+
+  geom_point(aes(size = pct.exp, fill = corrected.viral.counts), pch = 21)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0),
-                       limits = c(0, 1.2))+
-  scale_size_continuous(range = c(1,2))
+                       limits = c(0, 1.8))+
+  scale_size_continuous(range = c(1,2))+
+  ggtitle('Mock viral count')+
+  theme_classic()+
+  theme(text = element_text(size = 16))+
+  ylab('')
+dev.off()
 
-
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/corrected_viral_counts.pdf', width = 8, height = 5)
 ParseSeuratObj_int[[]] %>% dplyr::filter(Treatment == 'rChLGTV') %>% 
   dplyr::filter(manualAnnotation != 'unknown') %>% 
   dplyr::group_by(Genotype, Timepoint, manualAnnotation) %>% 
   dplyr::summarise(pct.exp = sum(virusCountFinalAdj_corrected > 0)*100/length(virusCountFinalAdj_corrected),
-                   mean.exp = mean(virusCountFinalAdj_corrected)) %>% 
+                   corrected.viral.counts = mean(virusCountFinalAdj_corrected)) %>% 
   ggplot(aes(x = Timepoint, y = manualAnnotation))+
   facet_wrap(~Genotype)+
-  geom_point(aes(size = pct.exp, fill = mean.exp), pch = 21)+
+  geom_point(aes(size = pct.exp, fill = corrected.viral.counts), pch = 21)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0),
                        limits = c(0, 1.8))+
-  scale_size_continuous(range = c(1,6))
-
+  scale_size_continuous(range = c(1,6))+
+  ggtitle('rChLGTV viral count')+
+  theme_classic()+
+  theme(text = element_text(size = 16))+
+  ylab('')
+dev.off()
