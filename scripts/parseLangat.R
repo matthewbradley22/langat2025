@@ -9,7 +9,7 @@ library(ggplot2)
 parseOutput <- list.files("./unfilteredParseOutput")
 
 ParseMatricies <- lapply(parseOutput, FUN = function(x){
-  ReadParseBio(paste0("unfilteredParseOutput/", x))
+  ReadParseBio(paste0("~/Documents/ÖverbyLab/data/unfilteredParseOutput/", x))
 })
 
 #Convert data to Seurat objects  

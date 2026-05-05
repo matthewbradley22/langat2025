@@ -64,3 +64,5 @@ dplyr::filter(day4_infected_markers[alternative_path_genes,], p_val_adj < 0.01 &
 day5_infected_markers <- FindMarkers(day5_infected, test.use = 'MAST', group.by = 'Genotype', ident.1 = 'WT')
 dplyr::filter(day5_infected_markers[alternative_path_genes,], p_val_adj < 0.01 & abs(avg_log2FC) > 1)
 
+#Are Myd88 or Ticam1 upregulated in infection vs mock?
+

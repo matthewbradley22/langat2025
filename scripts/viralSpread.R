@@ -194,7 +194,7 @@ ggplot(chLGTV_dat_subset, aes(x = day, y = cellType, col = exp, size = percent))
                       values = c(1.0,0.7,0.4,0))
 dev.off()
 
-,ParseSeuratObj_int[[]] %>% mutate(virusHigh = ifelse(virusCountPAdj >= 10, 1, 0)) %>% 
+ParseSeuratObj_int[[]] %>% mutate(virusHigh = ifelse(virusCountPAdj >= 10, 1, 0)) %>% 
   group_by(manualAnnotation, Genotype) %>% dplyr::summarise(virusHighProp = mean(virusHigh))
 
 table(ParseSeuratObj_int$Genotype, ParseSeuratObj_int$Treatment)

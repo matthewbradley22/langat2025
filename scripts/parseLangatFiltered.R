@@ -9,7 +9,8 @@ library(gridExtra)
 library(Matrix)
 
 #List out our data files, and read them into R
-parseOutput <- list.files("./data/FilteredParseOutput/")
+parseOutput <- list.files("~/Documents/ÖverbyLab//data/FilteredParseOutput/")
+
 #Can load integrated data and skip integration steps
 ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
 
@@ -82,7 +83,7 @@ ParseSeuratObj$subLib <- substr(colnames(ParseSeuratObj), start = 1, stop = 7)
 #Assign viral reads from labels
 #List files with viral reads
 #importing both undajusted and partially adjusted (after fragmentation) viral counts
-virusCountFiles <- list.files('./viralReadCountsUnadjusted/')
+virusCountFiles <- list.files('~/Documents/ÖverbyLab/viralReadCountsUnadjusted/')
 virusCountFilesP <- list.files('./viralReadCountsPartiallyAdjusted/')
 
 virusCountFiles <- virusCountFiles[grep('P36207', virusCountFiles)]
@@ -98,7 +99,6 @@ viralCountsPartAdjusted <- lapply(virusCountFilesP, FUN = function(x){
                                   col_names = FALSE)
   subLibViralCounts
 })
-
 
 
 #For each sublibrary create a df with counts of virus per cell barcode
