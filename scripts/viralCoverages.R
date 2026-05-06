@@ -103,7 +103,23 @@ ParseSeuratObj_int$virus_count_normalized <- parse_counts_with_virus_norm['lgtv_
 ParseSeuratObj_int$Genotype = factor(ParseSeuratObj_int$Genotype, levels = c('WT', 'IPS1'))
 
 #Look at viral expression in pbs samples
-hist(subset(ParseSeuratObj_int, Treatment == 'PBS')$virus_count_normalized)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/uncorrected_viral_counts.pdf', width = 8, height = 5)
+ParseSeuratObj_int[[]] %>% 
+  dplyr::filter(Treatment != 'rLGTV') %>% 
+  ggplot(aes(virus_count_normalized, fill = Treatment))+
+  geom_histogram(position="identity",, alpha=0.5)+
+  theme_classic()+
+  facet_wrap(~Genotype)+
+  scale_fill_manual(values=c("black", "#56B4E9"))+
+  theme(text = element_text(size = 16))+
+  ggtitle('uncorrected viral expression')
+dev.off()
+
+chlgtv_viral_hist <- hist(subset(ParseSeuratObj_int, Treatment == 'rChLGTV')$virus_count_normalized)
+pbs_viral_hist <- hist(subset(ParseSeuratObj_int, Treatment == 'PBS')$virus_count_normalized)
+
+plot( chlgtv_viral_hist, col=rgb(0,0,1,1/4), xlim=c(0,10))  # first histogram
+plot( pbs_viral_hist, col=rgb(1,0,0,1/4), xlim=c(0,10), add=T)  # second
 quantile(subset(ParseSeuratObj_int, Treatment == 'PBS')$virus_count_normalized, 0.95)
 viral_level_to_remove <- sd(subset(ParseSeuratObj_int, Treatment == 'PBS')$virus_count_normalized) * 3
 #Remove amount of virus that seems to account for most contamination
