@@ -59,7 +59,10 @@ for(i in 1:nrow(all_var_combos)){
   cur_time = all_var_combos[i,3]
   
   #Subset bulk data to current vars of interest
-  cur_bulk_sample <- subset(bulk, subset= (manualAnnotation == cur_celltype & Timepoint == cur_time & Genotype == cur_geno))
+  #Need to make this include all pbs, not just same timepoint
+  cur_bulk_sample <- subset(bulk, subset= (manualAnnotation == cur_celltype & 
+                                             (Timepoint == cur_time | Treatment == 'PBS') & 
+                                             (Genotype == cur_geno | Treatment == 'PBS')))
   
   # Get count matrix
   cluster_counts <- FetchData(cur_bulk_sample, layer="counts", vars=rownames(cur_bulk_sample))
@@ -94,6 +97,7 @@ sig_bulk_degs <- lapply(bulk_comps, FUN = function(x){
 deg_count_by_geno <- data.frame(genotype = character(), celltype = character(), 
                                 timepoint = character(), count = integer())
 
+isgs_only = TRUE
 for(i in seq(1, length(sig_bulk_degs), 2)){
   #which samples are being looked at
   current_ips_sample <- names(sig_bulk_degs)[i]
@@ -120,6 +124,10 @@ for(i in seq(1, length(sig_bulk_degs), 2)){
   ips_celltype_sample_degs <- rownames(sig_bulk_degs[[i]])
   wt_celltype_sample_degs <- rownames(sig_bulk_degs[[i+1]])
   
+  if(isgs_only){
+    ips_celltype_sample_degs <- ips_celltype_sample_degs[ips_celltype_sample_degs %in% all_ISGs_type1]
+    wt_celltype_sample_degs <- wt_celltype_sample_degs[wt_celltype_sample_degs %in% all_ISGs_type1]
+  }
   #Which degs are in both or just one
   ips_only <- ips_celltype_sample_degs[!ips_celltype_sample_degs %in% wt_celltype_sample_degs]
   wt_only <- wt_celltype_sample_degs[!wt_celltype_sample_degs %in% ips_celltype_sample_degs]
@@ -134,10 +142,18 @@ for(i in seq(1, length(sig_bulk_degs), 2)){
 }
 
 deg_count_by_geno %>% dplyr::mutate(genotype = factor(genotype, levels = c('wt', 'both', 'ips'))) %>% 
+  dplyr::filter(celltype != 'unknown') %>% 
+  dplyr::mutate(celltype = factor(celltype, levels = c('Tcells',   'Nkcells', 'Macrophage/Monocytes', 
+                                                       'Granulocytes', 'BCells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                                                       'Musclecells', 'Microglia', 'ImmatureNeurons', 'Ependymal','Endothelial', 
+                                                       'ChoroidPlexus', 'Astrocytes'))) %>% 
 ggplot(aes(x = genotype, y = celltype, fill = count))+
   geom_tile()+
   facet_wrap(~timepoint)+
   geom_text(aes(label=count), size = 4)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0))
+
+#Look only at astrocytes to compare to bulk data too
+
 
