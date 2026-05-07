@@ -24,6 +24,7 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, manualAnnotation != 'unknown')
 ParseSeuratObj_int$samples = factor(ParseSeuratObj_int$orig.ident)
 wt_cells <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment == 'rChLGTV')
 ips_cells <- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment == 'rChLGTV')
+mock_cells <- subset(ParseSeuratObj_int, Treatment == 'PBS')
 mock_wt_cells <- subset(ParseSeuratObj_int, Treatment == 'PBS' & Genotype == 'WT')
 mock_ips_cells <- subset(ParseSeuratObj_int, Treatment == 'PBS' & Genotype == 'IPS1')
 
@@ -123,7 +124,10 @@ ips_cells_three_cc <- prep_cellchat_obj(ips_cells_three)
 ips_p3 <- custom_net_signal_scatter(ips_cells_three_cc, main = 'IPS chLGTV Day 3', xlimit = 33, ylimit = 38)
 
 ips_cells_four_cc <- prep_cellchat_obj(ips_cells_four)
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_day_4_signal_scatter.pdf', height = 5, width = 5)
 ips_p4 <- custom_net_signal_scatter(ips_cells_four_cc, main = 'IPS chLGTV Day 4', xlimit = 33, ylimit = 38)
+dev.off()
 
 ips_cells_five_cc <- prep_cellchat_obj(ips_cells_five)
 ips_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'IPS chLGTV Day 5', xlimit = 33, ylimit = 38)
@@ -146,6 +150,24 @@ plot_source_targets <- function(cc_obj, target_cell = NULL, source_cell = NULL){
   netVisual_circle(cellchat_obj@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
 }
 
+#Plot day 4 ips astros
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_day_4_astro_source.pdf", width = 6, height =6)
+plot_source_targets(ips_cells_four_cc, target_cell = 'Astrocytes')
+dev.off()
+
+#Ips day 4 pathways
+ips_4_paths <- netVisual_bubble(ips_cells_four_cc, targets.use = 'Astrocytes', remove.isolate = FALSE, 
+                 sources.use = c('Choroid Plexus', 'Endothelial', 'Ependymal',
+                                 'Granulocytes', 'Macrophage/Monocytes', 'Microglia', 'Nk cells',
+                                 'Oligodendrocytes', 'T cells'), thresh = 0.01, return.data = TRUE)
+unique(ips_4_paths$communication$pathway_name) %>% sort()
+
+pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/infil_to_astro_paths.pdf", width = 6, height =9)
+netVisual_bubble(ips_cells_four_cc, targets.use = 'Astrocytes', remove.isolate = FALSE, 
+                 sources.use = c('Granulocytes', 'Macrophage/Monocytes', 'Nk cells','T cells'), thresh = 0.01, color.heatmap = 'viridis')+
+  theme(text = element_text(size = 16))+
+  coord_flip()
+dev.off()
 #Astrocyte interactions
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_source.pdf", width = 8, height =6)
 plot_source_targets(mock_cells_cc, source_cell = 'Astrocytes')
@@ -379,9 +401,9 @@ object <- ips_cells_three_cc
 pattern = 'outgoing'
 slot.name = "netP"
 
-########### Comparative analysis between day 3 and mock by genotype ########### 
+########### Comparative analysis between day 3 (or 4) and mock by genotype ########### 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
-cellchat_wt_merged<- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_three_cc), add.names = c('PBS', 'WT_inf'))
+cellchat_wt_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_three_cc), add.names = c('PBS', 'WT_inf'))
 compareInteractions(cellchat_wt_merged, show.legend = F, group = c(1,2))
 netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count')
 netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
@@ -391,11 +413,13 @@ netVisual_heatmap(cellchat_wt_merged, measure = 'count')
 wt_celltype_count_diff <- cellchat_wt_merged@net[[2]][['count']] - cellchat_wt_merged@net[[1]][['count']]
 rowSums(wt_celltype_count_diff)
 
-cellchat_ips_merged<- mergeCellChat(list(mock = mock_ips_cells_cc, ips_inf = ips_cells_three_cc), add.names = c('PBS', 'IPS_inf'))
+cellchat_ips_merged<- mergeCellChat(list(mock = mock_ips_cells_cc, ips_inf = ips_cells_four_cc), add.names = c('PBS', 'IPS_inf'))
 compareInteractions(cellchat_ips_merged, show.legend = F, group = c(1,2))
 netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count')
-netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
-netVisual_heatmap(cellchat_ips_merged, measure = 'count')
+netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
+
+#Do not use celltypes that have only a few cells at one point or another
+netVisual_heatmap(cellchat_ips_merged, measure = 'count', targets.use = 'Astrocytes')
 
 #total difference between inf and mock astrocytes (based on comapreInteractions function)
 #Diff in outgoing
@@ -431,3 +455,75 @@ merged_dot_comp(wt_cc_objects)
 merged_dot_comp(ips_cc_objects)
 patchwork::wrap_plots(plots = list(merged_dot_comp(wt_cc_objects), merged_dot_comp(ips_cc_objects)),
                        nrow = 2)
+
+
+########### Comparative analysis between mock wt and mock ips ########### 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+cellchat_mock_merged<- mergeCellChat(list(mock_wt = mock_wt_cells_cc, mock_ips = mock_ips_cells_cc), 
+                                   add.names = c('mock_wt', 'mock_ips'))
+
+#Mock ips has more interactions
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_wt_vs_ips_counts.pdf', height = 5, width = 5)
+compareInteractions(cellchat_mock_merged, show.legend = F, group = c(1,2))+
+  theme(text = element_text(size = 20))
+dev.off()
+compareInteractions(cellchat_mock_merged, show.legend = F, group = c(1,2), measure = "weight")
+
+#Red = increased in ips
+netVisual_heatmap(cellchat_mock_merged)
+netVisual_heatmap(cellchat_mock_merged, measure = "weight")
+
+#Total strength by celltype
+num.link <- sapply(list(mock_wt = mock_wt_cells_cc, mock_ips = mock_ips_cells_cc), 
+                   function(x) {rowSums(x@net$count) + colSums(x@net$count)-diag(x@net$count)})
+weight.MinMax <- c(min(num.link), max(num.link))
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_signal_wt_dot.pdf', height = 5, width = 5)
+netAnalysis_signalingRole_scatter(mock_wt_cells_cc, title = 'Mock WT', weight.MinMax = weight.MinMax)+
+  ylim(c(0, 26))+
+  theme(text = element_text(size = 20))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_signal_ips_dot.pdf', height = 5, width = 5)
+netAnalysis_signalingRole_scatter(mock_ips_cells_cc, title = 'Mock IPS', weight.MinMax = weight.MinMax)+
+  ylim(c(0, 26))+
+  theme(text = element_text(size = 20))
+dev.off()
+
+#What changes between astrocytes
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_signalling_comp_scatter.pdf', height = 5, width = 7)
+netAnalysis_signalingChanges_scatter(cellchat_mock_merged, idents.use = "Astrocytes")+
+  theme(text = element_text(size = 18))
+dev.off()
+#The glutamate difference to me seems to be due to the gls gene,
+#since this is mentioned in all the pathways in the ips netAnalysis_contribution and seems to be
+#lowly expressed in mock
+netVisual_heatmap(mock_wt_cells_cc, signaling = 'Glutamate', color.heatmap = "Reds")
+netAnalysis_contribution(mock_wt_cells_cc, signaling = 'Glutamate', sources.use = 'Astrocytes', targets.use = 'Neurons')
+plotGeneExpression(mock_wt_cells_cc, signaling = "Glutamate", enriched.only = TRUE, type = "violin")
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_wt_glut_genes.pdf', width = 6, height = 6)
+plotGeneExpression(mock_wt_cells_cc, features = c('Slc1a2', 'Gls', 'Grik2', 'Gria4', 'Grm1'), enriched.only = TRUE, type = "violin")
+dev.off()
+
+netVisual_heatmap(mock_ips_cells_cc, signaling = 'Glutamate', color.heatmap = "Reds")
+netAnalysis_contribution(mock_ips_cells_cc, signaling = 'Glutamate', sources.use = 'Astrocytes', targets.use = 'Neurons')
+plotGeneExpression(mock_ips_cells_cc, signaling = "Glutamate", enriched.only = TRUE, type = "violin")
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_ips_glut_genes.pdf', width = 6, height = 6)
+plotGeneExpression(mock_ips_cells_cc, features = c('Slc1a2', 'Gls', 'Grik2', 'Gria4', 'Grm1'), enriched.only = TRUE, type = "violin")
+dev.off()
+
+#Look directly at path probs in data
+mock_wt_cells_cc@netP$prob[,,'Glutamate']
+mock_ips_cells_cc@netP$prob[,,'Glutamate']
+
+#Look at genes in data
+subsetCommunication(mock_wt_cells_cc) %>% dplyr::filter(source == 'Astrocytes' | target == 'Astrocytes') %>% 
+  dplyr::filter(pathway_name == 'Glutamate') %>% 
+  dplyr::arrange(source)
+
+#dotplot genes
+mock_astros <- subset(mock_cells, manualAnnotation == 'Astrocytes')
+DotPlot(mock_astros, features = 'Gls', group.by = 'Genotype', scale = FALSE)

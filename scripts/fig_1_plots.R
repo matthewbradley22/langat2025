@@ -337,3 +337,36 @@ wt_chimeric_infiltrating[[]] %>% dplyr::group_by(Timepoint, manualAnnotation, Ge
   scale_fill_manual(values = c(umap_color_list[4], umap_color_list[10]))
 dev.off()
 
+#LRP8 Expression
+lrp8_dat <- DotPlot(chimeric_mock, features = 'Lrp8', group.by = 'geno_treatment_celltype', scale = FALSE)$data
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/lrp8_mock_dotplot.pdf', height = 5, width = 6)
+lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype'), sep = '_') %>% 
+  dplyr::filter(treatment == 'PBS') %>% 
+  dplyr::mutate(celltype = factor(celltype, levels = c( 'unknown',  'T cells',   'Nk cells', 'Macrophage/Monocytes', 
+                                                        'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                                                        'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
+                                                        'Choroid Plexus', 'Astrocytes'))) %>% 
+  ggplot(aes(x = geno, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0))+
+  theme_classic()+
+  ggtitle('Mock LRP8')+
+  theme(text = element_text(size = 16))+
+  ylab('')+
+  xlab('')
+dev.off()
+
+lrp8_dat_time <- DotPlot(chimeric_mock, features = 'Lrp8', group.by = 'geno_treatment_time_celltype', scale = FALSE)$data
+lrp8_dat_time %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'time', 'celltype'), sep = '_') %>% 
+  dplyr::filter(treatment == 'rChLGTV') %>% 
+  ggplot(aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  facet_wrap(~geno)+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0))+
+  theme_classic()
+
+
+

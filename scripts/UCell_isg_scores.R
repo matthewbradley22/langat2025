@@ -3,6 +3,7 @@ library(ggpubr)
 library(Seurat)
 library(UCell)
 library(msigdbr)
+library(eulerr)
 library(RColorBrewer)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 

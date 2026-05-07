@@ -132,19 +132,21 @@ ParseSeuratObj_int$manualAnnotation <- factor(ParseSeuratObj_int$manualAnnotatio
                                         'Oligodendrocytes', 'Pericytes', 'B Cells', 'Granulocytes',
                                         'Macrophage/Monocytes', 'Nk cells', 'T cells')))
 
+#Should filter by cell count so we don't have some groups that are 10 cells total
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/corrected_viral_counts_mock.pdf', width = 8, height = 5)
 ParseSeuratObj_int[[]] %>% dplyr::filter(Treatment == 'PBS') %>% 
   dplyr::filter(manualAnnotation != 'unknown') %>% 
+  dplyr::mutate(viral_presence <- ifelse(virusCountFinalAdj_corrected > 0, 1, 0)) %>% 
   dplyr::group_by(Genotype, Timepoint, manualAnnotation) %>% 
   dplyr::summarise(pct.exp = sum(virusCountFinalAdj_corrected > 0)*100/length(virusCountFinalAdj_corrected),
-                   corrected.viral.counts = mean(virusCountFinalAdj_corrected)) %>% 
+                   corrected.viral.counts = mean(virusCountFinalAdj_corrected)) 
   ggplot(aes(x = Timepoint, y = manualAnnotation))+
   facet_wrap(~Genotype)+
   geom_point(aes(size = pct.exp, fill = corrected.viral.counts), pch = 21)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0),
                        limits = c(0, 1.8))+
-  scale_size_continuous(range = c(1,2))+
+  scale_size_continuous(range = c(1,5))+
   ggtitle('Mock viral count')+
   theme_classic()+
   theme(text = element_text(size = 16))+
