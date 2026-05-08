@@ -6,6 +6,7 @@ library(Seurat)
 library(UCell)
 library(RColorBrewer)
 library(VennDiagram)
+library(ggpubr)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 ############ Loading in all data (single-cell, bulk, single-nuclei) ############ 
@@ -390,3 +391,44 @@ ips_isg_by_time <- lapply(res_time_list_mavs, FUN = function(x){
 
 lapply(wt_isg_by_time, nrow)
 lapply(ips_isg_by_time, nrow)
+
+plotCounts(dds_wt, gene = 'ENSMUSG00000034855', intgroup = 'treatment_time')
+
+#Euler between sc data and each day bulk
+sc_wt_isgs <- sc_astro_wt_4_markers_sig %>% as.data.frame() %>% 
+  dplyr::filter(gene %in% all_ISGs_type1) %>% 
+  pull(gene)
+
+sc_ips_isgs <- sc_astro_ips_4_markers_sig %>% as.data.frame() %>% 
+  dplyr::filter(gene %in% all_ISGs_type1) %>% 
+  pull(gene)
+
+wt_euler_dats_time <- lapply(wt_isg_by_time, FUN = function(x){
+  both = sum(x$SYMBOL %in% sc_wt_isgs)
+  bulk_only = sum(!x$SYMBOL %in% sc_wt_isgs)
+  sc_only = sum(!sc_wt_isgs %in% x$SYMBOL)
+  eulerdat <- euler(c('sc' = sc_only, 'bulk' = bulk_only, 'sc&bulk' = both))
+})
+
+ips_euler_dats_time <- lapply(ips_isg_by_time, FUN = function(x){
+  both = sum(x$SYMBOL %in% sc_ips_isgs)
+  bulk_only = sum(!x$SYMBOL %in% sc_ips_isgs)
+  sc_only = sum(!sc_ips_isgs %in% x$SYMBOL)
+  eulerdat <- euler(c('sc' = sc_only, 'bulk' = bulk_only, 'sc&bulk' = both))
+})
+
+
+
+wt_sc4_bulk_1 <- plot(wt_euler_dats_time[[1]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
+wt_sc4_bulk_2 <- plot(wt_euler_dats_time[[2]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
+wt_sc4_bulk_3 <- plot(wt_euler_dats_time[[3]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
+ggpubr::ggarrange(wt_sc4_bulk_1, wt_sc4_bulk_2, wt_sc4_bulk_3, 
+                  ncol = 3)
+
+ips_sc4_bulk_1 <- plot(ips_euler_dats_time[[1]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
+ips_sc4_bulk_2 <- plot(ips_euler_dats_time[[2]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
+ips_sc4_bulk_3 <- plot(ips_euler_dats_time[[3]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
+ggpubr::ggarrange(ips_sc4_bulk_1, ips_sc4_bulk_2, ips_sc4_bulk_3, 
+                  ncol = 3)
+
+
