@@ -596,7 +596,7 @@ UpSetR::upset(upset_dat_wt_three, nsets = 5, order.by = 'freq', text.scale = 3, 
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_five_upset.pdf', height = 8, width = 13, onefile = FALSE)
-UpSetR::upset(upset_dat_wt_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
+UpSetR::upset(upset_dat_wt_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785)
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_three_upset.pdf', height = 8, width = 13, onefile = FALSE)
@@ -604,7 +604,7 @@ UpSetR::upset(upset_dat_ips_three, nsets = 5, order.by = 'freq', text.scale = 3,
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_five_upset.pdf', height = 8, width = 13, onefile = FALSE)
-UpSetR::upset(upset_dat_ips_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE)
+UpSetR::upset(upset_dat_ips_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785)
 dev.off()
 
 #Regenerate upset data manually in order to run pathway analyses on gene lists
@@ -612,6 +612,9 @@ dev.off()
 #Only keep top 5 celltypes as these are what are included in the plot
 wt_three_degs_select <- wt_three_degs[names(wt_three_degs) %in% c('Microglia', 'Endothelial', 'Ependymal', 'Astrocytes', 'Choroid Plexus')]
 ips_three_degs_select <- ips_three_degs[names(ips_three_degs) %in% c('Microglia', 'Ependymal', 'Choroid Plexus', 'Macro/Mono', 'Endothelial')]
+
+wt_five_degs_select <- wt_five_degs[names(wt_five_degs) %in% c('Microglia', 'Endothelial', 'Ependymal', 'Macro/Mono', 'Choroid Plexus')]
+ips_five_degs_select <- ips_five_degs[names(ips_five_degs) %in% c('Microglia', 'Endothelial', 'Choroid Plexus', 'Macro/Mono', 'Astrocytes')]
 
 #Get list of all significant degs by celltype
 recreate_upset_dat <- function(df){
@@ -643,15 +646,23 @@ recreate_upset_dat <- function(df){
   mmaual_upset_final_df
 }
 
+#Group genes by upset plot groupings to plot and run gene ontology
 mmaual_upset_df <- recreate_upset_dat(wt_three_degs_select)
 mmaual_upset_ips_df <- recreate_upset_dat(ips_three_degs_select)
 
-#Look at microglia genes specifically
+mmaual_upset_df_five <- recreate_upset_dat(wt_five_degs_select)
+mmaual_upset_df_ips_five <- recreate_upset_dat(ips_five_degs_select)
+
+#Look at genes by each grouping
 wt_cell_groupings <- c('Microglia', 'Astrocytes|Microglia|Endothelial|Choroid Plexus|Ependymal', 'Endothelial', 'Astrocytes',
                        'Ependymal', 'Choroid Plexus')
 
 ips_cell_groupings <- names(table(mmaual_upset_ips_df$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 4))
 
+wt_cell_five_groupings <- names(table(mmaual_upset_df_five$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 5))
+ips_cell_five_groupings <- names(table(mmaual_upset_df_ips_five$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 5))
+
+#For each comparison, create a named list of deg groupings for go analysis
 wt_upset_gene_groups <- lapply(wt_cell_groupings, FUN = function(x){
   mmaual_upset_df[mmaual_upset_df$celltypes == x,]$gene
 })
@@ -662,6 +673,18 @@ ips_upset_gene_groups <- lapply(ips_cell_groupings, FUN = function(x){
 })
 names(ips_upset_gene_groups) = ips_cell_groupings
 
+wt_upset_five_gene_groups <- lapply(wt_cell_five_groupings, FUN = function(x){
+  mmaual_upset_df_five[mmaual_upset_df_five$celltypes == x,]$gene
+})
+names(wt_upset_five_gene_groups) = wt_cell_five_groupings
+
+ips_upset_five_gene_groups <- lapply(ips_cell_five_groupings, FUN = function(x){
+  mmaual_upset_df_ips_five[mmaual_upset_df_ips_five$celltypes == x,]$gene
+})
+names(ips_upset_five_gene_groups) = ips_cell_five_groupings
+
+
+#Run pathway analysis
 wt_upset_pathways <- lapply(wt_upset_gene_groups, FUN = function(x){
   gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 })
@@ -671,6 +694,16 @@ ips_upset_pathways <- lapply(ips_upset_gene_groups, FUN = function(x){
   gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 })
 names(ips_upset_pathways) <- c('micro', 'epen', 'common', 'endo')
+
+wt_upset_five_pathways <- lapply(wt_upset_five_gene_groups, FUN = function(x){
+  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+})
+names(wt_upset_five_pathways) <- c('micro', 'epen', 'cp', 'common', 'endo')
+
+ips_upset_five_pathways <- lapply(ips_upset_five_gene_groups, FUN = function(x){
+  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+})
+names(ips_upset_five_pathways) <- c('micro', 'astro', 'endo', 'cp', 'common')
 
 #Map function easier than lapply for me to keep names as a column
 select_path_columns <- Map(function(df,name){

@@ -28,14 +28,14 @@ sc_astros <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Genot
 sc_astros_day3 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
                            (Timepoint == 'Day 3' & Genotype == 'WT'| Treatment == 'PBS'))
 
-sc_astros_day45 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
-                            ((Timepoint == 'Day 4' | Timepoint =='Day 5') & Genotype == 'WT'| Treatment == 'PBS'))
+sc_astros_day4 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
+                            ((Timepoint == 'Day 4') & Genotype == 'WT'| Treatment == 'PBS'))
 
 sc_astros_ips <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Genotype == 'IPS1' & Treatment != 'rLGTV')
 sc_astros_ips_day3 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
                            (Timepoint == 'Day 3' & Genotype == 'IPS1'| Treatment == 'PBS'))
-sc_astros_ips_day45 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
-                            ((Timepoint == 'Day 4' | Timepoint =='Day 5') & Genotype == 'IPS1'| Treatment == 'PBS'))
+sc_astros_ips_day4 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
+                            ((Timepoint == 'Day 4') & Genotype == 'IPS1'| Treatment == 'PBS'))
 
 VlnPlot(sc_astros, features = 'Socs1', group.by = 'Treatment')
 VlnPlot(sc_astros_ips, features = 'Stat1', group.by = 'Treatment')
@@ -64,12 +64,12 @@ sc_astro_wt_3_markers_sig <- subset(sc_astro_wt_3_markers, cluster == 'rChLGTV' 
 sc_astro_ips_3_markers <- FindAllMarkers(sc_astros_ips_day3, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
 sc_astro_ips_3_markers_sig <- subset(sc_astro_ips_3_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
 
-#Day 4/5 markers
-sc_astro_wt_45_markers <- FindAllMarkers(sc_astros_day45, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
-sc_astro_wt_45_markers_sig <- subset(sc_astro_wt_45_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
+#Day 4 markers
+sc_astro_wt_4_markers <- FindAllMarkers(sc_astros_day4, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
+sc_astro_wt_4_markers_sig <- subset(sc_astro_wt_4_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
 
-sc_astro_ips_45_markers <- FindAllMarkers(sc_astros_ips_day45, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
-sc_astro_ips_45_markers_sig <- subset(sc_astro_ips_45_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
+sc_astro_ips_4_markers <- FindAllMarkers(sc_astros_ips_day4, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
+sc_astro_ips_4_markers_sig <- subset(sc_astro_ips_4_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
 
 #Bulk markers
 
@@ -337,4 +337,56 @@ dds_mavs$Timepoint <- factor(dds_mavs$Timepoint)
 plotCounts(dds_wt, gene = 'ENSMUSG00000037523', intgroup = 'Timepoint') 
 plotCounts(dds_mavs, gene = 'ENSMUSG00000031601', intgroup = 'Timepoint') 
 
+#Compare sc to bulk at each timepoint
+#Set dds equation to account for treatment and time
+dds_wt <- DESeqDataSetFromTximport(txi_wt, metadata_wt, ~treatment_time)
+dds_mavs <- DESeqDataSetFromTximport(txi_mavs, metadata_mavs, ~treatment_time)
 
+#Want to compare everything to mock
+dds_wt$treatment_time <- relevel(dds_wt$treatment_time, ref = 'Mock_0')
+dds_mavs$treatment_time <- relevel(dds_mavs$treatment_time, ref = 'Mock_0')
+
+dds_wt <- DESeq(dds_wt)
+dds_mavs <- DESeq(dds_mavs)
+
+resultsNames(dds_wt)
+resultsNames(dds_mavs)
+
+res_time_list <- list()
+res_time_list_mavs <- list()
+
+for(i in 2:4){
+  cur_res <- results(dds_wt, name = resultsNames(dds_wt)[i])
+  cur_res_mavs <- results(dds_mavs, name = resultsNames(dds_mavs)[i])
+  
+  cur_res_sig <- cur_res %>% as.data.frame() %>% dplyr::filter(padj < 0.01 & log2FoldChange > 1) %>% 
+    dplyr::arrange(padj) %>% rownames_to_column(var = 'GENEID')
+  cur_res_mavs_sig <- cur_res_mavs %>% as.data.frame() %>% dplyr::filter(padj < 0.01 & log2FoldChange > 1) %>% 
+    dplyr::arrange(padj) %>% rownames_to_column(var = 'GENEID')
+  
+  geneConversion_cur_res <- ensembldb::select(EnsDb.Mmusculus.v79, keys= cur_res_sig$GENEID, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
+  geneConversion_cur_res_mavs <- ensembldb::select(EnsDb.Mmusculus.v79, keys= cur_res_mavs_sig$GENEID, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
+  
+  cur_res_sig <- left_join(cur_res_sig, geneConversion_cur_res, by = c("GENEID"))
+  cur_res_mavs_sig <- left_join(cur_res_mavs_sig, geneConversion_cur_res_mavs, by = c("GENEID"))
+  
+  res_time_list[[length(res_time_list) + 1]] = cur_res_sig
+  res_time_list_mavs[[length(res_time_list_mavs) + 1]] = cur_res_mavs_sig
+  
+  names(res_time_list)[length(res_time_list)] = resultsNames(dds_wt)[i]
+  names(res_time_list_mavs)[length(res_time_list_mavs)] = resultsNames(dds_mavs)[i]
+}
+
+lapply(res_time_list, nrow)
+lapply(res_time_list_mavs, nrow)
+
+
+wt_isg_by_time <- lapply(res_time_list, FUN = function(x){
+  sig_isgs <- dplyr::filter(x, SYMBOL %in% all_ISGs_type1)
+})
+ips_isg_by_time <- lapply(res_time_list_mavs, FUN = function(x){
+  sig_isgs <- dplyr::filter(x, SYMBOL %in% all_ISGs_type1)
+})
+
+lapply(wt_isg_by_time, nrow)
+lapply(ips_isg_by_time, nrow)

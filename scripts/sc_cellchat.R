@@ -92,7 +92,10 @@ custom_net_signal_scatter <- function(cc_obj, main = NULL, xlimit, ylimit){
 mock_wt_cells_cc <- prep_cellchat_obj(mock_wt_cells)
 mock_ips_cells_cc <- prep_cellchat_obj(mock_ips_cells)
 custom_net_signal_scatter(mock_wt_cells_cc, main = 'Mock wt', xlimit = 33, ylimit = 33)
-custom_net_signal_scatter(mock_ips_cells_cc, main = 'Mock ips', xlimit = 33, ylimit = 33)
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_mock_signal_scatter.pdf', height = 5, width = 5)
+custom_net_signal_scatter(mock_ips_cells_cc, main = 'Mock ips', xlimit = 33, ylimit = 38)
+dev.off()
 
 netAnalysis_signalingRole_heatmap(mock_wt_cells_cc, pattern = "outgoing", cluster.cols = TRUE)
 netAnalysis_signalingRole_heatmap(mock_ips_cells_cc, pattern = "outgoing", cluster.cols = TRUE)
@@ -416,8 +419,15 @@ rowSums(wt_celltype_count_diff)
 cellchat_ips_merged<- mergeCellChat(list(mock = mock_ips_cells_cc, ips_inf = ips_cells_four_cc), add.names = c('PBS', 'IPS_inf'))
 compareInteractions(cellchat_ips_merged, show.legend = F, group = c(1,2))
 netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count')
-netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
 
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_circle.pdf', width = 5, height = 5)
+netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'weight', targets.use = 'Astrocytes')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_signal_changes.pdf', width = 10, height = 8)
+netAnalysis_signalingChanges_scatter(cellchat_ips_merged, idents.use = "Astrocytes", label.size = 6)+
+  theme(text = element_text(size = 24))
+dev.off()
 #Do not use celltypes that have only a few cells at one point or another
 netVisual_heatmap(cellchat_ips_merged, measure = 'count', targets.use = 'Astrocytes')
 
