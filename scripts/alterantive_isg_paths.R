@@ -44,7 +44,7 @@ for(i in 1:length(unique(chimeric_mock$manualAnnotation))){
   names(alternative_path_celltype_levels)[length(alternative_path_celltype_levels)] = cur_celltype
 }
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/alternative_path_genes.pdf', width = 9, height = 7)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/alternative_path_astro_genes.pdf', width = 9, height = 7)
 ggplot(alternative_path_celltype_levels$Astrocytes, aes(x = time, y = features.plot, size = pct.exp, color = avg.exp.scaled))+
   facet_wrap(~geno_treatment, scales = 'free_x')+
   geom_point()+
@@ -67,7 +67,72 @@ day5_infected_markers <- FindMarkers(day5_infected, test.use = 'MAST', group.by 
 dplyr::filter(day5_infected_markers[alternative_path_genes,], p_val_adj < 0.01 & abs(avg_log2FC) > 1)
 
 #Are Myd88 or Ticam1 upregulated in infection vs mock?
-day5_ips_pbs <- subset(chimeric_mock, (Timepoint == 'Day 5' & Genotype == 'IPS1') | Treatment == 'PBS')
-day5_infected_mock_markers <- FindMarkers(day5_ips_pbs, test.use = 'MAST', group.by = 'Treatment', ident.1 = 'rChLGTV')
-day5_infected_mock_markers[c('Myd88', 'Ticam1'),]
+day5_ips_pbs_astros <- subset(chimeric_mock, ((Timepoint == 'Day 5' & Genotype == 'IPS1') | Treatment == 'PBS') & manualAnnotation == 'Astrocytes')
+table(day5_ips_pbs_astros$Timepoint, day5_wt_pbs_astros$Treatment, day5_wt_pbs_astros$Genotype)
+day5_wt_pbs_astros <- subset(chimeric_mock, ((Timepoint == 'Day 5' & Genotype == 'WT') | Treatment == 'PBS') & manualAnnotation == 'Astrocytes')
+table(day5_wt_pbs_astros$Timepoint, day5_wt_pbs_astros$Treatment, day5_wt_pbs_astros$Genotype)
+
+day5_ips_astro_markers <- FindMarkers(day5_ips_pbs_astros, test.use = 'MAST', group.by = 'Treatment', ident.1 = 'rChLGTV')
+day5_wt_astro_markers <- FindMarkers(day5_wt_pbs_astros, test.use = 'MAST', group.by = 'Treatment', ident.1 = 'rChLGTV')
+
+#Myd88 sig up in ips day 5 astros
+day5_ips_astro_markers[c('Myd88', 'Ticam1'),]
+day5_wt_astro_markers[c('Myd88', 'Ticam1'),]
+
+#Stat genes by celltype
+celltypes <- unique(chimeric_mock$manualAnnotation)[unique(chimeric_mock$manualAnnotation) != 'unknown']
+stat1_by_celltype_list <- list()
+stat2_by_celltype_list <- list()
+
+for(i in 1:length(celltypes)){
+  cur_celltype <- subset(chimeric_mock, manualAnnotation == celltypes[[i]])
+  cur_celltype_stat1 <- DotPlot(cur_celltype, features = 'Stat1', group.by = 'time_geno_treatment', scale = FALSE)$data %>% 
+    tidyr::separate(col = 'id', into = c('time', 'genotype', 'treatment'), sep = '_')
+  cur_celltype_stat1$genotype <- factor(cur_celltype_stat1$genotype, levels = c('WT', 'IPS1'))
+  p1 <- ggplot(cur_celltype_stat1, aes(x = time, y = treatment, fill = avg.exp.scaled, size = pct.exp))+
+    geom_point(pch = 21)+
+    facet_wrap(~genotype)+
+    scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                         values = c(1.0,0.7,0.4,0))+
+    ggtitle(celltypes[[i]])+
+    theme_classic()+
+    theme(text = element_text(size = 18))
+  stat1_by_celltype_list[[length(stat1_by_celltype_list) + 1]] <- p1
+  
+  cur_celltype_stat2 <- DotPlot(cur_celltype, features = 'Stat2', group.by = 'time_geno_treatment', scale = FALSE)$data %>% 
+    tidyr::separate(col = 'id', into = c('time', 'genotype', 'treatment'), sep = '_')
+  cur_celltype_stat2$genotype <- factor(cur_celltype_stat2$genotype, levels = c('WT', 'IPS1'))
+  p1 <- ggplot(cur_celltype_stat2, aes(x = time, y = treatment, fill = avg.exp.scaled, size = pct.exp))+
+    geom_point(pch = 21)+
+    facet_wrap(~genotype)+
+    scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                         values = c(1.0,0.7,0.4,0))+
+    ggtitle(celltypes[[i]])+
+    theme_classic()+
+    theme(text = element_text(size = 18))
+  stat2_by_celltype_list[[length(stat2_by_celltype_list) + 1]] <- p1
+  
+}
+
+names(stat1_by_celltype_list) <- celltypes
+names(stat2_by_celltype_list) <- celltypes
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/astro_stat1_exp.pdf', width = 8, height = 5)
+print(stat1_by_celltype_list$Astrocytes + ggtitle('Stat1'))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/astro_stat2_exp.pdf', width = 8, height = 5)
+print(stat2_by_celltype_list$Astrocytes + ggtitle('Stat2'))
+dev.off()
+
+#Stat1 and 2, day 3 between genotypes
+astrocytes_day3 <- subset(chimeric_mock, manualAnnotation == 'Astrocytes' & Timepoint == 'Day 3' & Treatment == 'rChLGTV')
+wt_ips_3_markers <- FindMarkers(astrocytes_day3, group.by = 'Genotype', ident.1 = 'WT', test.use = 'MAST')
+wt_ips_3_markers[c('Stat1', 'Stat2'),]
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/day_3_inf_astro_stat_vln.pdf', width = 8, height = 5)
+VlnPlot(astrocytes_day3, features = c('Stat1', 'Stat2'), group.by = 'Genotype', pt.size = 0)
+dev.off()
+
+
 
