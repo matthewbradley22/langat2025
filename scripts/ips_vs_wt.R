@@ -6,6 +6,7 @@ library(stringr)
 library(ggplot2)
 library(tidyr)
 library(VennDiagram)
+library(eulerr)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -198,19 +199,22 @@ day_5_up_wt <- deg_counts_by_time_m_vs_i$WT_up_5
 day_5_up_ips <- deg_counts_by_time_m_vs_i$IPS_up_5
 day_5_down_ips <- deg_counts_by_time_m_vs_i$IPS_down_5
 
-#Do not produce log file
-futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
-vd_day3 <- VennDiagram::venn.diagram(list(wt = rownames(day_3_up_wt), ips = rownames(day_3_up_ips)), filename = NULL,
-                                     fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
-grid::grid.draw(vd_day3)
+#Crate venn diagrams of upregulated degs by time and geno
+day3_vd_genes <- euler(c('wt' = sum(!rownames(day_3_up_wt) %in% rownames(day_3_up_ips)), 
+                         'ips' = sum(!rownames(day_3_up_ips) %in% rownames(day_3_up_wt)),
+                         'wt&ips' =  sum(rownames(day_3_up_wt) %in% rownames(day_3_up_ips))))
 
-vd_day5 <- VennDiagram::venn.diagram(list(wt = rownames(day_5_up_wt), ips = rownames(day_5_up_ips)), filename = NULL,
-                                     fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5, rotation.degree = 180)
-grid::grid.draw(vd_day5)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/day3_wt_ips_deg_venn.pdf', height = 5, width = 6)
+plot(day3_vd_genes, quantities = list(cex = 1.8), fills = c("#B3BFE2", "#FDC0AC"))       
+dev.off()
 
-vd_day3_wt_5_ips <- VennDiagram::venn.diagram(list(wt = rownames(day_3_up_wt), ips = rownames(day_5_up_ips)), filename = NULL,
-                                     fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
-grid::grid.draw(vd_day3_wt_5_ips)
+day5_vd_genes <- euler(c('wt' = sum(!rownames(day_5_up_wt) %in% rownames(day_5_up_ips)), 
+                         'ips' = sum(!rownames(day_5_up_ips) %in% rownames(day_5_up_wt)),
+                         'wt&ips' =  sum(rownames(day_5_up_wt) %in% rownames(day_5_up_ips))))
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/day3_wt_ips_deg_venn.pdf', height = 5, width = 6)
+plot(day5_vd_genes, quantities = list(cex = 1.8), fills = c("#B3BFE2", "#FDC0AC"))       
+dev.off()
 
 #Up day 3 wt but not ips
 day_3_only_wt_up <- rownames(day_3_up_wt[!rownames(day_3_up_wt) %in% rownames(day_3_up_ips),])

@@ -706,29 +706,36 @@ ips_upset_five_pathways <- lapply(ips_upset_five_gene_groups, FUN = function(x){
 names(ips_upset_five_pathways) <- c('micro', 'astro', 'endo', 'cp', 'common')
 
 #Map function easier than lapply for me to keep names as a column
-select_path_columns <- Map(function(df,name){
-  df_final <- head(df$result[c('term_name', 'p_value')], n = 5)
-  df_final$source = name
-  df_final
-}, wt_upset_pathways, names(wt_upset_pathways))
+top_paths_by_celltype <- function(data_name, cell_labels){
+  dat <- Map(function(df,name){
+    df_final <- head(df$result[c('term_name', 'p_value', 'intersection_size')], n = 5)
+    df_final$source = name
+    df_final
+  }, data_name, cell_labels)
+  return(dat)
+}
 
-select_path_columns_ips <- Map(function(df,name){
-  df_final <- head(df$result[c('term_name', 'p_value')], n = 5)
-  df_final$source = name
-  df_final
-}, ips_upset_pathways, names(ips_upset_pathways))
+#Get top paths by gene grouping for each time genotype group
+select_path_columns <- top_paths_by_celltype(wt_upset_pathways, names(wt_upset_pathways))
+select_path_columns_ips <- top_paths_by_celltype(ips_upset_pathways, names(ips_upset_pathways))
+select_path_columns_five <- top_paths_by_celltype(wt_upset_five_pathways, names(wt_upset_five_pathways))
+select_path_columns_ips_five <- top_paths_by_celltype(ips_upset_five_pathways, names(ips_upset_five_pathways))
 
 #No endothelial paths, make blank df
-select_path_columns_ips$endo <- data.frame(term_name = '', p_value =1, source = 'endo')
+select_path_columns_ips$endo <- data.frame(term_name = '', p_value =1, intersection_size=0, source = 'endo')
 
 select_path_columns_df <- do.call(rbind, select_path_columns)
 select_path_columns_ips_df <- do.call(rbind, select_path_columns_ips)
+select_path_columns_five_df <- do.call(rbind, select_path_columns_five)
+select_path_columns_ips_five_df <- do.call(rbind, select_path_columns_ips_five)
 
 select_path_columns_df$source = factor(select_path_columns_df$source, levels = c('micro', 'common', 'endo', 'astro', 'epen', 'cp'))
 select_path_columns_ips_df$source <- factor(select_path_columns_ips_df$source, levels = c('micro', 'epen', 'common', 'endo'))
 
 wt_common <- dplyr::filter(select_path_columns_df, source == 'common')
 ips_common <- dplyr::filter(select_path_columns_ips_df, source == 'common')
+wt_five_common <- dplyr::filter(select_path_columns_five_df, source == 'common')
+ips_five_common <- dplyr::filter(select_path_columns_ips_five_df, source == 'common')
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day_3_wt_paths.pdf', height = 8, width = 19)
 ggplot(select_path_columns_df, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
@@ -754,28 +761,34 @@ ggplot(select_path_columns_ips_df, aes(x = reorder(term_name, rev(p_value)), y =
   ylim(c(0,113))
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day_3_wt_common_paths.pdf', height = 4, width = 8)
-ggplot(wt_common, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
-  geom_bar(stat = 'identity')+
-  coord_flip()+
-  xlab('')+
-  theme_classic()+
-  theme(text = element_text(size= 26))+
-  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F')+
-  ylim(c(0,65))+
-  theme(legend.position = 'none')
+common_gene_plot <- function(dat){
+  p1 <- ggplot(dat, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value)))+
+    geom_bar(stat = 'identity', width = 0.6, fill = '#FFB48F')+
+    coord_flip()+
+    xlab('')+
+    theme_classic()+
+    theme(text = element_text(size= 26))+
+    ylim(c(0,80))+
+    theme(legend.position = 'none')+
+    geom_text(aes(label=intersection_size), hjust = 1.2, size = 10)
+  plot(p1)
+}
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day3_wt_common_paths.pdf', height = 4, width = 8)
+common_gene_plot(wt_common)
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day_3ipst_common_paths.pdf', height = 4, width = 8)
-ggplot(ips_common, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
-  geom_bar(stat = 'identity')+
-  coord_flip()+
-  xlab('')+
-  theme_classic()+
-  theme(text = element_text(size= 26))+
-  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F')+
-  ylim(c(0,65))+
-  theme(legend.position = 'none')
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day3_ips_common_paths.pdf', height = 4, width = 8)
+common_gene_plot(ips_common)
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day5_wt_common_paths.pdf', height = 4, width = 8)
+common_gene_plot(wt_five_common)
+dev.off()
+
+#Change name to fit plot better
+ips_five_common$term_name[4] = 'interspecies interaction between organisms'
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day5_ips_common_paths.pdf', height = 4, width = 8)
+common_gene_plot(ips_five_common)
 dev.off()
 
 #Compare wt day 3 common upset genes w ips day 3 common

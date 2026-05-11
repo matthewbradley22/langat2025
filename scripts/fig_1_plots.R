@@ -91,7 +91,7 @@ pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mock_ips_cellPop
 table(mock_ips$Timepoint, mock_ips$manualAnnotation) %>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
-  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.41)+
   scale_fill_manual(values = umap_color_list)+
   theme_classic()+
   theme(legend.position = 'none',
@@ -103,13 +103,12 @@ table(mock_ips$Timepoint, mock_ips$manualAnnotation) %>%
   ggtitle('Mock IPS1')+
   ylab('Proportion of cells')
 dev.off()
-
 #Mock WT
 pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mock_wt_cellPopBars.pdf", width = 5, height = 8)
 table(mock_wt$Timepoint, mock_wt$manualAnnotation) %>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
-  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.41)+
   scale_fill_manual(values = umap_color_list)+
   theme_classic()+
   theme(legend.position = 'none',
@@ -132,7 +131,8 @@ chimeric_mock_organ_counts %>%
   ggplot(aes(x = Treatment, y = cell_count, fill = Genotype))+
   geom_bar(stat = 'identity', position = 'dodge')+
   xlab('')+
-  ylab('cell count')+
+  ylab('ce
+       all count')+
   scale_fill_manual(values = c(umap_color_list[4], umap_color_list[7]))+
   theme_classic()+
   theme(legend.position = 'none',
@@ -286,7 +286,7 @@ levels_infil <- c('B Cells', 'Granulocytes',
 wt_chimeric_macs <- subset(chimeric_mock, manualAnnotation %in% c("Macrophage/Monocytes"))
 
 #Function to plot celltype proportions over time
-barplot_counts <- function(dat, cell_levels){
+barplot_counts <- function(dat, cell_levels, bar_width = 0.5){
   plot_cells = dat[[]] %>% dplyr::group_by(Timepoint, manualAnnotation, Genotype, Treatment) %>% 
     dplyr::summarise(cell_count = n())  %>% 
     dplyr::mutate(manualAnnotation = factor(manualAnnotation, levels = cell_levels)) %>% 
@@ -297,7 +297,7 @@ barplot_counts <- function(dat, cell_levels){
     dplyr::mutate(Genotype = factor(Genotype, levels = c('WT', 'IPS1')),
                   treatment_time_to_plot = factor(treatment_time_to_plot, levels = c('PBS', 'Day 3', 'Day 4', 'Day 5'))) %>% 
     ggplot(aes(x = treatment_time_to_plot, y = (cell_count), fill = Genotype))+
-    geom_bar(stat = 'identity', position = 'dodge', color = 'black')+
+    geom_bar(stat = 'identity', position = 'dodge', color = 'black', width =  bar_width)+
     facet_wrap(~manualAnnotation, nrow = 1) +
     theme_classic()+
     theme(text = element_text(size = 24),
@@ -308,8 +308,8 @@ barplot_counts <- function(dat, cell_levels){
 }
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/infiltrating_counts.pdf', height = 6, width = 17)
-infil_plot <- barplot_counts(wt_chimeric_infiltrating, cell_levels = levels_infil)
-mac_plot <- barplot_counts(wt_chimeric_macs, cell_levels = 'Macrophage/Monocytes')
+infil_plot <- barplot_counts(wt_chimeric_infiltrating, cell_levels = levels_infil, bar_width  = 0.9)
+mac_plot <- barplot_counts(wt_chimeric_macs, cell_levels = 'Macrophage/Monocytes', bar_width  = 0.6)
 ggarrange(infil_plot, mac_plot, ncol = 2, common.legend = TRUE, legend = 'right') 
 dev.off()
 

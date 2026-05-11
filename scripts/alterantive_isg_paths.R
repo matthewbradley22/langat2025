@@ -44,6 +44,7 @@ for(i in 1:length(unique(chimeric_mock$manualAnnotation))){
   names(alternative_path_celltype_levels)[length(alternative_path_celltype_levels)] = cur_celltype
 }
 
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/alternative_path_genes.pdf', width = 9, height = 7)
 ggplot(alternative_path_celltype_levels$Astrocytes, aes(x = time, y = features.plot, size = pct.exp, color = avg.exp.scaled))+
   facet_wrap(~geno_treatment, scales = 'free_x')+
   geom_point()+
@@ -52,6 +53,7 @@ ggplot(alternative_path_celltype_levels$Astrocytes, aes(x = time, y = features.p
   theme_classic()+
   theme(text = element_text(size = 24))+
   scale_size_continuous(range = c(1,9))
+dev.off()
 
 #Which genes are differentially expressed 
 day4_infected <- subset(chimeric_mock, Treatment == 'rChLGTV' & Timepoint == 'Day 4')
@@ -65,4 +67,7 @@ day5_infected_markers <- FindMarkers(day5_infected, test.use = 'MAST', group.by 
 dplyr::filter(day5_infected_markers[alternative_path_genes,], p_val_adj < 0.01 & abs(avg_log2FC) > 1)
 
 #Are Myd88 or Ticam1 upregulated in infection vs mock?
+day5_ips_pbs <- subset(chimeric_mock, (Timepoint == 'Day 5' & Genotype == 'IPS1') | Treatment == 'PBS')
+day5_infected_mock_markers <- FindMarkers(day5_ips_pbs, test.use = 'MAST', group.by = 'Treatment', ident.1 = 'rChLGTV')
+day5_infected_mock_markers[c('Myd88', 'Ticam1'),]
 
