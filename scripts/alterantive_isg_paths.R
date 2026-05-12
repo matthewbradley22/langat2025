@@ -134,5 +134,49 @@ pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/day_3_inf_ast
 VlnPlot(astrocytes_day3, features = c('Stat1', 'Stat2'), group.by = 'Genotype', pt.size = 0)
 dev.off()
 
+#Split astros by day and to just chimeric
+astrocytes_3 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' & (Timepoint == 'Day 3' | Treatment == 'PBS'))
 
+#Split astros by geno
+ips_astro_3 <- subset(astrocytes, Genotype == 'IPS1' | Treatment == 'PBS')
+wt_astro_3 <- subset(astrocytes, Genotype == 'WT' | Treatment == 'PBS')
 
+table(ips_astro_3$Treatment, ips_astro_3$Genotype, ips_astro_3$Timepoint, ips_astro_3$manualAnnotation)
+table(wt_astro_3$Treatment, wt_astro_3$Genotype, wt_astro_3$Timepoint, wt_astro_3$manualAnnotation)
+
+#Get upregulated genes 
+day3_ips_astro_markers <- FindMarkers(ips_astro_3, group.by = 'Treatment', ident.1 = 'rChLGTV', test.use = 'MAST')
+day3_wt_astro_markers <- FindMarkers(wt_astro_3, group.by = 'Treatment', ident.1 = 'rChLGTV', test.use = 'MAST')
+
+day3_ips_astro_markers_sig <- day3_ips_astro_markers %>% as.data.frame() %>% 
+  dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1)
+day3_wt_astro_markers_sig <- day3_wt_astro_markers %>% as.data.frame() %>% 
+  dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1)
+
+ips_3_paths <- gprofiler2::gost(query = rownames(day3_ips_astro_markers_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+wt_3_paths <- gprofiler2::gost(query = rownames(day3_wt_astro_markers_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+
+ips_3_paths$result$term_name %>% head()
+wt_3_paths$result$term_name %>% head()
+
+ips_3_paths$result$term_name[ips_3_paths$result$term_name == 'biological process involved in interspecies interaction between organisms'] = 'interaction between organisms'
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day3_paths.pdf', width = 6, height = 5)
+ggplot(head(ips_3_paths$result), aes(x = term_name, y = -log10(p_value)))+
+  geom_bar(stat = 'identity', fill = '#FDC0AC')+
+  coord_flip()+
+  ylim(c(0, 67))+
+  theme_classic()+
+  theme(text = element_text(size = 18))+
+  ylab('')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_paths.pdf', width = 6, height = 5)
+ggplot(head(wt_3_paths$result), aes(x = term_name, y = -log10(p_value)))+
+  geom_bar(stat = 'identity', fill = '#B3BFE2')+
+  coord_flip()+
+  ylim(c(0, 67))+
+  theme_classic()+
+  theme(text = element_text(size = 18))+
+  ylab('')
+dev.off()

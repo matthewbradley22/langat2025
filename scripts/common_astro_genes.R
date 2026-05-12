@@ -422,6 +422,8 @@ ips_euler_dats_time <- lapply(ips_isg_by_time, FUN = function(x){
 wt_sc4_bulk_1 <- plot(wt_euler_dats_time[[1]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
 wt_sc4_bulk_2 <- plot(wt_euler_dats_time[[2]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
 wt_sc4_bulk_3 <- plot(wt_euler_dats_time[[3]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
+
+pdf('~/Documents/ÖverbyLab/')
 ggpubr::ggarrange(wt_sc4_bulk_1, wt_sc4_bulk_2, wt_sc4_bulk_3, 
                   ncol = 3)
 

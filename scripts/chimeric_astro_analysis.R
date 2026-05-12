@@ -31,12 +31,12 @@ astrocytes_4 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Tr
 astrocytes_5 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' & (Timepoint == 'Day 5' | Treatment == 'PBS'))
 
 #Split astros by geno
-ips_astro <- subset(astrocytes, Genotype == 'IPS1')
-wt_astro <- subset(astrocytes, Genotype == 'WT')
-ips_astro_4 <- subset(astrocytes_4, Genotype == 'IPS1')
-wt_astro_4 <- subset(astrocytes_4, Genotype == 'WT')
-ips_astro_5 <- subset(astrocytes_5, Genotype == 'IPS1')
-wt_astro_5 <- subset(astrocytes_5, Genotype == 'WT')
+ips_astro <- subset(astrocytes, Genotype == 'IPS1' | Treatment == 'PBS')
+wt_astro <- subset(astrocytes, Genotype == 'WT' | Treatment == 'PBS')
+ips_astro_4 <- subset(astrocytes_4, Genotype == 'IPS1' | Treatment == 'PBS')
+wt_astro_4 <- subset(astrocytes_4, Genotype == 'WT' | Treatment == 'PBS')
+ips_astro_5 <- subset(astrocytes_5, Genotype == 'IPS1' | Treatment == 'PBS')
+wt_astro_5 <- subset(astrocytes_5, Genotype == 'WT' | Treatment == 'PBS')
 
 #Plot astros
 umap_astro_group <- function(astro_dat, num_dims = 20, returnElbow = FALSE, main = NULL, grouping = 'treatment_organ',
