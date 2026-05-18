@@ -6,6 +6,8 @@ library(ggpubr)
 library(patchwork)
 library(ComplexHeatmap)
 library(tidyverse)
+library(ggalluvial)
+library(NMF) #Needed to make cellchat selectK work
 source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
 source('~/Documents/ÖverbyLab/scripts/cellChatBug.R')
 
@@ -173,8 +175,7 @@ unique(ips_4_paths$communication$pathway_name) %>% sort()
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/infil_to_astro_paths.pdf", width = 6, height =9)
 netVisual_bubble(ips_cells_four_cc, targets.use = 'Astrocytes', remove.isolate = FALSE, 
                  sources.use = c('Granulocytes', 'Macrophage/Monocytes', 'Nk cells','T cells'), thresh = 0.01, color.heatmap = 'viridis')+
-  theme(text = element_text(size = 16))+
-  coord_flip()
+  theme(text = element_text(size = 16))
 dev.off()
 #Astrocyte interactions
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_source.pdf", width = 8, height =6)
@@ -418,8 +419,16 @@ netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_astro_target.pdf', width = 5, height = 5)
 netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
 dev.off()
+
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_astro_source.pdf', width = 5, height = 5)
 netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_signal_changes.pdf', width = 10, height = 8)
+netAnalysis_signalingChanges_scatter(cellchat_wt_merged, idents.use = "Astrocytes", label.size = 6)+
+  theme(text = element_text(size = 24))+
+  xlim(c(-0.4, 3))+
+  ylim(c(-0.4, 2.5))
 dev.off()
 
 netVisual_heatmap(cellchat_wt_merged, measure = 'count')
@@ -432,14 +441,37 @@ cellchat_ips_merged<- mergeCellChat(list(mock = mock_ips_cells_cc, ips_inf = ips
 compareInteractions(cellchat_ips_merged, show.legend = F, group = c(1,2))
 netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count')
 
-pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_circle.pdf', width = 5, height = 5)
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_astro_target.pdf', width = 5, height = 5)
 netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_astro_source.pdf', width = 5, height = 5)
+netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_signal_changes.pdf', width = 10, height = 8)
 netAnalysis_signalingChanges_scatter(cellchat_ips_merged, idents.use = "Astrocytes", label.size = 6)+
-  theme(text = element_text(size = 24))
+  theme(text = element_text(size = 24))+
+  xlim(c(-0.4, 3))+
+  ylim(c(-0.4, 2.5))
 dev.off()
+
+#Compare mocks
+cellchat_mock_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = mock_ips_cells_cc), add.names = c('wt_mock', 'ips_mock'))
+compareInteractions(cellchat_mock_merged, show.legend = F, group = c(1,2))
+
+netVisual_diffInteraction(cellchat_mock_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
+netVisual_diffInteraction(cellchat_mock_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_mock_vs_wt_mock_signal_changes.pdf', width = 10, height = 8)
+netAnalysis_signalingChanges_scatter(cellchat_mock_merged, idents.use = "Astrocytes", label.size = 6)+
+  theme(text = element_text(size = 24))+
+  xlim(c(-0.4, 3.2))+
+  ylim(c(-0.4, 2.5))
+dev.off()
+#Look at raw data for different pathways
+mock_ips_cells_cc@netP$centr$Glutamate
+
 #Do not use celltypes that have only a few cells at one point or another
 netVisual_heatmap(cellchat_ips_merged, measure = 'count', targets.use = 'Astrocytes')
 
@@ -549,3 +581,11 @@ subsetCommunication(mock_wt_cells_cc) %>% dplyr::filter(source == 'Astrocytes' |
 #dotplot genes
 mock_astros <- subset(mock_cells, manualAnnotation == 'Astrocytes')
 DotPlot(mock_astros, features = 'Gls', group.by = 'Genotype', scale = FALSE)
+
+#River plots to compare astros between datasets
+selectK(mock_wt_cells_cc, pattern = "incoming")
+n_patterns = 5
+mock_wt_cells_cc <- identifyCommunicationPatterns(mock_wt_cells_cc, pattern = "incoming", k = n_patterns)
+netAnalysis_river(mock_wt_cells_cc, pattern = "incoming")
+
+
