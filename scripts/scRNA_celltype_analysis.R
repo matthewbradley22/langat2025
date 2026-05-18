@@ -35,6 +35,10 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'Treatment', reduction = 'umap.integrated',
         cols = newCols)
 
+#Split by genotype for future plotting
+wt_dat <- subset(ParseSeuratObj_int, Genotype == 'WT')
+ips_dat <- subset(ParseSeuratObj_int, Genotype == 'IPS1')
+
 #Start looking at overall astrocyte degs, then split by group
 astrocytes <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes')
 
@@ -274,8 +278,6 @@ write.csv(num_markers_df, '~/Documents/ÖverbyLab/single_cell_degs_per_celltype.
 
 #Validate some of results to make sure function worked properly
 #Seems to be working
-wt_dat <- subset(ParseSeuratObj_int, Genotype == 'WT')
-ips_dat <- subset(ParseSeuratObj_int, Genotype == 'IPS1')
 #WT astrocytes
 lgtv_astro_sig_markers <- FindMarkers(wt_dat, group.by = 'Treatment_celltype', ident.1 = 'PBS_Astrocytes', ident.2 = 'rLGTV_Astrocytes', 
             test.use = 'MAST')
@@ -901,7 +903,6 @@ DotPlot(wt_chimeric, group.by = 'Treatment', features = 'Ifit3', scale = FALSE)
 sum(rownames(wt_5_degs_up_sig) %in% rownames(ips_5_degs_up_sig)) / nrow(ips_5_degs_up_sig)
 
 #LRP8 levels across celltypes
-
 wt_lrp8_dat <- DotPlot(subset(wt_dat, manualAnnotation != 'unknown' & Treatment != 'rLGTV'), features = 'Lrp8', group.by = 'Treatment_celltype', scale = FALSE)$data 
 wt_lrp8_dat <- wt_lrp8_dat %>% tidyr::separate(col = id, into = c('treatment', 'celltype'), sep = '_') %>% 
   dplyr::mutate(expression = avg.exp.scaled)
@@ -921,4 +922,49 @@ FeaturePlot(wt_dat, features = 'Lrp8', reduction = 'umap.integrated')+
   ylab('UMAP 2')+
   theme(axis.text = element_blank(),
         axis.ticks = element_blank())
+dev.off()
+
+#Plvap levels across celltypes
+ParseSeuratObj_int$geno_treat_time_celltype <- paste(ParseSeuratObj_int$Genotype, 
+                                            ParseSeuratObj_int$Treatment, 
+                                            ParseSeuratObj_int$Timepoint,
+                                            ParseSeuratObj_int$manualAnnotation,
+                                            sep = '_')
+
+plvap_exp <- DotPlot(ParseSeuratObj_int, features = 'Plvap', group.by = 'geno_treat_time_celltype', scale = FALSE)$data
+plvap_exp <- plvap_exp %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'time', 'celltype'), sep = '_')
+
+plvap_exp_ips <- dplyr::filter(plvap_exp, geno == 'IPS1')
+plvap_exp_wt <- dplyr::filter(plvap_exp, geno == 'WT')
+
+cells_counts <- table(ParseSeuratObj_int$geno_treat_time_celltype) %>% as.data.frame() %>% 
+  tidyr::separate(Var1, into = c('geno', 'treatment', 'time', 'celltype'), sep = '_') 
+
+pdf('~/Documents/ÖverbyLab/for_anna_plots/plvap_ips1_sc.pdf', height = 6, width = 10)
+left_join(plvap_exp_ips, cells_counts, by = c('geno', 'treatment', 'time', 'celltype')) %>% 
+  dplyr::filter(Freq > 30) %>% 
+  ggplot(aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  facet_wrap(~treatment)+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                     values = c(1.0,0.7,0.4,0),
+                     limits = c(0, 0.24))+
+  ggtitle('IPS1 samples')+
+  theme_classic()+
+  theme(text = element_text(size = 18))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/for_anna_plots/plvap_wt_sc.pdf', height = 6, width = 10)
+left_join(plvap_exp_wt, cells_counts, by = c('geno', 'treatment', 'time', 'celltype')) %>% 
+  dplyr::filter(Freq > 30) %>% 
+  ggplot(aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  facet_wrap(~treatment)+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0, 0.24))+
+  scale_size(limits = c(0,6), breaks = c(0,2,4,6))+
+  ggtitle('WT samples')+
+  theme_classic()+
+  theme(text = element_text(size = 18))
 dev.off()

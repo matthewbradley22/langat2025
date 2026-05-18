@@ -91,7 +91,10 @@ custom_net_signal_scatter <- function(cc_obj, main = NULL, xlimit, ylimit){
 
 mock_wt_cells_cc <- prep_cellchat_obj(mock_wt_cells)
 mock_ips_cells_cc <- prep_cellchat_obj(mock_ips_cells)
-custom_net_signal_scatter(mock_wt_cells_cc, main = 'Mock wt', xlimit = 33, ylimit = 33)
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_mock_signal_scatter.pdf', height = 5, width = 5)
+custom_net_signal_scatter(mock_wt_cells_cc, main = 'Mock wt', xlimit = 33, ylimit = 38)
+dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_mock_signal_scatter.pdf', height = 5, width = 5)
 custom_net_signal_scatter(mock_ips_cells_cc, main = 'Mock ips', xlimit = 33, ylimit = 38)
@@ -116,7 +119,9 @@ wt_cells_three_cc <- prep_cellchat_obj(wt_cells_three)
 wt_p3 <- custom_net_signal_scatter(wt_cells_three_cc, main = 'WT chLGTV Day 3', xlimit = 33, ylimit = 38)
 
 wt_cells_four_cc <- prep_cellchat_obj(wt_cells_four)
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_day_4_signal_scatter.pdf', height = 5, width = 5)
 wt_p4 <- custom_net_signal_scatter(wt_cells_four_cc, main = 'WT chLGTV Day 4', xlimit = 33, ylimit = 38)
+dev.off()
 
 wt_cells_five_cc <- prep_cellchat_obj(wt_cells_five)
 wt_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'WT chLGTV Day 5', xlimit = 33, ylimit = 38)
@@ -406,10 +411,17 @@ slot.name = "netP"
 
 ########### Comparative analysis between day 3 (or 4) and mock by genotype ########### 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
-cellchat_wt_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_three_cc), add.names = c('PBS', 'WT_inf'))
+cellchat_wt_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_four_cc), add.names = c('PBS', 'WT_inf'))
 compareInteractions(cellchat_wt_merged, show.legend = F, group = c(1,2))
 netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count')
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_astro_target.pdf', width = 5, height = 5)
+netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
+dev.off()
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_astro_source.pdf', width = 5, height = 5)
 netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
+dev.off()
+
 netVisual_heatmap(cellchat_wt_merged, measure = 'count')
 
 #Can subtract total interactions between mock and infected:
@@ -421,7 +433,7 @@ compareInteractions(cellchat_ips_merged, show.legend = F, group = c(1,2))
 netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count')
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_circle.pdf', width = 5, height = 5)
-netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'weight', targets.use = 'Astrocytes')
+netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_signal_changes.pdf', width = 10, height = 8)

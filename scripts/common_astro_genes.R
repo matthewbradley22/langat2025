@@ -423,14 +423,17 @@ wt_sc4_bulk_1 <- plot(wt_euler_dats_time[[1]], quantities = TRUE, fills = c(brew
 wt_sc4_bulk_2 <- plot(wt_euler_dats_time[[2]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
 wt_sc4_bulk_3 <- plot(wt_euler_dats_time[[3]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
 
-pdf('~/Documents/ÖverbyLab/')
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/day4_vs_bulk_times_wt.pdf', width = 10, height = 6)
 ggpubr::ggarrange(wt_sc4_bulk_1, wt_sc4_bulk_2, wt_sc4_bulk_3, 
                   ncol = 3)
+dev.off()
 
 ips_sc4_bulk_1 <- plot(ips_euler_dats_time[[1]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
 ips_sc4_bulk_2 <- plot(ips_euler_dats_time[[2]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
 ips_sc4_bulk_3 <- plot(ips_euler_dats_time[[3]], quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/day4_vs_bulk_times_ips.pdf', width = 10, height = 6)
 ggpubr::ggarrange(ips_sc4_bulk_1, ips_sc4_bulk_2, ips_sc4_bulk_3, 
                   ncol = 3)
-
+dev.off()
 

@@ -40,7 +40,7 @@ bulk <- AggregateExpression(
 #Number of cells per group
 n_cells <- chimeric_mock@meta.data %>% 
   dplyr::count(Genotype, Treatment, Timepoint, manualAnnotation, Well) %>% 
-  rename("n"="n_cells")
+  rename("n_cells"="n")
 meta_bulk <- left_join(bulk@meta.data, n_cells)
 rownames(meta_bulk) <- meta_bulk$orig.ident
 bulk@meta.data <- meta_bulk

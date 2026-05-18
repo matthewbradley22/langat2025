@@ -339,10 +339,12 @@ dev.off()
 
 #LRP8 Expression
 lrp8_dat <- DotPlot(chimeric_mock, features = 'Lrp8', group.by = 'geno_treatment_celltype', scale = FALSE)$data
+table(chimeric_mock$manualAnnotation, chimeric_mock$Genotype, chimeric_mock$Treatment)
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/lrp8_mock_dotplot.pdf', height = 5, width = 6)
+#Only doing residential celltypes that have at least 200 cells in each genotype for this plot
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/lrp8_mock_resident_dotplot.pdf', height = 4, width = 5)
 lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype'), sep = '_') %>% 
-  dplyr::filter(treatment == 'PBS') %>% 
+  dplyr::filter(treatment == 'PBS' & !celltype %in% c('T cells', 'Nk cells', 'Macrophage/Monocytes', 'Granulocytes', 'B Cells', 'Pericytes', 'Muscle cells')) %>% 
   dplyr::mutate(celltype = factor(celltype, levels = c( 'unknown',  'T cells',   'Nk cells', 'Macrophage/Monocytes', 
                                                         'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
                                                         'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
@@ -350,9 +352,51 @@ lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype')
   ggplot(aes(x = geno, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0))+
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,1.7))+
+  scale_size(limits = c(0, 85))+
   theme_classic()+
   ggtitle('Mock LRP8')+
+  theme(text = element_text(size = 16))+
+  ylab('')+
+  xlab('')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/lrp8_mock_infiltrating_dotplot.pdf', height = 5, width = 6)
+lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype'), sep = '_') %>% 
+  dplyr::filter(treatment == 'PBS' & celltype %in% c('T cells', 'Nk cells', 'Macrophage/Monocytes', 'Granulocytes', 'B Cells')) %>% 
+  dplyr::mutate(celltype = factor(celltype, levels = c( 'unknown',  'T cells',   'Nk cells', 'Macrophage/Monocytes', 
+                                                        'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                                                        'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
+                                                        'Choroid Plexus', 'Astrocytes'))) %>% 
+  ggplot(aes(x = geno, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,1.7))+
+  scale_size(limits = c(0, 85))+
+  theme_classic()+
+  ggtitle('Mock LRP8')+
+  theme(text = element_text(size = 16))+
+  ylab('')+
+  xlab('')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/lrp8_infected_dotplot.pdf', height = 5, width = 6)
+lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype'), sep = '_') %>% 
+  dplyr::filter(treatment == 'rChLGTV') %>% 
+  dplyr::mutate(celltype = factor(celltype, levels = c( 'unknown',  'T cells',   'Nk cells', 'Macrophage/Monocytes', 
+                                                        'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                                                        'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
+                                                        'Choroid Plexus', 'Astrocytes'))) %>% 
+  ggplot(aes(x = geno, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,1.7))+
+  scale_size(limits = c(0, 85))+
+  theme_classic()+
+  ggtitle('infected LRP8')+
   theme(text = element_text(size = 16))+
   ylab('')+
   xlab('')
