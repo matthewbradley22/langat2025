@@ -122,7 +122,6 @@ DoHeatmap(wt_astrocytes_cerebrum, features = genes_to_plot_wt, group.by = 'time_
 dev.off()
 
 #Loot at markers from above groups
-
 #PBS markers
 pbs_markers_ips <- ips_astrocytes_cerebrum_markers[ips_astrocytes_cerebrum_markers$cluster == 'PBS' & 
                                   ips_astrocytes_cerebrum_markers$avg_log2FC > 1 & 

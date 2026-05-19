@@ -381,6 +381,9 @@ for(i in 2:4){
 lapply(res_time_list, nrow)
 lapply(res_time_list_mavs, nrow)
 
+#Can change isg list to that found in ifn treated astros if desired
+all_ISGs_type1 <- read.csv('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/ifn_treated_astro_isgs.csv')
+all_ISGs_type1 <- all_ISGs_type1$x
 
 wt_isg_by_time <- lapply(res_time_list, FUN = function(x){
   sig_isgs <- dplyr::filter(x, SYMBOL %in% all_ISGs_type1)

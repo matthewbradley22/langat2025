@@ -102,7 +102,7 @@ for(i in 1:length(celltypes)){
   cur_celltype_stat2 <- DotPlot(cur_celltype, features = 'Stat2', group.by = 'time_geno_treatment', scale = FALSE)$data %>% 
     tidyr::separate(col = 'id', into = c('time', 'genotype', 'treatment'), sep = '_')
   cur_celltype_stat2$genotype <- factor(cur_celltype_stat2$genotype, levels = c('WT', 'IPS1'))
-  p1 <- ggplot(cur_celltype_stat2, aes(x = time, y = treatment, fill = avg.exp.scaled, size = pct.exp))+
+  p2 <- ggplot(cur_celltype_stat2, aes(x = time, y = treatment, fill = avg.exp.scaled, size = pct.exp))+
     geom_point(pch = 21)+
     facet_wrap(~genotype)+
     scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
@@ -110,7 +110,7 @@ for(i in 1:length(celltypes)){
     ggtitle(celltypes[[i]])+
     theme_classic()+
     theme(text = element_text(size = 18))
-  stat2_by_celltype_list[[length(stat2_by_celltype_list) + 1]] <- p1
+  stat2_by_celltype_list[[length(stat2_by_celltype_list) + 1]] <- p2
   
 }
 
@@ -125,6 +125,54 @@ pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/astro_stat2_e
 print(stat2_by_celltype_list$Astrocytes + ggtitle('Stat2'))
 dev.off()
 
+#Plot stats in combined celltypes
+chimeric_mock_infected <- subset(chimeric_mock, Treatment == 'rChLGTV')
+chimeric_mock_infected$time_geno_celltype <- paste(chimeric_mock_infected$Timepoint, chimeric_mock_infected$Genotype, chimeric_mock_infected$manualAnnotation,
+                                                   sep = '_')
+#Only keep cells with enough sampled
+celltypes_with_enough <- chimeric_mock_infected[[]] %>% dplyr::group_by(Timepoint, Genotype, manualAnnotation) %>% 
+  dplyr::summarise(cell_count = n()) %>% 
+  dplyr::rename(time = Timepoint, genotype = Genotype, celltype = manualAnnotation)
+
+stat1_dat <- DotPlot(chimeric_mock_infected, features = 'Stat1', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
+  tidyr::separate(col = 'id', into = c('time', 'genotype', 'celltype'), sep = '_') %>% 
+  dplyr::filter(celltype != 'unknown')
+
+stat1_dat_filtered <- stat1_dat %>% left_join(celltypes_with_enough, by = c('time' = 'time', 'genotype' = 'genotype', 'celltype' = 'celltype')) %>% 
+  dplyr::filter(cell_count > 50)
+stat1_dat_filtered$genotype = factor(stat1_dat_filtered$genotype, levels = c('WT', 'IPS1'))
+stat1_dat_filtered$celltype <- factor(stat1_dat_filtered$celltype, levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal', 'Immature Neurons', 
+                                                                'Microglia', 'Muscle cells', 'Neurons', 'Oligodendrocytes' ,'Pericytes',
+                                                                'B Cells', 'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 'T cells')))
+
+ggplot(stat1_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  facet_wrap(~genotype)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,3.2))+
+  theme_classic()+
+  theme(text = element_text(size = 18))+
+  scale_size(limits = c(20, 100))+
+  ggtitle('Stat1')
+
+stat2_dat <- DotPlot(chimeric_mock_infected, features = 'Stat2', group.by = 'time_geno_treatment', scale = FALSE)$data %>% 
+  tidyr::separate(col = 'id', into = c('time', 'genotype', 'treatment'), sep = '_')
+stat2_dat$genotype = factor(stat1_dat$genotype, levels = c('WT', 'IPS1'))
+stat2_levels <- ggplot(stat2_dat, aes(x = time, y = treatment, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  facet_wrap(~genotype)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.5,0),
+                       limits = c(0,2.8))+
+  theme_classic()+
+  theme(text = element_text(size = 18))+
+  scale_size(limits = c(20, 95))+
+  ggtitle('Stat2')
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/stats_over_time.pdf', width = 8, height = 5)
+ggarrange(stat1_levels, stat2_levels, nrow = 2, common.legend = TRUE, legend = 'right')
+dev.off()
 #Stat1 and 2, day 3 between genotypes
 astrocytes_day3 <- subset(chimeric_mock, manualAnnotation == 'Astrocytes' & Timepoint == 'Day 3' & Treatment == 'rChLGTV')
 wt_ips_3_markers <- FindMarkers(astrocytes_day3, group.by = 'Genotype', ident.1 = 'WT', test.use = 'MAST')
