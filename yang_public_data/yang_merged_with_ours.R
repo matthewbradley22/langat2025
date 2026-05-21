@@ -30,8 +30,8 @@ yang_data <- JoinLayers(yang_data)
 DimPlot(yang_data,reduction = "umap.rpca", label = FALSE, group.by = 'manualAnnotation', cols = newCols)
 
 #Make treatment column names same case before merging
-yang_data$Treatment = yang_data$treatment
-yang_data$treatment = NULL
+#yang_data$Treatment = yang_data$treatment
+#yang_data$treatment = NULL
 
 #load in single-nuclei data
 #Read in processed data
@@ -245,6 +245,17 @@ DimPlot(sn_integrated_dat, group.by =   'manualAnnotation', cols = newCols, redu
 
 #Oly compare sn to severe yang
 yang_data_no_mild <- subset(yang_data, Treatment %in% c('healthy','severe'))
+#All clustered neurons have been labelled ex, in, or immature, so any left can be reomved
+yang_data_no_mild <- subset(yang_data_no_mild, !manualAnnotation == 'Neurons')
+#Remove cells that have very low counts in a given treatment
+table(sn_integrated_dat_wt$manualAnnotation, sn_integrated_dat_wt$new_inf) %>% 
+  as.data.frame.matrix() %>% dplyr::mutate(uninfected = mock + none) %>% 
+  dplyr::filter(LGTV < 30 | uninfected < 30)
+sn_integrated_dat_wt <- subset(sn_integrated_dat_wt, manualAnnotation != 'ChP')
+
+table(yang_data_no_mild$manualAnnotation, yang_data_no_mild$Treatment) %>% 
+  as.data.frame.matrix() %>% 
+  dplyr::filter(healthy < 30 | severe < 30)
 
 #merge wt sn with yang
 sn.combined <- merge(sn_integrated_dat_wt, y = yang_data_no_mild, add.cell.ids = c("singleNuclei", "yang"), project = "sn_merged")
@@ -301,6 +312,25 @@ ccl_genes <- c('Ccl2', 'Ccl5', 'Ccl7', 'Ccl12')
 
 comparative_dotplot(data = sn_merged, genes = ccl_genes, title = '', sc_timepoints = FALSE)
 
+#Compare single nuceli infected and uninfected neurons
+sn_integrated_dat_wt$lgtv_dat <- sn_integrated_dat_wt[['RNA']]$data['LGTV',]
+sn_integrated_dat_wt$lgtv_presence <- sn_integrated_dat_wt$lgtv_dat > 0
+sn_integrated_dat_wt$celltype_lgtv <- paste(sn_integrated_dat_wt$manualAnnotation, sn_integrated_dat_wt$lgtv_presence, sep = '_')
+infection_ccl_levels <- DotPlot(sn_integrated_dat_wt, features = ccl_genes, 
+                               group.by = 'celltype_lgtv', scale = FALSE)$data
+
+pdf('/Users/matthewbradley/Documents/ÖverbyLab/scPlots/galectin3_proj/chemokine_dot_sn_lgtv.pdf', width = 7, height = 6)
+infection_ccl_levels %>% tidyr::separate(col = id, into = c('celltype', 'lgtv'), sep = '_') %>% 
+  ggplot(aes(x = lgtv, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  facet_wrap(~features.plot)+
+  theme_classic()+
+  theme(text = element_text(size = 14))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0))+
+  xlab('Infected')+
+  ylab('')
+dev.off()
 #Want to look at celltypes from each dataset split
 sn_merged$dataset_group_celltype <- paste(sn_merged$dataset_group, sn_merged$manualAnnotation, sep = '_')
 ccl_celltype_levels <- DotPlot(sn_merged, features = ccl_genes, 
@@ -308,7 +338,20 @@ ccl_celltype_levels <- DotPlot(sn_merged, features = ccl_genes,
 
 #Add parse sc data
 wt_cerebrum$treatment_celltype <- paste(wt_cerebrum$Treatment, wt_cerebrum$manualAnnotation, sep = '_')
-ccl_celltype_levels_parse <- DotPlot(wt_cerebrum, features = ccl_genes, 
+wt_cerebrum_day5 <- subset(wt_cerebrum, Timepoint == 'Day 5')
+
+#remove cell types with too low expression
+table(wt_cerebrum_day5$manualAnnotation, wt_cerebrum_day5$Treatment) %>% 
+  as.data.frame.matrix() %>% 
+  dplyr::filter(PBS < 30 | rLGTV < 30)
+wt_cerebrum_day5 <- subset(wt_cerebrum_day5, !manualAnnotation %in% c('B Cells', 'Immature Neurons',
+                                                                      'Neurons', 'Pericytes'))
+wt_cerebrum_day5 <- subset(wt_cerebrum_day5, ! (Treatment == 'PBS' & manualAnnotation %in% c('Granulocytes',
+                                                                                             'Nk cells', 'T cells')))
+wt_cerebrum_day5 <- subset(wt_cerebrum_day5, ! (Treatment == 'rLGTV' & manualAnnotation %in% c('Choroid Plexus',
+                                                                                             'Muscle cells', 'Oligodendrocytes')))
+
+ccl_celltype_levels_parse <- DotPlot(wt_cerebrum_day5, features = ccl_genes, 
                                group.by = 'treatment_celltype', scale = FALSE)$data
 ccl_celltype_levels_parse$id <- paste('singleCell', ccl_celltype_levels_parse$id, sep = '_')
 
@@ -322,7 +365,7 @@ ccl_celltype_levels_all <- cbind(ccl_celltype_levels_all, ccl_meta)
 ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Macrophage/Monocytes',]$celltype = 'Macrophages'
 ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Choroid Plexus',]$celltype = 'ChP'
 ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Oligodendrocytes',]$celltype = 'Oligo'
-ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Pericytes',]$celltype = 'Peri'
+#ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Pericytes',]$celltype = 'Peri'
 ccl_celltype_levels_all[ccl_celltype_levels_all$celltype == 'Cd8+NK',]$celltype = 'NK+Cd8'
 ccl_celltype_levels_all <- dplyr::filter(ccl_celltype_levels_all, celltype != 'unknown')
 ccl_celltype_levels_all$celltype <- factor(ccl_celltype_levels_all$celltype, levels = rev(c('Astrocytes', 'ChP', 'Endothelial', 'Ependymal',
@@ -330,6 +373,10 @@ ccl_celltype_levels_all$celltype <- factor(ccl_celltype_levels_all$celltype, lev
                                                                                         'Muscle cells', 'Neurons', 'Oligo', 'OPC', 'Peri',
                                                                                         'VLMCs', 'B Cells', 'Granulocytes', 'Macrophages',
                                                                                         'Nk cells', 'NK+Cd8', 'T cells')))
+
+#Remove unimportant celltypes
+ccl_celltype_levels_all <- ccl_celltype_levels_all[!ccl_celltype_levels_all$celltype %in% c('B Cells', 'Muscle cells'),]
+
 pdf('/Users/matthewbradley/Documents/ÖverbyLab/yang_public_data/combined_data_plots/combined_chemokine_dot.pdf', width = 10, height = 8)
 ggplot(ccl_celltype_levels_all, aes(x = celltype, y = features.plot))+
   facet_wrap(~dataset_treatment, nrow = 1, ncol = 6)+

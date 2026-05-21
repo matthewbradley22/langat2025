@@ -116,3 +116,12 @@ DotPlot(sn_integrated_dat_wt, features = transmigration_only_markers, scale = FA
                         values = c(1.0,0.7,0.4,0),
                         limits = c(0,3))+
   ggtitle('Single nuclei transmigration markers')
+
+#Check Plvap as well
+FeaturePlot(sn_integrated_dat, features = 'Plvap', reduction = 'umap.integrated')
+
+#Prep data for dotplot
+sn_integrated_dat$new_genotype[grep('wt', sn_integrated_dat$new_genotype)] = 'wt'
+sn_integrated_dat$new_genotype[grep('KO', sn_integrated_dat$new_genotype)] = 'KO'
+sn_integrated_dat$geno_treatment <- paste(sn_integrated_dat$new_genotype, sn_integrated_dat$infected, sep = '_')
+DotPlot(sn_integrated_dat, features = 'Plvap', group.by = 'geno_treatment', scale = FALSE)$data
