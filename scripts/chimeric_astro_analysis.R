@@ -53,23 +53,24 @@ umap_astro_group <- function(astro_dat, num_dims = 20, returnElbow = FALSE, main
     scale_color_manual(values = group_colors)+
     ylab('Umap2')+
     xlab('Umap1')+
-    theme(text = element_text(size = 24))
+    theme(text = element_text(size = 24))+
+    guides(color=guide_legend(override.aes=list(size=6)))
   print(p1)
 }
 
 astrocytes$treatment_genotype <- paste(astrocytes$Treatment, astrocytes$Genotype, sep = '_')
 png('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/astro_day3_umap.png', width = 600, height = 450)
-umap_astro_group(astrocytes, grouping = 'treatment_genotype')
+umap_astro_group(astrocytes, grouping = 'treatment_genotype', group_colors = c('#FFAA70', '#39B6E3', '#C25610', '#3986E3'))
 dev.off()
 
 astrocytes_4$treatment_genotype <- paste(astrocytes_4$Treatment, astrocytes_4$Genotype, sep = '_')
 png('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/astro_day4_umap.png', width = 600, height = 450)
-umap_astro_group(astrocytes_4, grouping = 'treatment_genotype')
+umap_astro_group(astrocytes_4, grouping = 'treatment_genotype', group_colors = c('#FFAA70', '#39B6E3', '#C25610', '#3986E3'))
 dev.off()
 
 astrocytes_5$treatment_genotype <- paste(astrocytes_5$Treatment, astrocytes_5$Genotype, sep = '_')
 png('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/astro_day5_umap.png', width = 600, height = 450)
-umap_astro_group(astrocytes_5, grouping = 'treatment_genotype')
+umap_astro_group(astrocytes_5, grouping = 'treatment_genotype', group_colors = c('#FFAA70', '#39B6E3', '#C25610', '#3986E3'))
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day3_plots/wt_astro_umap.pdf', width = 6, height = 6)
@@ -115,8 +116,29 @@ ips_astro_degs_5_sig <- ips_astro_degs_5[ips_astro_degs_5$p_val_adj<0.01 & ips_a
 wt_paths_all <- gprofiler2::gost(query = rownames(wt_astro_degs_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 wt_paths_all$result$term_name
 
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/day3_wt_pathways.pdf', width = 6, height = 5)
+ggplot(head(wt_paths_all$result), aes(x = -log10(p_value), y = reorder(term_name, p_value)))+
+  geom_bar(stat = 'identity', fill = "#B3BFE2")+
+  theme_classic()+
+  ylab('')+
+  theme(text = element_text(size = 22))+
+  geom_text(aes(label = intersection_size), hjust = 1)+
+  xlim(c(0,68))
+dev.off()
+
 ips_paths_all <- gprofiler2::gost(query = rownames(ips_astro_degs_sig), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 ips_paths_all$result$term_name
+
+ips_paths_all$result$term_name[ips_paths_all$result$term_name == 'biological process involved in interspecies interaction between organisms'] = 'interspecies interaction'
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/day3_ips_pathways.pdf', width = 6, height = 5)
+ggplot(head(ips_paths_all$result), aes(x = -log10(p_value), y = reorder(term_name, p_value)))+
+  geom_bar(stat = 'identity', fill = "#FDC0AC")+
+  theme_classic()+
+  ylab('')+
+  theme(text = element_text(size = 22))+
+  geom_text(aes(label = intersection_size), hjust = 1)+
+  xlim(c(0,68))
+dev.off()
 
 wt_only <- setdiff(rownames(wt_astro_degs_sig), rownames(ips_astro_degs_sig))
 wt_paths <- gprofiler2::gost(query = wt_only, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))

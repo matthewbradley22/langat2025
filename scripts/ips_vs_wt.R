@@ -212,7 +212,7 @@ day5_vd_genes <- euler(c('wt' = sum(!rownames(day_5_up_wt) %in% rownames(day_5_u
                          'ips' = sum(!rownames(day_5_up_ips) %in% rownames(day_5_up_wt)),
                          'wt&ips' =  sum(rownames(day_5_up_wt) %in% rownames(day_5_up_ips))))
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/day3_wt_ips_deg_venn.pdf', height = 5, width = 6)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/day5_wt_ips_deg_venn.pdf', height = 5, width = 6)
 plot(day5_vd_genes, quantities = list(cex = 1.8), fills = c("#B3BFE2", "#FDC0AC"))       
 dev.off()
 
@@ -440,6 +440,7 @@ deg_genes_by_celltype_heatmap_dat_down <- deg_genes_by_celltype_split %>%
 
 deg_genes_by_celltype_heatmap_dat$geno = factor(deg_genes_by_celltype_heatmap_dat$geno, levels = c('wt', 'both', 'ips'))
 deg_genes_by_celltype_heatmap_dat_down$geno = factor(deg_genes_by_celltype_heatmap_dat_down$geno, levels = c('wt', 'both', 'ips'))
+
 deg_genes_by_celltype_heatmap_dat$celltype <- factor(deg_genes_by_celltype_heatmap_dat$celltype, 
                                                      levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial',
                                                                 'Ependymal', 'Immature Neurons', 'Microglia', 'Muscle cells',
@@ -453,6 +454,9 @@ deg_genes_by_celltype_heatmap_dat_down$celltype <- factor(deg_genes_by_celltype_
                                                                     'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 
                                                                     'T cells', 'unknown')))
 
+#Remove unknown cells
+deg_genes_by_celltype_heatmap_dat <- dplyr::filter(deg_genes_by_celltype_heatmap_dat, celltype != 'unknown')
+
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/deg_count_time_geno_cell.pdf', height = 10, width = 12)
 ggplot(deg_genes_by_celltype_heatmap_dat, aes(x = geno, y = celltype, fill = count))+
   facet_wrap(~time)+
@@ -460,6 +464,7 @@ ggplot(deg_genes_by_celltype_heatmap_dat, aes(x = geno, y = celltype, fill = cou
   geom_text(aes(label=count), size = 7)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0))+
+  theme_classic()+
   theme(text = element_text(size = 24))+
   ylab('')+
   xlab('')

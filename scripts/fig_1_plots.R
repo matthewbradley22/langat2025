@@ -31,7 +31,7 @@ chimeric_mock$manualAnnotation <- factor(chimeric_mock$manualAnnotation,
                                                      'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
                                                      'Choroid Plexus', 'Astrocytes')))
 
-png("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/chimeric_mock_umap.png", width = 900, height = 700)
+png("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/chimeric_mock_umap.png", width = 4000, height = 2900, res = 500)
 DimPlot(chimeric_mock, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = umap_color_list)+
   theme(axis.ticks = element_blank(),

@@ -145,6 +145,7 @@ stat1_dat_filtered$celltype <- factor(stat1_dat_filtered$celltype, levels = rev(
                                                                 'Microglia', 'Muscle cells', 'Neurons', 'Oligodendrocytes' ,'Pericytes',
                                                                 'B Cells', 'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 'T cells')))
 
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/stat1_by_celltype.pdf', width = 8, height = 5)
 ggplot(stat1_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   facet_wrap(~genotype)+
@@ -155,20 +156,30 @@ ggplot(stat1_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, si
   theme(text = element_text(size = 18))+
   scale_size(limits = c(20, 100))+
   ggtitle('Stat1')
+dev.off()
 
-stat2_dat <- DotPlot(chimeric_mock_infected, features = 'Stat2', group.by = 'time_geno_treatment', scale = FALSE)$data %>% 
-  tidyr::separate(col = 'id', into = c('time', 'genotype', 'treatment'), sep = '_')
-stat2_dat$genotype = factor(stat1_dat$genotype, levels = c('WT', 'IPS1'))
-stat2_levels <- ggplot(stat2_dat, aes(x = time, y = treatment, fill = avg.exp.scaled, size = pct.exp))+
+stat2_dat <- DotPlot(chimeric_mock_infected, features = 'Stat2', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
+  tidyr::separate(col = 'id', into = c('time', 'genotype', 'celltype'), sep = '_') %>% 
+  dplyr::filter(celltype != 'unknown')
+
+stat2_dat_filtered <- stat2_dat %>% left_join(celltypes_with_enough, by = c('time' = 'time', 'genotype' = 'genotype', 'celltype' = 'celltype')) %>% 
+  dplyr::filter(cell_count > 50)
+stat2_dat_filtered$genotype = factor(stat2_dat_filtered$genotype, levels = c('WT', 'IPS1'))
+stat2_dat_filtered$celltype <- factor(stat2_dat_filtered$celltype, levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal', 'Immature Neurons', 
+                                                                                  'Microglia', 'Muscle cells', 'Neurons', 'Oligodendrocytes' ,'Pericytes',
+                                                                                  'B Cells', 'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 'T cells')))
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/stat2_by_celltype.pdf', width = 8, height = 5)
+ggplot(stat2_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   facet_wrap(~genotype)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.5,0),
-                       limits = c(0,2.8))+
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0,3.2))+
   theme_classic()+
   theme(text = element_text(size = 18))+
-  scale_size(limits = c(20, 95))+
+  scale_size(limits = c(20, 100))+
   ggtitle('Stat2')
+dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/stats_over_time.pdf', width = 8, height = 5)
 ggarrange(stat1_levels, stat2_levels, nrow = 2, common.legend = TRUE, legend = 'right')

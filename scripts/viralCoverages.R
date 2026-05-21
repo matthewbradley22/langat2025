@@ -156,7 +156,7 @@ ParseSeuratObj_int[[]] %>% dplyr::filter(Treatment == 'PBS') %>%
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0),
                        limits = c(0, 1.6))+
-  scale_size_continuous(range = c(1,3), breaks = c(0, 6))+
+  scale_size_continuous(range = c(1, 2), breaks = c(0, 6))+
   ggtitle('Mock viral count')+
   theme_classic()+
   theme(text = element_text(size = 16))+
