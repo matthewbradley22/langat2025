@@ -1,5 +1,4 @@
 #Merging our data with yang's
-#Could subset celltypes to make this faster if it's really slow
 
 library(Seurat)
 library(dplyr)
