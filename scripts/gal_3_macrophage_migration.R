@@ -277,6 +277,8 @@ dev.off()
 
 #Split by celltype instead
 wt_cerebrum$treatment_time <- paste(wt_cerebrum$Treatment, wt_cerebrum$Timepoint)
+#Group all pbs together
+wt_cerebrum$treatment_time[grepl('PBS', wt_cerebrum$treatment_time)] = 'PBS'
 wt_endothelial <- subset(wt_cerebrum, manualAnnotation == 'Endothelial')
 wt_mac_mono <- subset(wt_cerebrum, manualAnnotation == 'Macrophage/Monocytes')
 wt_peri <- subset(wt_cerebrum, manualAnnotation == 'Pericytes')
@@ -287,6 +289,7 @@ endo_trafficking_dot_dat <- DotPlot(wt_endothelial, features = c('Vcam1', 'Icam1
 meta_columns <- str_split_fixed(endo_trafficking_dot_dat$id, " ", 2)
 colnames(meta_columns) <- c('treatment', 'time')
 endo_trafficking_dot_dat <- cbind(endo_trafficking_dot_dat, meta_columns)
+endo_trafficking_dot_dat[endo_trafficking_dot_dat$treatment=='PBS',]$time = 'combined'
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/endothelial_trafficking_dot.pdf', width = 8, height = 6)
 ggplot(endo_trafficking_dot_dat, aes(x = time, y = features.plot))+
@@ -315,6 +318,7 @@ mono_trafficking_dot_dat <- DotPlot(wt_mac_mono, features = c('Pecam1', 'Pvr', '
 meta_columns_mono <- str_split_fixed(mono_trafficking_dot_dat$id, " ", 2)
 colnames(meta_columns_mono) <- c('treatment', 'time')
 mono_trafficking_dot_dat <- cbind(mono_trafficking_dot_dat, meta_columns_mono)
+mono_trafficking_dot_dat[mono_trafficking_dot_dat$treatment=='PBS',]$time = 'combined'
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/monocyte_trafficking_dot.pdf', width = 8, height = 6)
 ggplot(mono_trafficking_dot_dat, aes(x = time, y = features.plot))+

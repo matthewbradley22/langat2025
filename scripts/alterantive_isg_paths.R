@@ -150,11 +150,11 @@ ggplot(stat1_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, si
   geom_point(pch = 21)+
   facet_wrap(~genotype)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0),
+                       values = c(1.0,0.7,0.5,0),
                        limits = c(0,3.2))+
   theme_classic()+
   theme(text = element_text(size = 18))+
-  scale_size(limits = c(20, 100))+
+  scale_size(limits = c(20, 100), range = c(1, 8))+
   ggtitle('Stat1')
 dev.off()
 
@@ -177,7 +177,7 @@ ggplot(stat2_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, si
                        limits = c(0,3.2))+
   theme_classic()+
   theme(text = element_text(size = 18))+
-  scale_size(limits = c(20, 100))+
+  scale_size(limits = c(20, 100), range = c(1, 8))+
   ggtitle('Stat2')
 dev.off()
 

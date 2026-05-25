@@ -212,6 +212,12 @@ FeaturePlot(sn_integrated_dat, 'Cfap54', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Nnat', reduction = 'umap.integrated')
 FeaturePlot(sn_integrated_dat, 'Mia', reduction = 'umap.integrated')
 
+DotPlot(sn_integrated_dat, features = c('Abcc9', 'Pdgfrb','Vtn'), 
+        group.by = 'manualAnnotation', assay = 'RNA')+
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.5),
+        axis.text = element_text(size = 16))+
+  scale_color_gradient2(low = '#9CCCFF', mid = 'white', high = '#9f0000', labels = c(-1, 0, 1,2),
+                        breaks = c(-1, 0, 1,2), , limits = c(-2,2.5))
 
 #Load data into mapmycells to check
 clust22 <- subset(sn_integrated_dat, seurat_clusters == 22)

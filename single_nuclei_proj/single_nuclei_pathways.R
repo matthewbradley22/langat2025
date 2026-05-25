@@ -299,7 +299,7 @@ ggplot(goi_dot_dat, aes(x = features.plot, y = celltype))+
   scale_size_continuous(range = c(0,9), limits = c(0,100))+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0),
-                       limits = c(0,3.3))+
+                       limits = c(0,3.5))+
   ggtitle('Single-nuclei chemokines genes')+
   theme_bw()+
   theme(panel.grid = element_blank(),
@@ -373,4 +373,24 @@ ggplot(sn_uninfected_wt_lrp8_dat, aes(x = features.plot, y = id, color = avg.exp
   ylab('')+
   ggtitle('Lrp8 uninfected WT cells')
 dev.off()
+
+#Combined pericyte and neuron plot looking at lgtv, and ccls
+peri_neu <- subset(sn_integrated_dat_wt, manualAnnotation %in% c('Ex Neurons', 'In Neurons', 'Peri'))
+peri_neu$lgtv_dat = peri_neu[['RNA']]$data['LGTV',]
+table(peri_neu$manualAnnotation, peri_neu$cell_infection, peri_neu$infected)
+
+peri_neu$cell_infection <- ifelse(peri_neu$lgtv_dat > 0, 'infected', 'uninfected')
+peri_neu$treatment_celltype_inf <- paste(peri_neu$infected, peri_neu$manualAnnotation, peri_neu$cell_infection, sep = '_')
+lgtv_dat <- DotPlot(peri_neu, features = c('rna_LGTV', 'Ccl2', 'Ccl5', 'Ccl7', 'Ccl12', 'Cxcr4'), group.by = 'treatment_celltype_inf', scale = FALSE)$data  
+lgtv_dat %>% 
+  tidyr::separate(col = id, into = c('infected', 'celltype', 'inf'), sep = '_') %>%
+  dplyr::mutate(inf = ifelse(infected == FALSE, 'mock', inf)) %>% 
+  mutate(inf = factor(inf, levels = c('mock', 'uninfected', 'infected'))) %>% 
+  ggplot(aes(x = inf, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                        values = c(1.0,0.7,0.4,0))+
+  theme_classic()+
+  facet_wrap(~features.plot, ncol = 6)+
+  theme(axis.text.x = element_text(angle = 90))
 

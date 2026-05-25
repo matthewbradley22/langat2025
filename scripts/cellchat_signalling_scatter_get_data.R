@@ -1,4 +1,4 @@
-object = cellchat_wt_merged
+object = cellchat_ips_merged
 idents.use = 'Astrocytes'
 color.use = c("grey10", "#F8766D", "#00BFC4")
 comparison = c(1,2)
@@ -179,9 +179,16 @@ df %>%  dplyr::arrange(desc(incoming))
 netVisual_bubble(object, targets.use = 'Astrocytes',  comparison = c(1, 2), angle.x = 45, signaling = 'SEMA4')
 
 #Plot incoming pathways that increase in ips
-df %>%  dplyr::arrange(desc(incoming)) %>% 
-                         head(n = 20) %>% 
-                         ggplot(aes(x = incoming, y = reorder(labels, incoming)))+
-                         geom_bar(stat = 'identity')+
-  theme_classic()
-
+if(identical(object, cellchat_ips_merged)){
+  pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_4_vs_mock_up_cellchat.pdf', height = 6, width = 6)
+  strength_change_plot <- df %>%  dplyr::arrange(desc(incoming)) %>% 
+    head(n = 20) %>% 
+    ggplot(aes(x = incoming, y = reorder(labels, incoming)))+
+    geom_bar(stat = 'identity')+
+    theme_classic()+
+    ylab('')+
+    xlab('Incoming interaction strength change')+
+    theme(text = element_text(size = 18))
+  print(strength_change_plot)
+  dev.off()
+}
