@@ -7,6 +7,7 @@ library(SeuratExtend)
 library(irGSEA)
 library(clusterProfiler)
 library(org.Mm.eg.db)
+library(enrichplot)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -36,6 +37,9 @@ astros <- subset(chimeric_mock, manualAnnotation == 'Astrocytes')
 #Test gsea with day 3 wt vs mock
 astros_day3 <- subset(astros, Timepoint == 'Day 3' | Treatment == 'PBS')
 astros_day3_wt <- subset(astros, (Genotype == 'WT' & Timepoint == 'Day 3') | Treatment == 'PBS')
+astros_day3_ips <- subset(astros, (Genotype == 'IPS1' & Timepoint == 'Day 3') | Treatment == 'PBS')
+astros_day5_wt <- subset(astros, (Genotype == 'WT' & Timepoint == 'Day 5') | Treatment == 'PBS')
+astros_day5_ips <- subset(astros, (Genotype == 'IPS1' & Timepoint == 'Day 5') | Treatment == 'PBS')
 
 #GSEA
 #Calculate enrichment scores. Tried with 4 cores which froze computer. 1 seems to work fine
@@ -101,18 +105,67 @@ irGSEA.density.scatterplot(object = astros_day3,
 
 #Switch to clusterprofiler for multi enrichment plots
 #Make ranked gene list for cluterprofiler
-day3_wt_markers <- FindMarkers(astros_day3_wt, group.by = 'Treatment', ident.1 = 'rChLGTV', only.pos = TRUE, logfc.threshold = 0, 
-                               min.pct = 0)
-day3_wt_markers <- day3_wt_markers %>% as.data.frame() %>% dplyr::arrange(desc(avg_log2FC)) 
-day3_wt_markers_list <- as.list(day3_wt_markers$avg_log2FC)
-names(day3_wt_markers_list) <- rownames(day3_wt_markers)
-#Probably a better way to do this but the above creates a list of lists, so get rid of that now
-day3_wt_markers_list <- unlist(day3_wt_markers_list)
+create_gsea_object <- function(dat, min.p.val = 0.05){
+  dat_markers <- FindMarkers(dat, group.by = 'Treatment', ident.1 = 'rChLGTV', logfc.threshold = 0, 
+                                 min.pct = 0)
+  dat_markers <- dat_markers %>% as.data.frame() %>% dplyr::arrange(desc(avg_log2FC)) 
+  dat_markers_list <- as.list(dat_markers$avg_log2FC)
+  names(dat_markers_list) <- rownames(dat_markers)
+  #Probably a better way to do this but the above creates a list of lists, so get rid of that now
+  dat_markers_list <- unlist(dat_markers_list)
+  
+  dat_gsea<- gseGO(geneList = dat_markers_list,
+                       OrgDb = org.Mm.eg.db,
+                       ont   = "BP",
+                       minGSSize = 100,
+                       maxGSSize = 600,
+                       pvalueCutoff = min.p.val,
+                       verbose = FALSE, 
+                       keyType = 'SYMBOL')
+}
 
-day3_wt_gsea<- gseGO(geneList     = day3_wt_markers_list,
-              OrgDb        = org.Mm.eg.db,
-              ont          = "BP",
-              minGSSize    = 100,
-              maxGSSize    = 600,
-              pvalueCutoff = 0.05,
-              verbose      = FALSE)
+day3_wt_gsea <- create_gsea_object(astros_day3_wt)
+day3_ips_gsea <- create_gsea_object(astros_day3_ips, min.p.val = 1)
+day5_wt_gsea <- create_gsea_object(astros_day5_wt)
+day5_ips_gsea <- create_gsea_object(astros_day5_ips)
+
+dotplot(day3_wt_gsea, showCategory=10)
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_gsea2_plot.pdf', width = 9, height = 5)
+gseaplot2(day3_wt_gsea, geneSetID = 1:6, subplots = 1) +
+  ylim(c(-0.15,0.7))+
+  theme(legend.position = 'right',
+        text = element_text(size = 18))
+dev.off()
+
+#Paths to plot in ips day 3 
+top_paths <- day3_wt_gsea@result[1:6, 'ID']
+
+dotplot(day3_ips_gsea, showCategory=10)
+ips_paths_to_plot <- which(day3_ips_gsea@result$ID %in% top_paths)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day3_gsea2_plot.pdf', width = 9, height = 5)
+gseaplot2(day3_ips_gsea, geneSetID = ips_paths_to_plot, subplots = 1) + 
+  ylim(c(-0.15,0.7))+
+  theme(legend.position = 'right',
+        text = element_text(size = 18))
+dev.off()
+
+#Day 5 wt
+dotplot(day5_wt_gsea, showCategory=10)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day5_gsea2_plot.pdf', width = 10, height = 5)
+gseaplot2(day5_wt_gsea, geneSetID = 1:6, subplots = 1) +
+  ylim(c(-0.15,0.7))+
+  theme(legend.position = 'right',
+        text = element_text(size = 18))
+dev.off()
+
+#Paths to plot in ips day 5 
+top_paths_5 <- day5_wt_gsea@result[1:6, 'ID']
+ips_5_paths_to_plot <- which(day5_ips_gsea@result$ID %in% top_paths_5)
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day5_gsea2_plot.pdf', width = 9, height = 5)
+gseaplot2(day5_ips_gsea, geneSetID = 1:6, subplots = 1) +
+  ylim(c(-0.15,0.7))+
+  theme(legend.position = 'right',
+        text = element_text(size = 18))
+dev.off()
