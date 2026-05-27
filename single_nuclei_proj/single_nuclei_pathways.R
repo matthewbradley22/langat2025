@@ -289,6 +289,9 @@ goi_dot_dat <- DotPlot(sn_integrated_dat_wt, features = genes_of_interest, group
 goi_meta <- str_split_fixed(goi_dot_dat$id, pattern = ' ', n = 2)
 colnames(goi_meta) <- c('infection', 'celltype')
 goi_dot_dat <- cbind(goi_dot_dat, goi_meta)
+goi_dot_dat$celltype = factor(goi_dot_dat$celltype, levels = rev(c('Astrocytes', 'ChP', 'Endothelial', 'Ex Neurons',
+                                                               'In Neurons', 'Microglia', 'Oligo', 'OPC', 'Peri', 'VLMCs',
+                                                               'Cd8+NK', 'Macrophages')))
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/chemokine_expression.pdf', height = 6, width = 7)
 ggplot(goi_dot_dat, aes(x = features.plot, y = celltype))+
@@ -377,13 +380,22 @@ dev.off()
 #Combined pericyte and neuron plot looking at lgtv, and ccls
 peri_neu <- subset(sn_integrated_dat_wt, manualAnnotation %in% c('Ex Neurons', 'In Neurons', 'Peri'))
 peri_neu$lgtv_dat = peri_neu[['RNA']]$data['LGTV',]
+peri_neu$cell_infection <- ifelse(peri_neu$lgtv_dat > 0, 'infected', 'uninfected')
+
 table(peri_neu$manualAnnotation, peri_neu$cell_infection, peri_neu$infected)
 
-peri_neu$cell_infection <- ifelse(peri_neu$lgtv_dat > 0, 'infected', 'uninfected')
 peri_neu$treatment_celltype_inf <- paste(peri_neu$infected, peri_neu$manualAnnotation, peri_neu$cell_infection, sep = '_')
 lgtv_dat <- DotPlot(peri_neu, features = c('rna_LGTV', 'Ccl2', 'Ccl5', 'Ccl7', 'Ccl12', 'Cxcr4'), group.by = 'treatment_celltype_inf', scale = FALSE)$data  
+
+#Change factor so we can make rna_lgtv just say lgtv
+lgtv_dat$features.plot = factor(lgtv_dat$features.plot, levels = c('LGTV', levels(lgtv_dat$features.plot)))
+lgtv_dat[lgtv_dat$features.plot == 'rna_LGTV',]$features.plot = 'LGTV'
+
+pdf("~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/chemokines_across_infection.pdf", height = 5, width = 9)
+#Plot data
 lgtv_dat %>% 
   tidyr::separate(col = id, into = c('infected', 'celltype', 'inf'), sep = '_') %>%
+  dplyr::filter(celltype != 'Peri') %>% 
   dplyr::mutate(inf = ifelse(infected == FALSE, 'mock', inf)) %>% 
   mutate(inf = factor(inf, levels = c('mock', 'uninfected', 'infected'))) %>% 
   ggplot(aes(x = inf, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
@@ -392,5 +404,9 @@ lgtv_dat %>%
                         values = c(1.0,0.7,0.4,0))+
   theme_classic()+
   facet_wrap(~features.plot, ncol = 6)+
-  theme(axis.text.x = element_text(angle = 90))
-
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.5),
+        text = element_text(size = 18))+
+  xlab('')+
+  ylab('')
+  #ggtitle('Only 2 infected wt pericytes')
+dev.off()

@@ -189,7 +189,9 @@ ParseSeuratObj_int[[]] %>% dplyr::filter(Treatment == 'rChLGTV') %>%
   ggtitle('rChLGTV viral count')+
   theme_classic()+
   theme(text = element_text(size = 16))+
-  ylab('')
+  ylab('')+
+  xlab('Day')+
+  scale_x_discrete(labels = c('3', '4' , '5'))
 dev.off()
 
 #Check a group as confirmation, day 4 ips astros should have 30-50% infection

@@ -287,7 +287,9 @@ wt_chimeric_macs <- subset(chimeric_mock, manualAnnotation %in% c("Macrophage/Mo
 
 #Function to plot celltype proportions over time
 barplot_counts <- function(dat, cell_levels, bar_width = 0.5){
-  plot_cells = dat[[]] %>% dplyr::group_by(Timepoint, manualAnnotation, Genotype, Treatment) %>% 
+  plot_cells = dat[[]] %>% 
+    dplyr::mutate(Timepoint = ifelse(Treatment == 'PBS', 'PBS', Timepoint)) %>% 
+    dplyr::group_by(Timepoint, manualAnnotation, Genotype, Treatment) %>% 
     dplyr::summarise(cell_count = n())  %>% 
     dplyr::mutate(manualAnnotation = factor(manualAnnotation, levels = cell_levels)) %>% 
     dplyr::mutate(treatment_time_to_plot = case_when(Treatment == 'PBS' ~ 'PBS',
@@ -313,6 +315,27 @@ mac_plot <- barplot_counts(wt_chimeric_macs, cell_levels = 'Macrophage/Monocytes
 ggarrange(infil_plot, mac_plot, ncol = 2, common.legend = TRUE, legend = 'right') 
 dev.off()
 
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/macrophage_counts.pdf', height = 6, width = 8)
+wt_chimeric_macs[[]] %>% 
+  dplyr::mutate(Timepoint = ifelse(Treatment == 'PBS', 'PBS', Timepoint)) %>% 
+  dplyr::group_by(Timepoint, manualAnnotation, Genotype, Treatment) %>% 
+  dplyr::summarise(cell_count = n())  %>% 
+  dplyr::mutate(treatment_time_to_plot = case_when(Treatment == 'PBS' ~ 'PBS',
+                                                   Treatment == 'rChLGTV' & Timepoint == 'Day 3' ~ 'Day 3',
+                                                   Treatment == 'rChLGTV' & Timepoint == 'Day 4' ~ 'Day 4',
+                                                   Treatment == 'rChLGTV' & Timepoint == 'Day 5' ~ 'Day 5')) %>% 
+  dplyr::mutate(Genotype = factor(Genotype, levels = c('WT', 'IPS1')),
+                treatment_time_to_plot = factor(treatment_time_to_plot, levels = c('PBS', 'Day 3', 'Day 4', 'Day 5'))) %>% 
+  ggplot(aes(x = treatment_time_to_plot, y = (cell_count), fill = Genotype))+
+  geom_bar(stat = 'identity', position = 'dodge', color = '#074F00', width =  0.6, linewidth	= 1.3)+
+  facet_wrap(~manualAnnotation, nrow = 1) +
+  theme_classic()+
+  theme(text = element_text(size = 24),
+        axis.text.x = element_text(angle = 0))+
+  ylab('Cell count')+
+  xlab('')+
+  scale_fill_manual(values = c('white', 'grey'))
+dev.off()
 #Bad plot i think since hard to see size of differences
 wt_chimeric_infiltrating <- subset(chimeric_mock, manualAnnotation %in% c("T cells", "Nk cells",
                                                                           "Granulocytes", "B Cells", "Macrophage/Monocytes"))
