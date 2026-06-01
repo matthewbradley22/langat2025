@@ -1,4 +1,3 @@
-object = cellchat_ips_merged
 idents.use = 'Astrocytes'
 color.use = c("grey10", "#F8766D", "#00BFC4")
 comparison = c(1,2)
@@ -25,17 +24,17 @@ show.legend = T
 show.axes = T
 
 #Taken from netAnalysis_signalingChanges_scatter function on cellchat github
-
-if (is.list(object)) {
+netAnalysis_signalingChanges_custom <- function(object, return_obj = TRUE){
+  if (is.list(object)) {
     object <- mergeCellChat(object, add.names = names(object))
   }
-if (is.list(object@net[[1]])) {
+  if (is.list(object@net[[1]])) {
     dataset.name <- names(object@net)
     message(paste0("Visualizing differential outgoing and incoming signaling changes from ", dataset.name[comparison[1]], " to ", dataset.name[comparison[2]]))
     title <- paste0("Signaling changes of ", idents.use, " (", dataset.name[comparison[1]], " vs. ", dataset.name[comparison[2]], ")")
     
-cell.levels <- levels(object@idents$joint)
-if (is.null(xlabel) | is.null(ylabel)) {
+    cell.levels <- levels(object@idents$joint)
+    if (is.null(xlabel) | is.null(ylabel)) {
       xlabel = "Differential outgoing interaction strength"
       ylabel = "Differential incoming interaction strength"
     }
@@ -130,6 +129,10 @@ if (is.null(xlabel) | is.null(ylabel)) {
   df$specificity = droplevels(df$specificity, exclude = setdiff(specificity.category,unique(df$specificity)))
   
   df$labels <- rownames(df)
+  
+  if(return_obj == TRUE){
+    return(df)
+  }
   gg <- ggplot(data = df, aes(outgoing, incoming)) +
     geom_point(aes(colour = specificity, fill = specificity, shape = specificity.out.in), size = dot.size)
   gg <- gg + theme_linedraw() +theme(panel.grid = element_blank()) +
@@ -169,26 +172,88 @@ if (is.null(xlabel) | is.null(ylabel)) {
     gg <- gg + theme_void()
   }
   
-gg
-  
+  gg
+}
+
+#Data for function created in sc_cellchat.R script
+df_wt_3 <- netAnalysis_signalingChanges_custom(cellchat_wt_3_merged)
+df_wt_4 <- netAnalysis_signalingChanges_custom(cellchat_wt_4_merged)
+
+df_ips_3 <- netAnalysis_signalingChanges_custom(cellchat_ips_3_merged)
+df_ips_4 <- netAnalysis_signalingChanges_custom(cellchat_ips_4_merged)
+df_ips_5 <- netAnalysis_signalingChanges_custom(cellchat_ips_5_merged)
 
 #Which pathways have large differences between datasets
-df %>%  dplyr::arrange(desc(incoming))
+df_wt_3 %>%  dplyr::arrange(desc(incoming))
+df_ips_3 %>%  dplyr::arrange(desc(incoming))
 
 #Plot specific pathways of interest
-netVisual_bubble(object, targets.use = 'Astrocytes',  comparison = c(1, 2), angle.x = 45, signaling = 'SEMA4')
+netVisual_bubble(cellchat_wt_3_merged, targets.use = 'Astrocytes',  comparison = c(1, 2), angle.x = 45, signaling = 'Glutamate')
+netVisual_bubble(cellchat_ips_3_merged, targets.use = 'Astrocytes',  comparison = c(1, 2), angle.x = 45, signaling = 'SEMA4')
 
 #Plot incoming pathways that increase in ips
-if(identical(object, cellchat_ips_merged)){
-  pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_4_vs_mock_up_cellchat.pdf', height = 6, width = 6)
-  strength_change_plot <- df %>%  dplyr::arrange(desc(incoming)) %>% 
-    head(n = 20) %>% 
-    ggplot(aes(x = incoming, y = reorder(labels, incoming)))+
-    geom_bar(stat = 'identity')+
-    theme_classic()+
-    ylab('')+
-    xlab('Incoming interaction strength change')+
-    theme(text = element_text(size = 18))
-  print(strength_change_plot)
-  dev.off()
-}
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_3_vs_mock_up_cellchat.pdf', height = 6, width = 6)
+df_wt_3 %>%  dplyr::arrange(desc(incoming)) %>% 
+  head(n = 15) %>% 
+  ggplot(aes(x = incoming, y = reorder(labels, incoming), fill = specificity))+
+  geom_bar(stat = 'identity', color = 'black')+
+  theme_classic()+
+  ylab('')+
+  xlab('Incoming interaction strength change')+
+  theme(text = element_text(size = 18))+
+  xlim(c(0, 2.9))+
+  scale_fill_manual(values = c("#CFB3E2", "#B4DBDB"))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_4_vs_mock_up_cellchat.pdf', height = 6, width = 6)
+df_wt_4%>%  dplyr::arrange(desc(incoming)) %>% 
+  head(n = 15) %>% 
+  ggplot(aes(x = incoming, y = reorder(labels, incoming), fill = specificity))+
+  geom_bar(stat = 'identity', color = 'black')+
+  theme_classic()+
+  ylab('')+
+  xlab('Incoming interaction strength change')+
+  theme(text = element_text(size = 18))+
+  xlim(c(0, 2.9))+
+  scale_fill_manual(values = c("#CFB3E2", "#B4DBDB"))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_3_vs_mock_up_cellchat.pdf', height = 6, width = 6)
+df_ips_3 %>%  dplyr::arrange(desc(incoming)) %>% 
+  head(n = 15) %>% 
+  ggplot(aes(x = incoming, y = reorder(labels, incoming), fill = specificity))+
+  geom_bar(stat = 'identity', color = 'black')+
+  theme_classic()+
+  ylab('')+
+  xlab('Incoming interaction strength change')+
+  theme(text = element_text(size = 18))+
+  xlim(c(0, 2.9))+
+  scale_fill_manual(values = c("#CFB3E2", "#B4DBDB"))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_4_vs_mock_up_cellchat.pdf', height = 6, width = 6)
+df_ips_4 %>%  dplyr::arrange(desc(incoming)) %>% 
+  head(n = 15) %>% 
+  ggplot(aes(x = incoming, y = reorder(labels, incoming), fill = specificity))+
+  geom_bar(stat = 'identity', color = 'black')+
+  theme_classic()+
+  ylab('')+
+  xlab('Incoming interaction strength change')+
+  theme(text = element_text(size = 18))+
+  xlim(c(0, 2.9))+
+  scale_fill_manual(values = c("#CFB3E2", "#B4DBDB"))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_5_vs_mock_up_cellchat.pdf', height = 6, width = 6)
+df_ips_5 %>%  dplyr::arrange(desc(incoming)) %>% 
+  head(n = 15) %>% 
+  ggplot(aes(x = incoming, y = reorder(labels, incoming), fill = specificity))+
+  geom_bar(stat = 'identity', color = 'black')+
+  theme_classic()+
+  ylab('')+
+  xlab('Incoming interaction strength change')+
+  theme(text = element_text(size = 18))+
+  xlim(c(0, 2.9))+
+  scale_fill_manual(values = c("#CFB3E2", "#B4DBDB"))
+dev.off()

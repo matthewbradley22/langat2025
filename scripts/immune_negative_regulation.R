@@ -34,7 +34,7 @@ wt_chimeric_mock <- subset(chimeric_mock, Genotype == 'WT' | Treatment == 'PBS')
 ips_chimeric_mock <- subset(chimeric_mock, Genotype == 'IPS1' | Treatment == 'PBS')
 
 #Look at markers that may downregulate neuroinflammation
-single_gene_dotplot <- function(dat, gene, size_lim = NULL, fill_lims = NULL){
+single_gene_dotplot <- function(dat, gene, size_lim = NULL, fill_lims = NULL, title = NULL){
   wt_ccl_dat <- DotPlot(dat, features = c(gene), group.by = 'treatment_timepoint_celltype', scale = FALSE)$data
   gene_plot = wt_ccl_dat %>% 
     tidyr::separate(col = id, into = c('treatment', 'time', 'celltype'), sep = '_') %>% 
@@ -45,29 +45,50 @@ single_gene_dotplot <- function(dat, gene, size_lim = NULL, fill_lims = NULL){
                          values = c(1.0,0.7,0.4,0), 
                          limits = fill_lims)+
     theme_classic()+
-    ggtitle(gene)+
+    ggtitle(title)+
     scale_size(limits = size_lim)
   print(gene_plot)
 }
 
 #Possible means of lowering inflammation
-#Decreased ccl2, ccr2, cxcl10 - not seen in wt
+#Decreased ccl2, ccr2, cxcl10 - not seen in either genotype
 single_gene_dotplot(wt_chimeric_mock, 'Ccl2')
 single_gene_dotplot(ips_chimeric_mock, 'Ccl2')
 single_gene_dotplot(wt_chimeric_mock, 'Ccr2')
+
 single_gene_dotplot(wt_chimeric_mock, 'Cxcl10')
+single_gene_dotplot(ips_chimeric_mock, 'Cxcl10')
 
 #Higher il10, il1rn, tgfb1, il27.
 #Il10 goes up in both genotypes, indicating that both begin to regulate the immune response. only slightly more in wt
-single_gene_dotplot(wt_chimeric_mock, 'Il10', size_lim = c(0, 24), fill_lims = c(0, 0.75))
-single_gene_dotplot(ips_chimeric_mock, 'Il10', size_lim = c(0, 24), fill_lims = c(0, 0.75))
+single_gene_dotplot(wt_chimeric_mock, 'Il10', size_lim = c(0, 24), fill_lims = c(0, 0.75), title = 'Il10 WT')
+single_gene_dotplot(ips_chimeric_mock, 'Il10', size_lim = c(0, 24), fill_lims = c(0, 0.75),  title = 'Il10 IPS1')
 single_gene_dotplot(wt_chimeric_mock, 'Il1rn')
-single_gene_dotplot(wt_chimeric_mock, 'Tgfb1')
-single_gene_dotplot(wt_chimeric_mock, 'Il27')
+#Microglia tgfb1 involved in homeostasis. Slightly more in wt 
+single_gene_dotplot(wt_chimeric_mock, 'Tgfb1',size_lim = c(0, 60), fill_lims = c(0, 1.6))
+single_gene_dotplot(ips_chimeric_mock, 'Tgfb1',size_lim = c(0, 60), fill_lims = c(0, 1.6))
+
+#Il27 can limit inflammation
+single_gene_dotplot(wt_chimeric_mock, 'Il27', size_lim = c(0, 45), fill_lims = c(0, 1.3))
+single_gene_dotplot(ips_chimeric_mock, 'Il27', size_lim = c(0, 45), fill_lims = c(0, 1.3))
 
 #Socs genes. Increases in both
-single_gene_dotplot(wt_chimeric_mock, 'Socs3')
-single_gene_dotplot(ips_chimeric_mock, 'Socs3')
+single_gene_dotplot(wt_chimeric_mock, 'Socs3', size_lim = c(0, 65), fill_lims = c(0, 1.3))
+single_gene_dotplot(ips_chimeric_mock, 'Socs3', size_lim = c(0, 65), fill_lims = c(0, 1.3))
+
+#BBB genes
+single_gene_dotplot(wt_chimeric_mock, 'Cldn5')
+single_gene_dotplot(ips_chimeric_mock, 'Cldn5')
+
+single_gene_dotplot(wt_chimeric_mock, 'Mfsd2a')
+single_gene_dotplot(ips_chimeric_mock, 'Mfsd2a')
+
+#Infiltration genes endothelial
+single_gene_dotplot(wt_chimeric_mock, 'Icam1')
+single_gene_dotplot(ips_chimeric_mock, 'Icam1') #Faster icam1 could = earlier infiltration we see
+single_gene_dotplot(wt_chimeric_mock, 'Vcam1')
+single_gene_dotplot(ips_chimeric_mock, 'Vcam1') #Faster vcam1 could = earlier infiltration we see
+
 
 #Can do gene ontology analysis of day 5 vs day 3 cells in each genotype and see if
 #any recovery pathways are unique to one genotype or the other

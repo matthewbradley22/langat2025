@@ -585,6 +585,8 @@ generate_upset_dat <- function(deg_list_dat){
     rownames(x)
   })
   upset_dat<- UpSetR::fromList(deg_names)
+  upset_dat <- subset(upset_dat, select=-c(unknown))
+  upset_dat
 }
 
 upset_dat_wt_three <- generate_upset_dat(wt_three_degs)
@@ -593,29 +595,33 @@ upset_dat_ips_three <- generate_upset_dat(ips_three_degs)
 upset_dat_ips_five <- generate_upset_dat(ips_five_degs)
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_three_upset.pdf', height = 8, width = 13, onefile = FALSE)
-UpSetR::upset(upset_dat_wt_three, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785)
+UpSetR::upset(upset_dat_wt_three, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
+              nintersects = 8)
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_five_upset.pdf', height = 8, width = 13, onefile = FALSE)
-UpSetR::upset(upset_dat_wt_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785)
+UpSetR::upset(upset_dat_wt_five, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
+              nintersects = 8)
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_three_upset.pdf', height = 8, width = 13, onefile = FALSE)
-UpSetR::upset(upset_dat_ips_three, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785)
+UpSetR::upset(upset_dat_ips_three, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
+              nintersects = 8)
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_five_upset.pdf', height = 8, width = 13, onefile = FALSE)
-UpSetR::upset(upset_dat_ips_five, nsets = 5, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785)
+UpSetR::upset(upset_dat_ips_five, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
+              nintersects = 8)
 dev.off()
 
 #Regenerate upset data manually in order to run pathway analyses on gene lists
 
 #Only keep top 5 celltypes as these are what are included in the plot
-wt_three_degs_select <- wt_three_degs[names(wt_three_degs) %in% c('Microglia', 'Endothelial', 'Ependymal', 'Astrocytes', 'Choroid Plexus')]
-ips_three_degs_select <- ips_three_degs[names(ips_three_degs) %in% c('Microglia', 'Ependymal', 'Choroid Plexus', 'Macro/Mono', 'Endothelial')]
+wt_three_degs_select <- wt_three_degs[names(wt_three_degs) %in% c('Microglia', 'Endothelial', 'Ependymal', 'Astrocytes', 'Choroid Plexus', 'Macro/Mono')]
+ips_three_degs_select <- ips_three_degs[names(ips_three_degs) %in% c('Microglia', 'Ependymal', 'Choroid Plexus', 'Macro/Mono', 'Endothelial', 'Astrocytes')]
 
-wt_five_degs_select <- wt_five_degs[names(wt_five_degs) %in% c('Microglia', 'Endothelial', 'Ependymal', 'Macro/Mono', 'Choroid Plexus')]
-ips_five_degs_select <- ips_five_degs[names(ips_five_degs) %in% c('Microglia', 'Endothelial', 'Choroid Plexus', 'Macro/Mono', 'Astrocytes')]
+wt_five_degs_select <- wt_five_degs[names(wt_five_degs) %in% c('Microglia', 'Endothelial', 'Ependymal', 'Macro/Mono', 'Choroid Plexus', 'Astrocytes')]
+ips_five_degs_select <- ips_five_degs[names(ips_five_degs) %in% c('Microglia', 'Endothelial', 'Choroid Plexus', 'Macro/Mono', 'Astrocytes', 'Ependymal')]
 
 #Get list of all significant degs by celltype
 recreate_upset_dat <- function(df){
@@ -655,10 +661,9 @@ mmaual_upset_df_five <- recreate_upset_dat(wt_five_degs_select)
 mmaual_upset_df_ips_five <- recreate_upset_dat(ips_five_degs_select)
 
 #Look at genes by each grouping
-wt_cell_groupings <- c('Microglia', 'Astrocytes|Microglia|Endothelial|Choroid Plexus|Ependymal', 'Endothelial', 'Astrocytes',
-                       'Ependymal', 'Choroid Plexus')
+wt_cell_groupings <-names(table(mmaual_upset_df$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 4))
 
-ips_cell_groupings <- names(table(mmaual_upset_ips_df$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 4))
+ips_cell_groupings <- names(table(mmaual_upset_ips_df$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 5))
 
 wt_cell_five_groupings <- names(table(mmaual_upset_df_five$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 5))
 ips_cell_five_groupings <- names(table(mmaual_upset_df_ips_five$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 5))

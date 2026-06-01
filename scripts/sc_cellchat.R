@@ -116,6 +116,9 @@ if(FALSE){
   groupSize_ips <- as.numeric(table(ips_cells_cc@idents))
 }
 
+###### Create cellchat objects for each genotype at each timepoint ######
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
 #Plots split by timepoint
 wt_cells_three_cc <- prep_cellchat_obj(wt_cells_three)
 wt_p3 <- custom_net_signal_scatter(wt_cells_three_cc, main = 'WT chLGTV Day 3', xlimit = 33, ylimit = 38)
@@ -412,7 +415,8 @@ slot.name = "netP"
 
 ########### Comparative analysis between day 3 (or 4) and mock by genotype ########### 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
-cellchat_wt_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_four_cc), add.names = c('PBS', 'WT_inf'))
+cellchat_wt_3_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_three_cc), add.names = c('PBS', 'WT_inf'))
+cellchat_wt_4_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_four_cc), add.names = c('PBS', 'WT_inf'))
 compareInteractions(cellchat_wt_merged, show.legend = F, group = c(1,2))
 netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count')
 
@@ -437,20 +441,24 @@ netVisual_heatmap(cellchat_wt_merged, measure = 'count')
 wt_celltype_count_diff <- cellchat_wt_merged@net[[2]][['count']] - cellchat_wt_merged@net[[1]][['count']]
 rowSums(wt_celltype_count_diff)
 
-cellchat_ips_merged<- mergeCellChat(list(mock = mock_ips_cells_cc, ips_inf = ips_cells_four_cc), add.names = c('PBS', 'IPS_inf'))
-compareInteractions(cellchat_ips_merged, show.legend = F, group = c(1,2))
-netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count')
+#Same analysis with ips
+cellchat_ips_3_merged<- mergeCellChat(list(mock = mock_ips_cells_cc, ips_inf = ips_cells_three_cc), add.names = c('PBS', 'IPS_inf'))
+cellchat_ips_4_merged<- mergeCellChat(list(mock = mock_ips_cells_cc, ips_inf = ips_cells_four_cc), add.names = c('PBS', 'IPS_inf'))
+cellchat_ips_5_merged<- mergeCellChat(list(mock = mock_ips_cells_cc, ips_inf = ips_cells_five_cc), add.names = c('PBS', 'IPS_inf'))
+
+compareInteractions(cellchat_ips_3_merged, show.legend = F, group = c(1,2))
+netVisual_diffInteraction(cellchat_ips_3_merged, weight.scale = T, measure = 'count')
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_astro_target.pdf', width = 5, height = 5)
-netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
+netVisual_diffInteraction(cellchat_ips_3_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_astro_source.pdf', width = 5, height = 5)
-netVisual_diffInteraction(cellchat_ips_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
+netVisual_diffInteraction(cellchat_ips_3_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_signal_changes.pdf', width = 10, height = 8)
-netAnalysis_signalingChanges_scatter(cellchat_ips_merged, idents.use = "Astrocytes", label.size = 6)+
+netAnalysis_signalingChanges_scatter(cellchat_ips_3_merged, idents.use = "Astrocytes", label.size = 6)+
   theme(text = element_text(size = 24))+
   xlim(c(-0.4, 3))+
   ylim(c(-0.4, 2.5))
@@ -588,4 +596,7 @@ n_patterns = 5
 mock_wt_cells_cc <- identifyCommunicationPatterns(mock_wt_cells_cc, pattern = "incoming", k = n_patterns)
 netAnalysis_river(mock_wt_cells_cc, pattern = "incoming")
 
+#SEMA4 pathway across groups
+netVisual_aggregate(wt_cells_three_cc, signaling = 'SEMA4', layout = "circle", targets.use = 'Astrocytes')
+netVisual_aggregate(ips_cells_three_cc, signaling = 'SEMA4', layout = "circle", targets.use = 'Astrocytes')
 
