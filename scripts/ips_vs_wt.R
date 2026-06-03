@@ -288,14 +288,18 @@ plot_gene_across_groups <- function(dat, gene, lims = NULL){
 
 plot_gene_across_groups(chimeric_mock, 'Mapk6', lims = c(0, 0.8))
 
+########## DEG counts by celltype and time ########## 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
 #Do above analysis by celltype, seems like trends may differ alot across celltypes
 deg_counts_time_m_vs_i_celltype <- list()
 
 #Skip slow for loop
-deg_counts_time_m_vs_i_celltype <- readRDS("~/Documents/ÖverbyLab/celltype_venn_data.rds")
+#deg_counts_time_m_vs_i_celltype <- readRDS("~/Documents/ÖverbyLab/celltype_venn_data.rds")
 
 #Read in data for all celltypes (ran on hpc2n at /proj/nobackup/overby/langat_singlecell_analysis/sc_data/)
 deg_counts_time_m_vs_i_celltype <- readRDS("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/deg_counts_time_celltype.rds")
+
 celltypes_of_interest = c('Microglia', 'Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal')
 times = c('Day 3', 'Day 4', 'Day 5')
 
@@ -338,12 +342,12 @@ name_of_each_comp = c('wt_up', 'wt_down', 'ips_up', 'ips_down')
 names_without_comps <- paste(rep(celltypes_of_interest, each = length(times) * length(name_of_each_comp)), rep(times, each = length(name_of_each_comp)), sep = '_')
 names_with_comps <- paste(names_without_comps, name_of_each_comp, sep = '_')
 names_with_comps <- gsub(' ', '', names_with_comps)
-names(deg_counts_time_m_vs_i_celltype) = names_with_comps
+#names(deg_counts_time_m_vs_i_celltype) = names_with_comps
 
 #saveRDS(deg_counts_time_m_vs_i_celltype, file = "~/Documents/ÖverbyLab/celltype_venn_data.rds")
 
 #Need to remove space from choroid plexus as this wasn't how list was named
-celltypes_of_interest_nospace = c('Microglia', 'Astrocytes', 'ChoroidPlexus', 'Endothelial', 'Ependymal')
+#celltypes_of_interest_nospace = c('Microglia', 'Astrocytes', 'ChoroidPlexus', 'Endothelial', 'Ependymal')
 
 #Do not let venndiagram write log files for every comp
 futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
@@ -393,6 +397,9 @@ top_ips_astro <- head(astro_day5_ips_paths$result$term_name, n = 50)
 
 top_wt_astro[!top_wt_astro %in% top_ips_astro]
 top_ips_astro[!top_ips_astro %in% top_wt_astro]
+
+####### Generate fig 1 heatmaps #########
+## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 
 #Generate heatmap rather than venn diagrams
 deg_genes_by_celltype_names = names(deg_counts_time_m_vs_i_celltype)
@@ -453,19 +460,44 @@ deg_genes_by_celltype_heatmap_dat_down$celltype <- factor(deg_genes_by_celltype_
                                                                     'Neurons', 'Oligodendrocytes', 'Pericytes', 'B Cells',
                                                                     'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 
                                                                     'T cells', 'unknown')))
-
+cell_order =  levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial',
+                             'Ependymal', 'Immature Neurons', 'Microglia', 'Muscle cells',
+                             'Neurons', 'Oligodendrocytes', 'Pericytes', 'B Cells',
+                             'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 
+                             'T cells', 'unknown'))
 #Remove unknown cells
 deg_genes_by_celltype_heatmap_dat <- dplyr::filter(deg_genes_by_celltype_heatmap_dat, celltype != 'unknown')
 
+#Filter by number of cells
+wt_cell_counts <- chimeric_mock_wt[[]] %>% 
+  dplyr::group_by(manualAnnotation, Timepoint, Treatment) %>% 
+  dplyr::summarise(cell_count = n()) %>% 
+  dplyr::filter(Treatment == 'rChLGTV') %>% 
+  dplyr::mutate(geno = 'wt', celltype = manualAnnotation, time = Timepoint)
+
+ips_cell_counts <- chimeric_mock_ips[[]] %>% 
+  dplyr::group_by(manualAnnotation, Timepoint, Treatment) %>% 
+  dplyr::summarise(cell_count = n()) %>% 
+  dplyr::filter(Treatment == 'rChLGTV') %>% 
+  dplyr::mutate(geno = 'ips', celltype = manualAnnotation, time = Timepoint)
+
+cell_counts <- rbind(wt_cell_counts, ips_cell_counts)
+
+
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/deg_count_time_geno_cell.pdf', height = 10, width = 12)
-ggplot(deg_genes_by_celltype_heatmap_dat, aes(x = geno, y = celltype, fill = count))+
+deg_genes_by_celltype_heatmap_dat %>% 
+  dplyr::left_join(cell_counts, by = c('geno', 'celltype', 'time')) %>% 
+  dplyr::filter(cell_count > 50 | geno == 'both') %>% 
+  dplyr::mutate(celltype = factor(celltype, levels = cell_order),
+                geno = factor(geno, levels = c('wt', 'both', 'ips'))) %>% 
+  ggplot(aes(x = geno, y = celltype, fill = count))+
   facet_wrap(~time)+
   geom_tile()+
   geom_text(aes(label=count), size = 7)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                         values = c(1.0,0.7,0.4,0))+
   theme_classic()+
-  theme(text = element_text(size = 24))+
+  theme(text = element_text(size = 30))+
   ylab('')+
   xlab('')
 dev.off()
@@ -579,3 +611,91 @@ mock_astro_up$result
 
 mock_astro_down <- gprofiler2::gost(query = rownames(deg_counts_mock_celltype$Astrocytes_ips_up), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG')) 
 mock_astro_down$result
+
+####### Create ISG gene count heatmaps ####### 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
+#Make isg heatmap from this data compared ot UCell_isg_scores script which uses data from scRNA_celltype_analysis_script
+make_gene_subset_heatmap <- function(gene_list, filename){
+  sig_isgs <- lapply(deg_counts_time_m_vs_i_celltype, FUN = function(x){
+    sig <- dplyr::filter(x, avg_log2FC > 1 & p_val_adj < 0.05) %>% 
+      rownames_to_column(var = 'gene')
+    sig_isgs <- sig %>% dplyr::filter(gene %in% gene_list)
+    data.frame(gene = sig_isgs$gene)
+  })
+  
+  isg_gene_df <- data.frame(comp = as.character(), gene = as.character())
+  
+  for(i in 1:length(sig_isgs)){
+    num_genes = nrow(sig_isgs[[i]])
+    cur_comp_df <- data.frame(comp = rep(names(sig_isgs[i]), num_genes), gene = sig_isgs[[i]]$gene)
+    isg_gene_df <- rbind(isg_gene_df, cur_comp_df)
+  }
+  
+  genes_geno_count <- isg_gene_df %>% tidyr::separate(col = comp, into = c('celltype', 'time', 'genotype', 'direction'), sep = '_') %>% 
+    dplyr::filter(direction == 'up') %>% 
+    dplyr::group_by(celltype, time, gene) %>% 
+    dplyr::summarise(gene_count_by_group = n())
+  
+  genes_group_count <- isg_gene_df %>% tidyr::separate(col = comp, into = c('celltype', 'time', 'genotype', 'direction'), sep = '_') %>% 
+    dplyr::filter(direction == 'up') %>% 
+    dplyr::left_join(genes_geno_count, by = c('celltype', 'time', 'gene')) %>% 
+    dplyr::mutate(genotype = ifelse(gene_count_by_group == 2, yes = 'both', no = genotype)) %>% 
+    dplyr::distinct() %>% 
+    dplyr::group_by(celltype, time, genotype) %>% 
+    dplyr::summarise(gene_count = n()) %>% 
+    dplyr::filter(celltype != 'unknown')
+  
+  #Want conditions with no genes to show up as 0, not blank, on heatmap, so adding rows of 0
+  all_cell_combos <- expand.grid(genes_group_count$celltype, genes_group_count$time, genes_group_count$genotype) %>% 
+    dplyr::distinct() %>% dplyr::arrange(Var1) %>% dplyr::mutate(gene_count = 0)
+  colnames(all_cell_combos) = c('celltype', 'time', 'genotype', 'gene_count')
+  all_cell_combo_count <- rbind(genes_group_count, all_cell_combos) %>% dplyr::group_by(celltype, time, genotype) %>% 
+    dplyr::summarise(gene_count = sum(gene_count))
+  
+  all_cell_combo_count$genotype = factor(all_cell_combo_count$genotype, levels = c('wt', 'both', 'ips'))
+  celltype_order <- c( 'T cells',   'Nk cells', 'Macrophage/Monocytes', 
+                       'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                       'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
+                       'Choroid Plexus', 'Astrocytes')
+  
+  all_cell_combo_count$celltype = factor(all_cell_combo_count$celltype, levels = celltype_order)
+  
+  #Also want cell groups with less than 50 cells to actually show up blank
+  #Filter by number of cells
+  wt_cell_counts <- chimeric_mock_wt[[]] %>% 
+    dplyr::group_by(manualAnnotation, Timepoint, Treatment) %>% 
+    dplyr::summarise(cell_count = n()) %>% 
+    dplyr::filter(Treatment == 'rChLGTV') %>% 
+    dplyr::mutate(genotype = 'wt', celltype = manualAnnotation, time = Timepoint)
+  
+  ips_cell_counts <- chimeric_mock_ips[[]] %>% 
+    dplyr::group_by(manualAnnotation, Timepoint, Treatment) %>% 
+    dplyr::summarise(cell_count = n()) %>% 
+    dplyr::filter(Treatment == 'rChLGTV') %>% 
+    dplyr::mutate(genotype = 'ips', celltype = manualAnnotation, time = Timepoint)
+  
+  cell_counts <- rbind(wt_cell_counts, ips_cell_counts)
+  
+  save_loc = paste0("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/", filename)
+  pdf(save_loc, width = 9, height = 6)
+  heat_plot <- all_cell_combo_count %>% 
+    dplyr::left_join(cell_counts, by = c('genotype', 'celltype', 'time')) %>% 
+    dplyr::filter(cell_count > 50 | genotype == 'both') %>% 
+    dplyr::mutate(celltype = factor(celltype, levels = cell_order),
+                  genotype = factor(genotype, levels = c('wt', 'both', 'ips'))) %>% 
+    ggplot(aes(x = genotype, y = celltype, fill = gene_count))+
+    facet_wrap(~time)+
+    geom_tile()+
+    geom_text(aes(label = gene_count))+
+    scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                         values = c(1.0,0.7,0.4,0))+
+    theme_classic()+
+    theme(axis.text = element_text(size = 16),
+          strip.text = element_text(size = 14))
+  print(heat_plot)
+  dev.off()
+  
+}
+
+make_gene_subset_heatmap(all_ISGs_type2_unique, filename = 'isg_type2_by_geno_celltype_compared_all_mock.pdf')

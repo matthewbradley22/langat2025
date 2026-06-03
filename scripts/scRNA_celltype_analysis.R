@@ -661,12 +661,12 @@ mmaual_upset_df_five <- recreate_upset_dat(wt_five_degs_select)
 mmaual_upset_df_ips_five <- recreate_upset_dat(ips_five_degs_select)
 
 #Look at genes by each grouping
-wt_cell_groupings <-names(table(mmaual_upset_df$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 4))
+wt_cell_groupings <-names(table(mmaual_upset_df$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 6))
 
-ips_cell_groupings <- names(table(mmaual_upset_ips_df$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 5))
+ips_cell_groupings <- names(table(mmaual_upset_ips_df$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 6))
 
-wt_cell_five_groupings <- names(table(mmaual_upset_df_five$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 5))
-ips_cell_five_groupings <- names(table(mmaual_upset_df_ips_five$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 5))
+wt_cell_five_groupings <- names(table(mmaual_upset_df_five$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 6))
+ips_cell_five_groupings <- names(table(mmaual_upset_df_ips_five$celltypes) %>% sort(decreasing = TRUE) %>% head(n = 6))
 
 #For each comparison, create a named list of deg groupings for go analysis
 wt_upset_gene_groups <- lapply(wt_cell_groupings, FUN = function(x){
@@ -694,22 +694,22 @@ names(ips_upset_five_gene_groups) = ips_cell_five_groupings
 wt_upset_pathways <- lapply(wt_upset_gene_groups, FUN = function(x){
   gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 })
-names(wt_upset_pathways) <- c('micro', 'common', 'endo', 'astro', 'epen', 'cp')
+names(wt_upset_pathways) <- c('micro', 'endo', 'common', 'astro', 'epen', 'cp')
 
 ips_upset_pathways <- lapply(ips_upset_gene_groups, FUN = function(x){
   gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 })
-names(ips_upset_pathways) <- c('micro', 'epen', 'common', 'endo')
+names(ips_upset_pathways) <- c('micro', 'epen', 'astro', 'endo', 'common', 'micro_macro')
 
 wt_upset_five_pathways <- lapply(wt_upset_five_gene_groups, FUN = function(x){
   gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 })
-names(wt_upset_five_pathways) <- c('micro', 'epen', 'cp', 'common', 'endo')
+names(wt_upset_five_pathways) <- c('micro', 'epen', 'cp', 'common', 'endo', 'macro')
 
 ips_upset_five_pathways <- lapply(ips_upset_five_gene_groups, FUN = function(x){
   gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
 })
-names(ips_upset_five_pathways) <- c('micro', 'astro', 'endo', 'cp', 'common')
+names(ips_upset_five_pathways) <- c('micro', 'endo', 'astro', 'cp', 'common', 'macro')
 
 #Map function easier than lapply for me to keep names as a column
 top_paths_by_celltype <- function(data_name, cell_labels){
@@ -774,11 +774,12 @@ common_gene_plot <- function(dat){
     xlab('')+
     theme_classic()+
     theme(text = element_text(size= 26))+
-    ylim(c(0,80))+
+    ylim(c(0,85))+
     theme(legend.position = 'none')+
     geom_text(aes(label=intersection_size), hjust = 1.2, size = 10)
   plot(p1)
 }
+
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day3_wt_common_paths.pdf', height = 4, width = 8)
 common_gene_plot(wt_common)
 dev.off()
