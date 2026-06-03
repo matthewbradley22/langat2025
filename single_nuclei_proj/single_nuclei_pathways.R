@@ -395,18 +395,43 @@ pdf("~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/chemokines_across_infect
 #Plot data
 lgtv_dat %>% 
   tidyr::separate(col = id, into = c('infected', 'celltype', 'inf'), sep = '_') %>%
-  dplyr::filter(celltype != 'Peri') %>% 
+  dplyr::filter(celltype != 'Peri' & features.plot != 'LGTV') %>% 
   dplyr::mutate(inf = ifelse(infected == FALSE, 'mock', inf)) %>% 
   mutate(inf = factor(inf, levels = c('mock', 'uninfected', 'infected'))) %>% 
   ggplot(aes(x = inf, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
-                        values = c(1.0,0.7,0.4,0))+
+                        values = c(1.0,0.7,0.4,0), limits = c(0, 1.4))+
   theme_classic()+
   facet_wrap(~features.plot, ncol = 6)+
   theme(axis.text.x = element_text(angle = 75, vjust = 0.5),
         text = element_text(size = 18))+
   xlab('')+
-  ylab('')
+  ylab('')+
+  scale_size(limits = c(0, 32))
   #ggtitle('Only 2 infected wt pericytes')
+dev.off()
+
+#Percent ex and in neurons infected
+peri_neu$treatment_celltype <- paste(peri_neu$infected, peri_neu$manualAnnotation, sep = '_')
+lgtv_dat <- DotPlot(peri_neu, features = c('rna_LGTV'), group.by = 'treatment_celltype', scale = FALSE)$data  
+lgtv_dat$features.plot = factor(lgtv_dat$features.plot, levels= c(levels(lgtv_dat$features.plot), 'LGTV'))
+lgtv_dat[lgtv_dat$features.plot == 'rna_LGTV',]$features.plot = 'LGTV'
+
+pdf("~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/virus_levels_neurons.pdf", height = 5, width = 5)
+lgtv_dat %>% 
+  tidyr::separate(col = id, into = c('infected', 'celltype'), sep = '_') %>%
+  dplyr::filter(celltype != 'Peri') %>% 
+  ggplot(aes(x = infected, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                       values = c(1.0,0.7,0.4,0), limits = c(0, 1.4))+
+  theme_classic()+
+  facet_wrap(~features.plot, ncol = 6)+
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.5),
+        text = element_text(size = 18))+
+  xlab('')+
+  ylab('')+
+  scale_size(limits = c(0, 32))
+#ggtitle('Only 2 infected wt pericytes')
 dev.off()
