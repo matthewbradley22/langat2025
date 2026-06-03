@@ -55,6 +55,23 @@ ggplot(alternative_path_celltype_levels$Astrocytes, aes(x = time, y = features.p
   scale_size_continuous(range = c(1,9))
 dev.off()
 
+names(alternative_path_celltype_levels)[names(alternative_path_celltype_levels) == 'Macrophage/Monocytes'] = 'Macs'
+for(i in 1:length(alternative_path_celltype_levels)){
+  file_name <- paste0('~/Documents/ÖverbyLab/single_cell_ISG_figures/alternative_paths_all_celltypes/', names(alternative_path_celltype_levels)[i], '.pdf')
+  pdf(file_name, width = 10, height = 8)
+  alt_plot <- ggplot(alternative_path_celltype_levels[[i]], aes(x = time, y = features.plot, size = pct.exp, color = avg.exp.scaled))+
+    facet_wrap(~geno_treatment, scales = 'free_x')+
+    geom_point()+
+    scale_color_gradientn(colours = c("#F03C0C","#F0A451","white"), 
+                          values = c(1.0,0.6,0))+
+    theme_classic()+
+    theme(text = element_text(size = 24))+
+    scale_size_continuous(range = c(1,9))+
+    ggtitle(names(alternative_path_celltype_levels)[i])
+  print(alt_plot)
+  dev.off()
+}
+
 #Which genes are differentially expressed 
 day4_infected <- subset(chimeric_mock, Treatment == 'rChLGTV' & Timepoint == 'Day 4')
 day5_infected <- subset(chimeric_mock, Treatment == 'rChLGTV' & Timepoint == 'Day 5')
@@ -130,11 +147,13 @@ chimeric_mock_infected <- subset(chimeric_mock, Treatment == 'rChLGTV')
 chimeric_mock_infected$time_geno_celltype <- paste(chimeric_mock_infected$Timepoint, chimeric_mock_infected$Genotype, chimeric_mock_infected$manualAnnotation,
                                                    sep = '_')
 #Only keep cells with enough sampled
-celltypes_with_enough <- chimeric_mock_infected[[]] %>% dplyr::group_by(Timepoint, Genotype, manualAnnotation) %>% 
+chimeric_mock$time_mock_comb <- ifelse(chimeric_mock$Treatment == 'PBS', 'mock', chimeric_mock$Timepoint)
+celltypes_with_enough <- chimeric_mock[[]] %>% dplyr::group_by(time_mock_comb, Genotype, Treatment, manualAnnotation) %>% 
   dplyr::summarise(cell_count = n()) %>% 
-  dplyr::rename(time = Timepoint, genotype = Genotype, celltype = manualAnnotation)
+  dplyr::rename(time = time_mock_comb, genotype = Genotype, celltype = manualAnnotation)
 
-stat1_dat <- DotPlot(chimeric_mock_infected, features = 'Stat1', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
+chimeric_mock$time_comb_geno_celltype <- paste(chimeric_mock$time_mock_comb, chimeric_mock$Genotype, chimeric_mock$manualAnnotation, sep = '_')
+stat1_dat <- DotPlot(chimeric_mock, features = 'Stat1', group.by = 'time_comb_geno_celltype', scale = FALSE)$data %>% 
   tidyr::separate(col = 'id', into = c('time', 'genotype', 'celltype'), sep = '_') %>% 
   dplyr::filter(celltype != 'unknown')
 
@@ -144,6 +163,7 @@ stat1_dat_filtered$genotype = factor(stat1_dat_filtered$genotype, levels = c('WT
 stat1_dat_filtered$celltype <- factor(stat1_dat_filtered$celltype, levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal', 'Immature Neurons', 
                                                                 'Microglia', 'Muscle cells', 'Neurons', 'Oligodendrocytes' ,'Pericytes',
                                                                 'B Cells', 'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 'T cells')))
+stat1_dat_filtered$time <- factor(stat1_dat_filtered$time, levels = c('mock', 'Day 3', 'Day 4', 'Day 5'))
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/stat1_by_celltype.pdf', width = 8, height = 5)
 ggplot(stat1_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
@@ -154,8 +174,11 @@ ggplot(stat1_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, si
                        limits = c(0,3.2))+
   theme_classic()+
   theme(text = element_text(size = 18))+
-  scale_size(limits = c(20, 100), range = c(1, 8))+
-  ggtitle('Stat1')
+  scale_size(limits = c(8, 100), range = c(1, 8))+
+  ggtitle('Stat1')+
+  xlab('Day')+ 
+  scale_x_discrete(labels=c("Day 3" = "3", "Day 4" = "4",
+                            "Day 5" = "5", 'mock' = 'mock'))
 dev.off()
 
 stat2_dat <- DotPlot(chimeric_mock_infected, features = 'Stat2', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
