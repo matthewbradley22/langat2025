@@ -131,17 +131,12 @@ pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cerebrum_cellPop
 chimeric_mock_organ_counts %>% 
   dplyr::filter(Organ == 'Cerebrum') %>% 
   ggplot(aes(x = Treatment, y = cell_count, fill = Genotype))+
-  geom_bar(stat = 'identity', position = 'dodge')+
+  geom_bar(stat = 'identity', position = 'dodge', color = 'black')+
   xlab('')+
-  ylab('ce
-       all count')+
-  scale_fill_manual(values = c(umap_color_list[4], umap_color_list[7]))+
+  ylab('cell count')+
+  scale_fill_manual(values = c(umap_color_list[4], '#E36F39'))+
   theme_classic()+
-  theme(legend.position = 'none',
-        axis.text.x = element_text(size = 22),
-        axis.text.y = element_text(size = 22),
-        axis.title=element_text(size=22),
-        plot.title = element_text(size = 22))+
+  theme(text = element_text(size = 22))+
   ggtitle('Cerebrum')+
   ylim(c(0, 26000))
 dev.off()
@@ -150,15 +145,12 @@ pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cerebellum_cellP
 chimeric_mock_organ_counts %>% 
   dplyr::filter(Organ == 'Cerebellum') %>% 
   ggplot(aes(x = Treatment, y = cell_count, fill = Genotype))+
-  geom_bar(stat = 'identity', position = 'dodge')+
+  geom_bar(stat = 'identity', position = 'dodge', color = 'black')+
   xlab('')+
   ylab('cell count')+
-  scale_fill_manual(values = c(umap_color_list[4], umap_color_list[7]))+
+  scale_fill_manual(values = c(umap_color_list[4], '#E36F39'))+
   theme_classic()+
-  theme(axis.text.x = element_text(size = 22),
-        axis.text.y = element_text(size = 22),
-        axis.title=element_text(size=22),
-        plot.title = element_text(size = 22))+
+  theme(text = element_text(size = 22))+
   ggtitle('Cerebellum')+
   ylim(c(0, 26000))
 dev.off()
@@ -258,7 +250,7 @@ dev.off()
 #Plot of neo resistance gene reads 
 #Data created on hpc2n at /home/m/mahogny/mystore/dataset/250729_scflavi/neo_read_counts from bam files
 #Also reading in original barcoding data
-final_neo_count <- read_table("~/Documents/ÖverbyLab/data/final_neo_count.txt",  col_names = FALSE)
+final_neo_count <- read_table("~/Documents/ÖverbyLab/data/neo_count_final_proper_correction.txt",  col_names = FALSE)
 colnames(final_neo_count) = c('total_reads', 'orig_id')
 final_neo_count$orig_id = as.numeric(final_neo_count$orig_id)
 
@@ -268,15 +260,23 @@ ParseBarcodePlate$orig_id = 1:48
 neo_data_to_plot <- left_join(ParseBarcodePlate, final_neo_count, by = 'orig_id')
 neo_data_to_plot$total_reads[is.na(neo_data_to_plot$total_reads)] <- 0
 neo_data_to_plot_chimeric <- dplyr::filter(neo_data_to_plot, Treatment != 'rLGTV')
+neo_data_to_plot_chimeric$treatment_geno = paste(neo_data_to_plot_chimeric$Treatment, neo_data_to_plot_chimeric$Genotype, sep = '_')
+neo_data_to_plot_chimeric$well_numbered <- factor(seq(1:nrow(neo_data_to_plot_chimeric)))
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/neomycin_levels.pdf', height = 6, width = 8)
-ggplot(neo_data_to_plot_chimeric, aes(x = Genotype, y = total_reads, fill = Treatment))+
-  geom_boxplot()+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/neomycin_levels_dot.pdf', height = 6, width = 10)
+#neo_data_to_plot_chimeric %>% 
+  #dplyr::group_by(Treatment, Genotype) %>% 
+  #dplyr::summarise(mean_counts = mean(total_reads)) %>% 
+ggplot(neo_data_to_plot_chimeric, aes(x = well_numbered, y = total_reads, fill = treatment_geno))+
+  geom_bar(stat = 'identity')+
   ggtitle('Neomycin-resistance gene')+
-  ylab('Count')+
   theme_classic()+
-  theme(text = element_text(size = 24))+
-  scale_fill_manual(values = c(umap_color_list[4], umap_color_list[10]))
+  theme(text = element_text(size = 24),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())+
+  scale_fill_manual(values = c('#39B6E3', '#E35539', '#3986E3', '#E36F39'))+
+  ylab('Total Neo reads')+
+  xlab('Well')
 dev.off()
 
 #Infiltrating cell counts over time, normalized to day 3

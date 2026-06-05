@@ -174,14 +174,14 @@ ggplot(stat1_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, si
                        limits = c(0,3.2))+
   theme_classic()+
   theme(text = element_text(size = 18))+
-  scale_size(limits = c(8, 100), range = c(1, 8))+
+  scale_size(limits = c(5, 100), range = c(1, 8))+
   ggtitle('Stat1')+
   xlab('Day')+ 
   scale_x_discrete(labels=c("Day 3" = "3", "Day 4" = "4",
                             "Day 5" = "5", 'mock' = 'mock'))
 dev.off()
 
-stat2_dat <- DotPlot(chimeric_mock_infected, features = 'Stat2', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
+stat2_dat <- DotPlot(chimeric_mock, features = 'Stat2', group.by = 'time_comb_geno_celltype', scale = FALSE)$data %>% 
   tidyr::separate(col = 'id', into = c('time', 'genotype', 'celltype'), sep = '_') %>% 
   dplyr::filter(celltype != 'unknown')
 
@@ -191,6 +191,8 @@ stat2_dat_filtered$genotype = factor(stat2_dat_filtered$genotype, levels = c('WT
 stat2_dat_filtered$celltype <- factor(stat2_dat_filtered$celltype, levels = rev(c('Astrocytes', 'Choroid Plexus', 'Endothelial', 'Ependymal', 'Immature Neurons', 
                                                                                   'Microglia', 'Muscle cells', 'Neurons', 'Oligodendrocytes' ,'Pericytes',
                                                                                   'B Cells', 'Granulocytes', 'Macrophage/Monocytes', 'Nk cells', 'T cells')))
+stat2_dat_filtered$time <- factor(stat2_dat_filtered$time, levels = c('mock', 'Day 3', 'Day 4', 'Day 5'))
+
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/stat2_by_celltype.pdf', width = 8, height = 5)
 ggplot(stat2_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
@@ -200,8 +202,11 @@ ggplot(stat2_dat_filtered, aes(x = time, y = celltype, fill = avg.exp.scaled, si
                        limits = c(0,3.2))+
   theme_classic()+
   theme(text = element_text(size = 18))+
-  scale_size(limits = c(20, 100), range = c(1, 8))+
-  ggtitle('Stat2')
+  scale_size(limits = c(5, 100), range = c(1, 8))+
+  ggtitle('Stat2')+
+  xlab('Day')+ 
+  scale_x_discrete(labels=c("Day 3" = "3", "Day 4" = "4",
+                            "Day 5" = "5", 'mock' = 'mock'))
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/stats_over_time.pdf', width = 8, height = 5)
