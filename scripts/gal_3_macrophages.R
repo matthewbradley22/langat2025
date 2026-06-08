@@ -282,7 +282,7 @@ day5_paths <- gprofiler2::gost(query = rownames(day5_up_markers), organism = 'mm
 day_5_down_paths <- gprofiler2::gost(query = rownames(day5_down_markers), organism = 'mmusculus', evcodes = TRUE, sources = c())
 
 #Pathway barplots
-day_5_down_paths_head <- day_5_down_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source == 'REAC') %>% head(n = 10)
+day_5_down_paths_head <- day_5_down_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source %in% c('GO:BP')) %>% head(n = 10)
 day_5_down_paths_head$term_name = factor(day_5_down_paths_head$term_name, levels = rev(day_5_down_paths_head$term_name))
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/day5_downregulated_paths.pdf", width = 6, height = 4)
@@ -344,11 +344,11 @@ ggplot(day_5_up_paths_gobp_head, aes(x = -log10(p_value), y = term_name, fill = 
 dev.off()
 
 #Same plot but with kegg annotations instead
-day_5_up_paths_gobp_head_kegg <- day5_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source == 'REAC') %>%  head(n = 10)
-day_5_up_paths_gobp_head_kegg$term_name = factor(day_5_up_paths_gobp_head_kegg$term_name, levels = rev(day_5_up_paths_gobp_head_kegg$term_name))
+day_5_up_paths_head_kegg <- day5_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source == 'KEGG') %>%  head(n = 10)
+day_5_up_paths_head_kegg$term_name = factor(day_5_up_paths_head_kegg$term_name, levels = rev(day_5_up_paths_head_kegg$term_name))
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/day5_upregulated_paths_kegg.pdf", width = 6, height = 4)
-ggplot(day_5_up_paths_gobp_head_kegg, aes(x = -log10(p_value), y = term_name, fill = -log10(p_value)))+
+ggplot(day_5_up_paths_head_kegg, aes(x = -log10(p_value), y = term_name, fill = -log10(p_value)))+
   geom_bar(stat = 'identity', width = 0.5, color = 'black')+
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
@@ -362,6 +362,44 @@ ggplot(day_5_up_paths_gobp_head_kegg, aes(x = -log10(p_value), y = term_name, fi
   ylab('')+
   xlab('-log10 p-value')+
   ggtitle('Day 5 paths')
+dev.off()
+
+#Combine day 5 up and down to create one plot w both
+day_5_down_paths_head_kegg_select <- day_5_down_paths_head_kegg[c('p_value', 'term_name')] %>% dplyr::mutate(dir = 'early')
+day_5_up_paths_head_kegg_select <- day_5_up_paths_head_kegg[c('p_value', 'term_name')]%>% dplyr::mutate(dir = 'late')
+
+paths_to_plot <- rbind(day_5_down_paths_head_kegg_select, day_5_up_paths_head_kegg_select)
+paths_to_plot <- paths_to_plot %>% dplyr::mutate(log_p_val = ifelse(dir == 'late', -log10(p_value), log10(p_value))) %>% 
+  dplyr::group_by(dir) %>% 
+  dplyr::slice_head(n = 10) %>% 
+  dplyr::mutate(term_name = as.character(term_name))
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_go_pathways.pdf", width = 7, height = 5)
+ggplot(paths_to_plot, aes(x = log_p_val, y = reorder(term_name, -log_p_val), fill = dir))+
+  geom_bar(stat = 'identity')+
+  theme_classic()+
+  geom_vline(xintercept = 0, linetype="dotted")
+dev.off()
+
+#Do same thing but with kegg paths
+#Combine day 5 up and down to create one plot w both
+day_5_down_paths_kegg_head_select <- day_5_down_paths_head[c('p_value', 'term_name')] %>% dplyr::mutate(dir = 'early')
+day_5_up_paths_kegg_head_select <- day_5_up_paths_gobp_head[c('p_value', 'term_name')]%>% dplyr::mutate(dir = 'late')
+
+paths_to_plot <- rbind(day_5_down_paths_head_select, day_5_up_paths_gobp_head_select)
+paths_to_plot <- paths_to_plot %>% dplyr::mutate(log_p_val = ifelse(dir == 'late', -log10(p_value), log10(p_value))) %>% 
+  dplyr::group_by(dir) %>% 
+  dplyr::slice_head(n = 10) %>% 
+  dplyr::mutate(term_name = as.character(term_name))
+#There is one shared pathway between the two groups, try to make them 
+#plot separately just by adding a space
+paths_to_plot[paths_to_plot$term_name == 'Efferocytosis' & paths_to_plot$dir == 'late',]$term_name = ' Efferocytosis'
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/macrophage_kegg_pathways.pdf", width = 7, height = 5)
+ggplot(paths_to_plot, aes(x = log_p_val, y = reorder(term_name, -log_p_val), fill = dir))+
+  geom_bar(stat = 'identity')+
+  theme_classic()+
+  geom_vline(xintercept = 0, linetype="dotted")
 dev.off()
 
 

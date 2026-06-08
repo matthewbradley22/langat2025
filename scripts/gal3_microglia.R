@@ -40,7 +40,7 @@ table(wt_cerebrum_microglia$Genotype, wt_cerebrum_microglia$Treatment,
 wt_cerebrum_microglia <- prepSeuratObj(wt_cerebrum_microglia)
 ElbowPlot(wt_cerebrum_microglia, ndims = 40)
 wt_cerebrum_microglia <- prepUmapSeuratObj(wt_cerebrum_microglia, nDims = 15, reductionName = 'micro.umap',
-                                             resolution_value = 0.8)
+                                             resolution_value = 0.5)
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/microglia_treatment_umap.pdf', width = 5, height = 5)
 DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by = 'Treatment',
@@ -70,6 +70,20 @@ DotPlot(wt_cerebrum_microglia, features = top_markers$gene, group.by = 'Treatmen
   xlab('')
 dev.off()
 
+#Why do mock not create a single cluster?
+DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by = 'seurat_clusters')+
+      ggtitle('Microglia')+
+      theme(axis.text = element_blank(), axis.ticks = element_blank())+
+      ylab('UMAP2')+
+  xlab('UMAP1')
+
+mock_markers <- FindMarkers(wt_cerebrum_microglia, ident.1 = 5, ident.2 = 0, group.by = 'seurat_clusters', test.use = 'MAST')
+mock_markers <- dplyr::filter(mock_markers, p_val_adj < 0.01 & avg_log2FC > 1)
+FeaturePlot(wt_cerebrum_microglia, features = 'Egr1', reduction = 'micro.umap')
+
+mock_comp_paths <- gprofiler2::gost(query = rownames(mock_markers), organism = 'mmusculus', evcodes = TRUE,
+                 sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+
 #Look across time at microglia
 microglia_infected <- subset(wt_cerebrum_microglia, Treatment == 'rLGTV')
 microglia_mock <- subset(wt_cerebrum_microglia, Treatment == 'PBS')
@@ -92,6 +106,7 @@ dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/infected_micro_cluster_umap.pdf', width = 5, height = 5)
 DimPlot(microglia_infected, reduction = 'micro.inf.umap', label = FALSE)+
+        #cols = c("#7047A1", "#B370AE","#292270",  "#166DF0","#6DC3F8"))+
   ggtitle('Infected microglia')+
   theme(axis.text = element_blank(),
         axis.ticks = element_blank())+
@@ -210,6 +225,10 @@ DotPlot(microglia_infected, features =neg_reg_genes, group.by = 'Timepoint', sca
   ggtitle('Negative reg inflammation')
 dev.off()
 
+#-------------------------------------------------------
+######## Look at DEGs between infected clusters ######## 
+#-------------------------------------------------------
+
 #Infected microglia cluster markers and paths
 infected_clust_markers <- FindAllMarkers(microglia_infected, group.by = 'seurat_clusters', 
                                          test.use = 'MAST', only.pos = TRUE)
@@ -228,15 +247,109 @@ for(i in 1:length(unique(infected_clust_markers$cluster))-1){
 }
 
 #Lots of cell death pathways
-inf_micro_path_list$cluster_0
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inf_mic_clust0_barplot.pdf', width = 10, height = 8)
+ggplot(head(inf_micro_path_list$cluster_0, n = 10), aes(x = -log10(p_value), y = reorder(term_name, -(p_value))))+
+  geom_bar(stat = 'identity', color = 'black', alpha = 0.5)+
+  theme_classic()+
+  ylab('')+
+  theme(text = element_text(size = 22))+
+  ggtitle('Cluster 0')
+dev.off()
 
 #Cell cycle pathways
-inf_micro_path_list$cluster_2
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inf_mic_clust2_barplot.pdf', width = 10, height = 8)
+ggplot(head(inf_micro_path_list$cluster_2, n = 10), aes(x = -log10(p_value), y = reorder(term_name, -(p_value))))+
+  geom_bar(stat = 'identity',  color = 'black', alpha = 0.5)+
+  theme_classic()+
+  ylab('')+
+  theme(text = element_text(size = 18))+
+  ggtitle('Cluster 2')
+dev.off()
 
 #Immune system response
-inf_micro_path_list$cluster_3
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inf_mic_clust3_barplot.pdf', width = 10, height = 8)
+ggplot(head(inf_micro_path_list$cluster_3, n = 10), aes(x = -log10(p_value), y = reorder(term_name, -(p_value))))+
+  geom_bar(stat = 'identity', color = 'black', alpha = 0.5)+
+  theme_classic()+
+  ylab('')+
+  theme(text = element_text(size = 18))+
+  ggtitle('Cluster 3')
+dev.off()
 
 #Also immune system but some negative regulators?
-inf_micro_path_list$cluster_4
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inf_mic_clust4_barplot.pdf', width = 10, height = 8)
+ggplot(head(inf_micro_path_list$cluster_4, n = 10), aes(x = -log10(p_value), y = reorder(term_name, -(p_value))))+
+  geom_bar(stat = 'identity', color = 'black', alpha = 0.5)+
+  theme_classic()+
+  ylab('')+
+  theme(text = element_text(size = 18))+
+  ggtitle('Cluster 4')
+dev.off()
 
-FeaturePlot(microglia_infected, features = 'Top2a', reduction = 'micro.inf.umap')
+
+FeaturePlot(microglia_infected, features = 'Il1rn', reduction = 'micro.inf.umap')
+
+
+###### Look at microglia groups from https://www.nature.com/articles/s41590-026-02472-z #######
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
+surveilance <- c('Hexb', 'Olfml3', 'P2ry12', 'Siglech', 'Sparc', 'Tgfbr1', 'Tmem119')
+neuro_protect <- c('Bdnf', 'Gdnf', 'Igf1', 'Lif', 'Tgfb1')
+#No Clec7a in data so removed
+phagocytosis <- c('Apoe', 'Axl', 'C3ar1', 'Cd9', 'Cd63', 'Cd68', 'Lgals3', 'Myo1e', 'Spp1', 'Trem2', 'Tyrobp')
+inflammation <- c('Apod', 'Aoah', 'C5ar1', 'Ccl12', 'Fgr', 'Msr1', 'Rnf169')
+cyto_production <- c('Ccl2', 'Cxcl10', 'Il10', 'Il1b', 'Nfkbia', 'Tnf')
+antigen_pres <- c('B2m', 'H2-D1', 'H2-Aa', 'H2-Ab1', 'H2-DMa', 'H2-Eb1', 'H2-K1', 'Nlrc5')
+ifn_sig <- c('Cd69', 'Cxcl10', 'Ifi204', 'Ifi213', 'Ifit2', 'Ifit3', 'Ifitm3', 'Irf7', 'Isg15', 'Mx1', 'Oasl2', 'Usp18')
+proliferation <- c('Birc5', 'Brip1', 'Mcm5', 'Mki67', 'Rad51b', 'Top2a')
+
+#Surveilance
+plotList_surv <- lapply(surveilance, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 5.5)
+do.call(ggarrange, c(plotList_surv, common.legend = TRUE, legend = 'right'))
+
+#Neuro protection
+plotList_np <- lapply(neuro_protect, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 4.5)
+do.call(ggarrange, c(plotList_np, common.legend = TRUE, legend = 'right'))
+
+#Phagotcytosis
+plotList_phago <- lapply(phagocytosis, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 6)
+do.call(ggarrange, c(plotList_phago, common.legend = TRUE, legend = 'right'))
+
+#Inflammation
+plotList_inf <- lapply(inflammation, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 4.7)
+do.call(ggarrange, c(plotList_inf, common.legend = TRUE, legend = 'right'))
+
+#cytokine production
+plotList_cyto <- lapply(cyto_production, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 4.7)
+do.call(ggarrange, c(plotList_cyto, common.legend = TRUE, legend = 'right'))
+
+#antigen presentation
+plotList_antigen <- lapply(antigen_pres, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 5.3)
+do.call(ggarrange, c(plotList_antigen, common.legend = TRUE, legend = 'right'))
+
+#ifn sig
+plotList_ifn <- lapply(ifn_sig, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 5.5)
+do.call(ggarrange, c(plotList_ifn, common.legend = TRUE, legend = 'right'))
+
+#proliferation
+plotList_prolif <- lapply(proliferation, featurePlotLight, data = microglia_infected, reduction_choice = 'micro.inf.umap', maxLim = 4.5)
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/proliferation_genes.pdf', width = 6, height = 5)
+do.call(ggarrange, c(plotList_prolif, common.legend = TRUE, legend = 'right'))
+dev.off()
+
+featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim = 0, maxLim = 5){
+  dat = FeaturePlot(data, gene, reduction = reduction_choice)$data
+  colnames(dat) = c('umap1', 'umap2', 'ident', 'expression')
+  ggplot(dat, aes(x = umap1, y = umap2, color = expression))+
+    geom_point(size = 0.1)+  
+    theme(line = element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.ticks.y=element_blank(),
+          panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))+
+    scale_color_gradient(low = 'lightgrey', high = 'blue', limits = c(minLim,maxLim))+
+    ggtitle(gene)
+}
