@@ -84,6 +84,10 @@ FeaturePlot(wt_cerebrum_microglia, features = 'Egr1', reduction = 'micro.umap')
 mock_comp_paths <- gprofiler2::gost(query = rownames(mock_markers), organism = 'mmusculus', evcodes = TRUE,
                  sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
 
+# - - - - - - - - - - - - - - - - - - 
+#### Across time infected samples ####
+# - - - - - - - - - - - - - - - - - - 
+
 #Look across time at microglia
 microglia_infected <- subset(wt_cerebrum_microglia, Treatment == 'rLGTV')
 microglia_mock <- subset(wt_cerebrum_microglia, Treatment == 'PBS')
@@ -225,9 +229,9 @@ DotPlot(microglia_infected, features =neg_reg_genes, group.by = 'Timepoint', sca
   ggtitle('Negative reg inflammation')
 dev.off()
 
-#-------------------------------------------------------
-######## Look at DEGs between infected clusters ######## 
-#-------------------------------------------------------
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#### Look at DEGs between infected clusters #####
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 #Infected microglia cluster markers and paths
 infected_clust_markers <- FindAllMarkers(microglia_infected, group.by = 'seurat_clusters', 
@@ -289,9 +293,64 @@ dev.off()
 
 FeaturePlot(microglia_infected, features = 'Il1rn', reduction = 'micro.inf.umap')
 
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#### Look at DEGs between each infected cluster and mock #####
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-###### Look at microglia groups from https://www.nature.com/articles/s41590-026-02472-z #######
-## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+infected_clusters <- microglia_infected[[]]['seurat_clusters']
+infected_clusters$cell_id <- rownames(infected_clusters)
+colnames(infected_clusters)[1] = 'infected_clusters'
+
+wt_cerebrum_microglia$cell_id <- colnames(wt_cerebrum_microglia)
+wt_cerebrum_microglia$infected_clusters = NULL #In case running several times
+wt_cerebrum_microglia[[]] <- left_join(wt_cerebrum_microglia[[]], infected_clusters, by = 'cell_id')
+wt_cerebrum_microglia$infected_clusters <- factor(wt_cerebrum_microglia$infected_clusters, 
+                                                  levels = c(levels(wt_cerebrum_microglia$infected_clusters), 'mock'))
+wt_cerebrum_microglia[[]][is.na(wt_cerebrum_microglia$infected_clusters),]$infected_clusters = 'mock'
+
+#Should have 0 through 4 and mock only (if clusters labelled 0-6 check that microglia_infected was run through seuart umap)
+DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by = 'infected_clusters')+
+  ggtitle('Microglia')+
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())+
+  ylab('UMAP2')+
+  xlab('UMAP1')
+
+#Find infected markers vs mock
+deg_vs_mock_list = list()
+
+for(i in levels(wt_cerebrum_microglia$infected_clusters)){
+  if(i != 'mock'){
+    print(paste('starting', i))
+    clust_markers <- FindMarkers(wt_cerebrum_microglia, group.by = 'infected_clusters', ident.1 = i , ident.2 = 'mock', test.use = 'MAST',
+                only.pos = TRUE)
+    deg_vs_mock_list[[length(deg_vs_mock_list) + 1]] = clust_markers
+  }
+}
+
+
+#Name list elements 
+names(deg_vs_mock_list) = paste('cluster',  levels(wt_cerebrum_microglia$infected_clusters)[1:5])
+
+#Look at pathways
+for(i in 1:length(deg_vs_mock_list)){
+  
+}
+clust0_paths <- deg_vs_mock_list$`cluster 0` %>% as.data.frame() %>% 
+  dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1) %>% 
+  rownames() %>% gprofiler2::gost(organism = 'mmusculus', evcodes = TRUE,
+                                 sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+clust0_paths$result
+
+clust1_paths <- deg_vs_mock_list$`cluster 1` %>% as.data.frame() %>% 
+  dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1) %>% 
+  rownames() %>% gprofiler2::gost(organism = 'mmusculus', evcodes = TRUE,
+                                  sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+clust1_paths$result
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#### Look at microglia groups from https://www.nature.com/articles/s41590-026-02472-z ####
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 surveilance <- c('Hexb', 'Olfml3', 'P2ry12', 'Siglech', 'Sparc', 'Tgfbr1', 'Tmem119')
 neuro_protect <- c('Bdnf', 'Gdnf', 'Igf1', 'Lif', 'Tgfb1')
