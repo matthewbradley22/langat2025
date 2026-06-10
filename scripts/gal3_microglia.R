@@ -7,6 +7,7 @@ library(UCell)
 library(RColorBrewer)
 library(rstatix)
 library(irGSEA)
+library(UCell)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -40,7 +41,7 @@ table(wt_cerebrum_microglia$Genotype, wt_cerebrum_microglia$Treatment,
 wt_cerebrum_microglia <- prepSeuratObj(wt_cerebrum_microglia)
 ElbowPlot(wt_cerebrum_microglia, ndims = 40)
 wt_cerebrum_microglia <- prepUmapSeuratObj(wt_cerebrum_microglia, nDims = 15, reductionName = 'micro.umap',
-                                             resolution_value = 0.5)
+                                             resolution_value = 0.8)
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/microglia_treatment_umap.pdf', width = 5, height = 5)
 DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by = 'Treatment',
@@ -294,7 +295,7 @@ dev.off()
 FeaturePlot(microglia_infected, features = 'Il1rn', reduction = 'micro.inf.umap')
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#### Look at DEGs between each infected cluster and mock #####
+#### DEGs between each infected cluster and mock #####
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 infected_clusters <- microglia_infected[[]]['seurat_clusters']
@@ -328,28 +329,93 @@ for(i in levels(wt_cerebrum_microglia$infected_clusters)){
   }
 }
 
-
 #Name list elements 
 names(deg_vs_mock_list) = paste('cluster',  levels(wt_cerebrum_microglia$infected_clusters)[1:5])
 
 #Look at pathways
+path_vs_mock_list = list()
 for(i in 1:length(deg_vs_mock_list)){
-  
+  cur_paths <- deg_vs_mock_list[[i]] %>% as.data.frame() %>% 
+    dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1) %>% 
+    rownames() %>% gprofiler2::gost(organism = 'mmusculus', evcodes = TRUE,
+                                    sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+  path_vs_mock_list[[length(path_vs_mock_list) + 1]] = cur_paths$result
 }
-clust0_paths <- deg_vs_mock_list$`cluster 0` %>% as.data.frame() %>% 
-  dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1) %>% 
-  rownames() %>% gprofiler2::gost(organism = 'mmusculus', evcodes = TRUE,
-                                 sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
-clust0_paths$result
+names(path_vs_mock_list) = names(deg_vs_mock_list)
 
-clust1_paths <- deg_vs_mock_list$`cluster 1` %>% as.data.frame() %>% 
-  dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1) %>% 
-  rownames() %>% gprofiler2::gost(organism = 'mmusculus', evcodes = TRUE,
-                                  sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
-clust1_paths$result
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inf_vs_mock_clust_0.pdf', width = 10, height = 8)
+ggplot(head(path_vs_mock_list$`cluster 0`, n = 10), aes(x = -log10(p_value), y = reorder(term_name, -(p_value))))+
+  geom_bar(stat = 'identity', color = 'black')+
+  theme_classic()+
+  ylab('')+
+  xlab('-Log10 p-val')+
+  theme(text = element_text(size = 18))+
+  ggtitle('Cluster 0')
+dev.off()
+
+for(i in 1:length(path_vs_mock_list)){
+  path_bar <- ggplot(head(path_vs_mock_list[[i]], n = 10), aes(x = -log10(p_value), y = reorder(term_name, -(p_value))))+
+    geom_bar(stat = 'identity', color = 'black')+
+    theme_classic()+
+    ylab('')+
+    xlab('-Log10 p-val')+
+    theme(text = element_text(size = 22))+
+    ggtitle(names(path_vs_mock_list)[i])
+  
+  clust = as.character(i-1)
+  file_path = paste0('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inf_vs_mock_clust_', clust, '.pdf')
+  pdf(file_path, width = 11, height = 8)
+  print(path_bar)
+  dev.off()
+}
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#### DEGs between each infected cluster and all cells including mock #####
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+infected_vs_all_markers <- FindAllMarkers(wt_cerebrum_microglia, group.by = 'infected_clusters', test.use = 'MAST',
+            only.pos = TRUE)
+
+infected_all_sig <- dplyr::filter(infected_vs_all_markers, p_val_adj < 0.01 & avg_log2FC > 1)
+
+#Get upregulated pathways in all clusters
+infected_vs_all_path_list <- list()
+
+for(i in 1:length(unique(infected_all_sig$cluster))){
+  print(paste('cluster', unique(infected_all_sig$cluster)[i]))
+  cur_cluster = infected_all_sig[infected_all_sig$cluster == unique(infected_all_sig$cluster)[i],]
+  cur_cluster_paths <- gprofiler2::gost(query = rownames(cur_cluster),organism = 'mmusculus', 
+                                        evcodes = TRUE, sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+  infected_vs_all_path_list[[length(infected_vs_all_path_list) + 1]] = cur_cluster_paths$result
+}
+
+#No DEGs in cluster 1
+names(infected_vs_all_path_list) = paste0('cluster_', c('0', '2', '3', '4', 'mock'))
+
+for(i in 1:length(infected_vs_all_path_list)){
+  
+  cur_dat <- infected_vs_all_path_list[[i]]
+  
+  path_bar <- ggplot(head(cur_dat, n = 10), aes(x = -log10(p_value), y = reorder(term_name, -p_value)))+
+    geom_bar(stat = 'identity')+
+    theme_classic()+
+    theme(text = element_text(size = 18))+
+    ylab('')+
+    ggtitle(names(infected_vs_all_path_list)[i])
+  
+  print(path_bar)
+}
+
+infected_vs_all_path_list$cluster_0
+infected_vs_all_path_list$cluster_2
+infected_vs_all_path_list$cluster_3
+infected_vs_all_path_list$cluster_4
+infected_vs_all_path_list$cluster_mock
+
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-#### Look at microglia groups from https://www.nature.com/articles/s41590-026-02472-z ####
+#### Microglia groups from https://www.nature.com/articles/s41590-026-02472-z ####
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 surveilance <- c('Hexb', 'Olfml3', 'P2ry12', 'Siglech', 'Sparc', 'Tgfbr1', 'Tmem119')
@@ -412,3 +478,76 @@ featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim
     scale_color_gradient(low = 'lightgrey', high = 'blue', limits = c(minLim,maxLim))+
     ggtitle(gene)
 }
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#### DAMs https://www.cell.com/cell/fulltext/S0092-8674(17)30578-0#mmc1 ####
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#Downregulated in dams
+featurePlotLight('P2ry12', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Tmem119', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Selplg', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+
+#Upregulated in dams
+featurePlotLight('Cst7', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Lpl', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Apoe', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Spp1', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+
+#Just infected
+featurePlotLight('P2ry12', data = microglia_infected, reduction_choice = 'micro.inf.umap', maxLim = NA)
+featurePlotLight('Tmem119', data = microglia_infected, reduction_choice = 'micro.inf.umap', maxLim = NA)
+featurePlotLight('Cst7', data = microglia_infected, reduction_choice = 'micro.inf.umap', maxLim = NA)
+featurePlotLight('Itgax', data = microglia_infected, reduction_choice = 'micro.inf.umap', maxLim = NA)
+featurePlotLight('Hexb', data = microglia_infected, reduction_choice = 'micro.inf.umap', maxLim = NA)
+
+#Top dam genes (from supp table 2 in paper, may change to supp table 3)
+dam_signatures <- list(dam_down = c('P2ry12','Tmem119','Cx3cr1','Selplg','Serinc3', 'Marcks',
+                                     'Malat1','Glul','Lgmn','4632428N05Rik','Txnip','Rhob',
+                                     'Sparc','Slco2b1','Csf1r'),
+                        dam_up = c('Cst7','Lpl', 'Clec7a', 'Itgax', 'Spp1', 'Igf1',
+                                   'Apoe','Axl','Ank','Ch25h', 'Ctsd', 'Ccl3','Baiap2l2','Csf1'))
+
+dam_signatures_supp_3 <- list(dam_up = c('Cst7', 'Lyz2', 'Lpl', 'Ctsb', 'Ctsd', 'Apoe', 'B2m', 'Gnas',
+                                         'Cd9', 'Ank', 'H2-D1', 'Tyrobp', 'Axl', 'Ctsz','Itgax'),
+                              dom_down = c('P2ry12', 'Tmem119', 'Cx3cr1', 'Selplg', 'Marcks', 'Serinc3', 'Sparc',
+                                           'Cd164', 'Maf', 'P2ry13','Ccr5','Glul','Rhob', 'Siglech','Olfml3'))
+wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
+                                      features=dam_signatures, maxRank = 1200, name = NULL)
+
+plotList_dam <- lapply(c('dam_down', 'dam_up'), featurePlotLight, 
+                       data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 1)
+do.call(ggarrange, c(plotList_dam, common.legend = TRUE, legend = 'right'))
+
+
+#heatmap instead
+dam_dot_up <- DotPlot(wt_cerebrum_microglia, features = dam_signatures_supp_3$dam_up, group.by = 'infected_clusters', scale = FALSE)$data
+dam_dot_up$id = factor(dam_dot_up$id, levels = c('mock', '0', '1', '2', '3', '4'))
+
+#Set levels based on which data from the paper is being used
+feature_levels_supp2 <- rev(c('Itgax',  'Ch25h','Ccl3', 'Cst7','Axl','Csf1', 'Ctsd', 'Lpl', 
+                              'Spp1', 'Igf1', 'Apoe', 'Ank', 'Baiap2l2'))
+feature_levels_supp3 <- rev(c('Itgax', 'H2-D1', 'Ctsz','Axl', 'Cst7', 'Ctsb', 'Ctsd', 'B2m', 'Gnas',
+                              'Cd9', 'Ank', 'Tyrobp', 'Lyz2', 'Lpl', 'Apoe'))
+
+dam_dot_up$features.plot = factor(dam_dot_up$features.plot, 
+                                  levels = feature_levels_supp3)
+ggplot(dam_dot_up, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('DAM Up genes')
+
+#Dam down
+dam_dot_down <- DotPlot(wt_cerebrum_microglia, features = dam_signatures_supp_3$dom_down, group.by = 'infected_clusters', scale = FALSE)$data
+dam_dot_down$id = factor(dam_dot_down$id, levels = c('mock', '0', '1', '2', '3', '4'))
+dam_dot_down$features.plot = factor(dam_dot_down$features.plot, 
+                                  levels = rev(c('P2ry12', 'Tmem119', 'Cx3cr1','Glul', 'Siglech','Selplg', 'Marcks', 'Serinc3', 'Sparc',
+                                                 'Cd164', 'Maf', 'P2ry13','Ccr5','Rhob', 'Olfml3')))
+ggplot(dam_dot_down, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('DAM down genes')
