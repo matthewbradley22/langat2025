@@ -7,6 +7,7 @@ library(UCell)
 library(RColorBrewer)
 library(rstatix)
 library(irGSEA)
+library(dplyr)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -115,6 +116,7 @@ ggplot(head(mac_pathways$result, n = 10), aes(x = -log10(p_value), y = reorder(t
   xlab('')+
   theme(axis.text = element_text(size = 20))
 dev.off()
+
 #For figure after imaging figures - going to see what separates day 5 from day 3 and 4 macs 
 #Earlier figures only focus on day 5 LGTV
 wt_cerebrum_macrophages <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
@@ -620,6 +622,10 @@ DimPlot(wt_cerebrum_macrophages_day5, reduction = 'day5_macs_wt', group.by = 'Tr
 DimPlot(wt_cerebrum_macrophages_day4, reduction = 'day4_macs_wt', group.by = 'Treatment' )
 DimPlot(wt_cerebrum_macrophages_day3, reduction = 'day3_macs_wt', group.by = 'Treatment')
 
+# - - - - - - - - - - - - - - - - 
+#### Macrophage marker plots ####
+# - - - - - - - - - - - - - - - - 
+
 #M1
 m1_genes = c('Tnf', 'Il1b', 'Il12a', 'Il23a', 'Nos2', 'Cd68', 'Cd80','Cd86', 'Fcgr1', 'Fcgr2b', 'Fcgr3')
 
@@ -840,8 +846,8 @@ plotList_lps <- lapply(M_lps_ifng_macs[!M_lps_ifng_macs %in% c('Nfkblz', 'Marco'
                        reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_lps, common.legend = TRUE, legend = 'right'))
 
-plotList_mhc <- lapply(mhc_2_macs, featurePlotLight, data = wt_cerebrum_macrophages, 
-                       reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6)
+plotList_mhc <- lapply(mhc_2_macs, featurePlotLight, data = macrophages_wt_infected, 
+                       reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_mhc, common.legend = TRUE, legend = 'right'))
 
 plotList_il10 <- lapply(M_il10_macs[!M_il10_macs %in% c('Marco')], featurePlotLight, data = wt_cerebrum_macrophages, 
@@ -955,3 +961,33 @@ DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$M1_signatu
 mac_m1_knn <- SmoothKNN(macrophages_wt_infected, signature.names = 'M1_signature_UCell', reduction = "pca")
 FeaturePlot(mac_m1_knn, features = 'M1_signature_UCell_kNN', reduction = 'wt.infected.mac.umap')
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#### Try to distinguish macrophage origin based on https://www.nature.com/articles/s41590-026-02457-y#Sec7 ####
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+plotList_mhc <- lapply(c(mhc_2_macs, 'Cd74', 'Fxyd5', 'Lgals3', 'Ccr2'), featurePlotLight, data = macrophages_wt_infected, 
+                       reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+do.call(ggarrange, c(plotList_mhc, common.legend = TRUE, legend = 'right'))
+
+plotList_sdcam1 <- lapply(c('Mrc1', 'Pf4', 'Lyve1', 'Folr2', 'Cd163',
+                            'Stab1', 'P2rx7', 'Pf4'), featurePlotLight, data = macrophages_wt_infected, 
+                       reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+do.call(ggarrange, c(plotList_sdcam1, common.legend = TRUE, legend = 'right'))
+
+#repopulating had high tnf and chemokines
+plotList_repop <- lapply(c('Tnf' , 'Ccl3', 'Ccl4', 'Ccl6', 'Ccl7',
+                            'Ccl9'), featurePlotLight, data = macrophages_wt_infected, 
+                          reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+do.call(ggarrange, c(plotList_repop, common.legend = TRUE, legend = 'right'))
+
+#Genes showed to be up after depletion in fig 5
+deplet_up <- lapply(c('Il2rg' , 'Ccr5', 'Batf3', 'Il1b', 'Cxcl14',
+                           'Slc15a3'), featurePlotLight, data = macrophages_wt_infected, 
+                         reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+do.call(ggarrange, c(deplet_up, common.legend = TRUE, legend = 'right'))
+
+#Genes showed to be down after depletion in fig 5
+deplet_up <- lapply(c('Il2rg' , 'Ccr5', 'Batf3', 'Il1b', 'Cxcl14',
+                      'Slc15a3'), featurePlotLight, data = macrophages_wt_infected, 
+                    reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+do.call(ggarrange, c(deplet_up, common.legend = TRUE, legend = 'right'))

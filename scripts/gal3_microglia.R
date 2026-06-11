@@ -8,6 +8,7 @@ library(RColorBrewer)
 library(rstatix)
 library(irGSEA)
 library(UCell)
+library(msigdbr)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -52,6 +53,17 @@ DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by
   ylab('UMAP2')+
   xlab('UMAP1')
 dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/microglia_time_umap.pdf', width = 5, height = 5)
+DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by = 'Timepoint',
+        label.size = 6, cols = c('#6DC3F8', '#D6644B', '#208d1f'))+
+  ggtitle('Microglia')+
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())+
+  ylab('UMAP2')+
+  xlab('UMAP1')
+dev.off()
+
 
 wt_cerebrum_microglia_markers <- FindAllMarkers(wt_cerebrum_microglia, group.by = 'Treatment', test.use = 'MAST')
 
@@ -229,6 +241,19 @@ DotPlot(microglia_infected, features =neg_reg_genes, group.by = 'Timepoint', sca
   xlab('')+
   ggtitle('Negative reg inflammation')
 dev.off()
+
+
+neg_regulation_dot <- DotPlot(wt_cerebrum_microglia, 
+                              features = neg_reg_genes, group.by = 'infected_clusters', scale = FALSE)$data
+neg_regulation_dot$id = factor(neg_regulation_dot$id, levels = c('mock', '0', '1', '2', '3', '4'))
+
+ggplot(neg_regulation_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Anti inflammatory')
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 #### Look at DEGs between infected clusters #####
@@ -551,3 +576,90 @@ ggplot(dam_dot_down, aes(x = id, y = features.plot, fill = avg.exp.scaled, size 
   scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
                        values = c(0, 0.3, 0.6, 1))+
   ggtitle('DAM down genes')
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#### Microglia groups from https://link.springer.com/article/10.15252/embr.201846171#Sec2 ####
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+#Homeostatic genes
+featurePlotLight('Olfml3', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Fcrls', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Tmem119', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Gpr34', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Mef2c', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+
+#Phagocytotic genes
+featurePlotLight('Tyrobp', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Trem2', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+
+#Anti inflammatory
+featurePlotLight('Mrc1', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Arg1', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+
+#Pro inflammatory
+featurePlotLight('Il1b', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Tnf', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+featurePlotLight('Ccl2', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)
+
+DotPlot(wt_cerebrum_microglia, features =c('Il1b', 'Tnf', 'Ccl2'), group.by = 'infected_clusters', scale = FALSE)$data %>% 
+  dplyr::mutate(id = factor(id, levels = c('mock', '0', '1', '2', '3', '4'))) %>% 
+  ggplot(aes(x = id, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  theme_classic()+
+  ylab('')+
+  xlab('')+
+  ggtitle('pro-inflammatory')
+
+#LPS inflammatory markers
+lps_markers <- c('Ms4a6c', 'Msr1', 'Igsf6', 'Ms4a6b', 'Ms4a6d','Srgn', 'Ccl12',
+                 'Slfn2', 'D17H6S56E-5','Gpr84','Saa3', 'Ctsc','Pilra', 'Ifi204',
+                 'Nfkbia', 'mt-Rnr1','Ifitm3', 'Rps2','AW112010', 'C3ar1', 'Cpd', 'Cd52')
+lps_dot <- DotPlot(wt_cerebrum_microglia, features = lps_markers, group.by = 'infected_clusters', scale = FALSE)$data
+lps_dot$id = factor(lps_dot$id, levels = c('mock', '0', '1', '2', '3', '4'))
+
+ggplot(lps_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('IAM (inflammatory markers)')
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#### Microglia groups from https://www.nature.com/articles/s41586-019-0924-x ####
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#Gpnmb also mentioned here as phagocytotic https://www.nature.com/articles/s41467-026-73003-5
+DotPlot(wt_cerebrum_microglia, features = 'Gpnmb', group.by = 'infected_clusters', scale = FALSE)$data %>% 
+  dplyr::mutate(id = factor(id, levels = c('mock', '0', '1', '2', '3', '4'))) %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Gpnmb')
+
+DotPlot(wt_cerebrum_microglia, features = 'Cybb', group.by = 'infected_clusters', scale = FALSE)$data %>% 
+  dplyr::mutate(id = factor(id, levels = c('mock', '0', '1', '2', '3', '4'))) %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Cybb')
+
+# - - - - - - - - - - - - - - - - - -
+#### Hallmark apoptosis genes ####
+# - - - - - - - - - - - - - - - - - - 
+gene_sets <- msigdbr(species = "mouse", db_species = "MM")
+apoptosis_set <- gene_sets[gene_sets$gs_name == 'HALLMARK_APOPTOSIS',]$gene_symbol
+
+wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
+                                              features= list(apoptosis = apoptosis_set), maxRank = 1200, name = NULL)
+
+FeaturePlot(wt_cerebrum_microglia, features = 'apoptosis', reduction = 'micro.umap')+
+  ggtitle('Hallmark apoptosis')
+
+VlnPlot(wt_cerebrum_microglia, features = 'apoptosis', pt.size = 0, group.by = 'infected_clusters')+
+  ggtitle('Hallmark apoptosis')
