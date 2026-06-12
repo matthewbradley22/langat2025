@@ -965,12 +965,14 @@ FeaturePlot(mac_m1_knn, features = 'M1_signature_UCell_kNN', reduction = 'wt.inf
 #### Try to distinguish macrophage origin based on https://www.nature.com/articles/s41590-026-02457-y#Sec7 ####
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+#Genes upregulated in sdcam2 / suspected to come from infiltrating cells
 plotList_mhc <- lapply(c(mhc_2_macs, 'Cd74', 'Fxyd5', 'Lgals3', 'Ccr2'), featurePlotLight, data = macrophages_wt_infected, 
                        reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_mhc, common.legend = TRUE, legend = 'right'))
 
+#Genes upregulated in other sdcam groups, indicative of CAMs
 plotList_sdcam1 <- lapply(c('Mrc1', 'Pf4', 'Lyve1', 'Folr2', 'Cd163',
-                            'Stab1', 'P2rx7', 'Pf4'), featurePlotLight, data = macrophages_wt_infected, 
+                            'Stab1', 'P2rx7', 'Pf4', 'C4b', 'Colec12'), featurePlotLight, data = macrophages_wt_infected, 
                        reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_sdcam1, common.legend = TRUE, legend = 'right'))
 
@@ -983,11 +985,16 @@ do.call(ggarrange, c(plotList_repop, common.legend = TRUE, legend = 'right'))
 #Genes showed to be up after depletion in fig 5
 deplet_up <- lapply(c('Il2rg' , 'Ccr5', 'Batf3', 'Il1b', 'Cxcl14',
                            'Slc15a3'), featurePlotLight, data = macrophages_wt_infected, 
-                         reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
+                         reduction_choice = 'wt.infected.mac.umap', maxLim = 4)
 do.call(ggarrange, c(deplet_up, common.legend = TRUE, legend = 'right'))
 
 #Genes showed to be down after depletion in fig 5
-deplet_up <- lapply(c('Il2rg' , 'Ccr5', 'Batf3', 'Il1b', 'Cxcl14',
-                      'Slc15a3'), featurePlotLight, data = macrophages_wt_infected, 
+deplet_down <- lapply(c('Spats2l' , 'Slc7a15', 'Ptprk',  'Il12rb2', 'Frs3'), featurePlotLight, data = macrophages_wt_infected, 
                     reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
-do.call(ggarrange, c(deplet_up, common.legend = TRUE, legend = 'right'))
+do.call(ggarrange, c(deplet_down, common.legend = TRUE, legend = 'right'))
+
+#Typical sdCAM markers. C4b mapping where mrc1 maps as well
+sdcam_markers <- lapply(c('Cd163' , 'Lyve1', 'C4b'), featurePlotLight, data = macrophages_wt_infected, 
+                      reduction_choice = 'wt.infected.mac.umap', maxLim = 3)
+do.call(ggarrange, c(sdcam_markers, common.legend = TRUE, legend = 'right'))
+

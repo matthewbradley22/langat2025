@@ -256,7 +256,7 @@ ggplot(neg_regulation_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled,
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-#### Look at DEGs between infected clusters #####
+#### DEGs between infected clusters #####
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 #Infected microglia cluster markers and paths
@@ -317,7 +317,31 @@ ggplot(head(inf_micro_path_list$cluster_4, n = 10), aes(x = -log10(p_value), y =
 dev.off()
 
 
-FeaturePlot(microglia_infected, features = 'Il1rn', reduction = 'micro.inf.umap')
+FeaturePlot(microglia_infected, features = 'Vcam1', reduction = 'micro.inf.umap')
+
+#Compare some of the specific groups to narrow down roles
+cluster_0_3 <- FindMarkers(microglia_infected, group.by = 'seurat_clusters', ident.1 = '0', ident.2 = '3',
+                                         test.use = 'MAST')
+cluster_0_markers <- dplyr::filter(cluster_0_3, avg_log2FC > 1 & p_val_adj < 0.01)
+cluster_3_markers <- dplyr::filter(cluster_0_3, avg_log2FC < -1 & p_val_adj < 0.01)
+
+FeaturePlot(microglia_infected, features = 'Lilrb4a', reduction = 'micro.inf.umap')
+
+clust0_paths <- gprofiler2::gost(query = rownames(cluster_0_markers),organism = 'mmusculus', evcodes = TRUE,
+                 sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+clust3_paths <- gprofiler2::gost(query = rownames(cluster_3_markers),organism = 'mmusculus', evcodes = TRUE,
+                                 sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+ggplot(head(clust0_paths$result, n = 8), aes(x = -log10(p_value), y = reorder(term_name, -p_value)))+
+  geom_bar(stat = 'identity')+
+  theme_classic()+
+  theme(text = element_text(size = 15))+
+  ylab('')
+
+ggplot(head(clust3_paths$result, n = 8), aes(x = -log10(p_value), y = reorder(term_name, -p_value)))+
+  geom_bar(stat = 'identity')+
+  theme_classic()+
+  theme(text = element_text(size = 15))+
+  ylab('')
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #### DEGs between each infected cluster and mock #####
@@ -663,3 +687,66 @@ FeaturePlot(wt_cerebrum_microglia, features = 'apoptosis', reduction = 'micro.um
 
 VlnPlot(wt_cerebrum_microglia, features = 'apoptosis', pt.size = 0, group.by = 'infected_clusters')+
   ggtitle('Hallmark apoptosis')
+
+# - - - - - - - - - - - - - - - - - - - - - - 
+#### Random genes of interest to infection ####
+# - - - - - - - - - - - - - - - - - - - - - - 
+#chemokines
+chemokine_markers <- c('Ccl2', 'Ccl5', 'Ccl12', 'Cxcl10')
+chemo_dot <- DotPlot(wt_cerebrum_microglia, features = chemokine_markers, group.by = 'infected_clusters', scale = FALSE)$data
+chemo_dot$id = factor(chemo_dot$id, levels = c('mock', '0', '1', '2', '3', '4'))
+
+ggplot(chemo_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Chemokines')
+
+FeaturePlot(wt_cerebrum_microglia, features = 'Ccl12', reduction = 'micro.umap')+
+  ggtitle('Ccl12')
+
+#mhc 2 proteins
+mhc2 = c("H2-Aa",  "H2-Ab1",  "H2-DMa",  "H2-DMb1", "H2-DMb2" ,"H2-Eb1" )
+
+mhc2_dot <- DotPlot(wt_cerebrum_microglia, features = mhc2, group.by = 'infected_clusters', scale = FALSE)$data
+mhc2_dot$id = factor(mhc2_dot$id, levels = c('mock', '0', '1', '2', '3', '4'))
+
+ggplot(mhc2_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('mhc2')
+
+FeaturePlot(wt_cerebrum_microglia, features = 'Ccl12', reduction = 'micro.umap')+
+  ggtitle('Ccl12')
+
+#ISGs (some from https://link.springer.com/article/10.1186/s12974-025-03471-x#Sec27)
+isg_list = c('Tnf', 'Il1b', 'Isg15')
+
+isg_dot <- DotPlot(wt_cerebrum_microglia, features = isg_list, group.by = 'infected_clusters', scale = FALSE)$data
+isg_dot$id = factor(isg_dot$id, levels = c('mock', '0', '1', '2', '3', '4'))
+
+ggplot(isg_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('isgs')
+
+FeaturePlot(wt_cerebrum_microglia, features = 'Tnf', reduction = 'micro.umap')+
+  ggtitle('Tnf')
+
+#F480 plot
+FeaturePlot(wt_cerebrum_microglia, features = 'Adgre1', reduction = 'micro.umap')+
+  ggtitle('F4/80')
+
+DotPlot(wt_cerebrum_microglia, features = 'Adgre1', group.by = 'infected_clusters', scale = FALSE)$data %>% 
+  dplyr::mutate(id = factor(id, levels = c('mock', '0', '1', '2', '3', '4'))) %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('F4/80')

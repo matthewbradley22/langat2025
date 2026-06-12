@@ -437,5 +437,77 @@ lrp8_dat_time %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'time'
                        values = c(1.0,0.7,0.4,0))+
   theme_classic()
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#### Cell proportions of resident celltypes only ####
+# - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
+#Split data for plotting
+resident_cell_types <- c('Endothelial', 'Microglia', 'Oligodendrocytes', 'Astrocytes',
+                         'Ependymal', 'Neurons', 'Choroid Plexus', 'Immature Neurons', 'Pericytes',
+                         'Muscle cells')
+
+chLgtv_ips_res <- subset(chimeric_mock, Treatment == 'rChLGTV' & Genotype == 'IPS1' & manualAnnotation %in% resident_cell_types)
+chLgtv_wt_res <- subset(chimeric_mock, Treatment == 'rChLGTV' & Genotype == 'WT' & manualAnnotation %in% resident_cell_types)
+mock_ips_res <- subset(chimeric_mock, Treatment == 'PBS'  & Genotype == 'IPS1' & manualAnnotation %in% resident_cell_types)
+mock_wt_res <- subset(chimeric_mock, Treatment == 'PBS'  & Genotype == 'WT'& manualAnnotation %in% resident_cell_types)
+
+table(chLgtv_ips_res$Timepoint, chLgtv_ips_res$manualAnnotation) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = umap_color_list)+
+  theme_classic()+
+  theme(legend.position = 'none',
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
+  xlab('')+
+  ggtitle('ChLGTV IPS1')+
+  ylab('Proportion of cells')
+
+table(chLgtv_wt_res$Timepoint, chLgtv_wt_res$manualAnnotation) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = umap_color_list)+
+  theme_classic()+
+  theme(legend.position = 'none',
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
+  xlab('')+
+  ggtitle('ChLGTV WT')+
+  ylab('Proportion of cells')
+
+table(mock_ips_res$Timepoint, mock_ips_res$manualAnnotation) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = umap_color_list)+
+  theme_classic()+
+  theme(legend.position = 'none',
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
+  xlab('')+
+  ggtitle('Mock IPS')+
+  ylab('Proportion of cells')
+
+table(mock_wt_res$Timepoint, mock_wt_res$manualAnnotation) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = umap_color_list)+
+  theme_classic()+
+  theme(legend.position = 'none',
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
+  xlab('')+
+  ggtitle('Mock WT')+
+  ylab('Proportion of cells')
 
