@@ -966,9 +966,12 @@ FeaturePlot(mac_m1_knn, features = 'M1_signature_UCell_kNN', reduction = 'wt.inf
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #Genes upregulated in sdcam2 / suspected to come from infiltrating cells
-plotList_mhc <- lapply(c(mhc_2_macs, 'Cd74', 'Fxyd5', 'Lgals3', 'Ccr2'), featurePlotLight, data = macrophages_wt_infected, 
+plotList_mhc <- lapply(c(mhc_2_macs, 'H2-D1','Cd74', 'Fxyd5', 'Lgals3', 'Ccr2'), featurePlotLight, data = macrophages_wt_infected, 
                        reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
 do.call(ggarrange, c(plotList_mhc, common.legend = TRUE, legend = 'right'))
+
+DotPlot(macrophages_wt_infected, features = c(mhc_2_macs, 'Cd74', 'Fxyd5', 'Lgals3', 'Ccr2'), group.by = 'Timepoint', scale = FALSE)+
+  coord_flip()
 
 #Genes upregulated in other sdcam groups, indicative of CAMs
 plotList_sdcam1 <- lapply(c('Mrc1', 'Pf4', 'Lyve1', 'Folr2', 'Cd163',
@@ -998,3 +1001,5 @@ sdcam_markers <- lapply(c('Cd163' , 'Lyve1', 'C4b'), featurePlotLight, data = ma
                       reduction_choice = 'wt.infected.mac.umap', maxLim = 3)
 do.call(ggarrange, c(sdcam_markers, common.legend = TRUE, legend = 'right'))
 
+#HSV gene list
+hsv_gene_list <- read_csv("~/Documents/ÖverbyLab/for_anna_plots/hsv_gene_list.csv")

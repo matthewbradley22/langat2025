@@ -39,15 +39,23 @@ DimPlot(chimeric_mock, label = FALSE, group.by = 'manualAnnotation', reduction =
   theme(axis.ticks = element_blank(),
         axis.text=element_blank(),
         legend.text=element_text(size=24))+
+  guides(color=guide_legend(override.aes=list(size=8)))+
+  theme_void()+
+  ggtitle('')+
   xlab('Umap1')+
   ylab('Umap2')+
-  guides(color=guide_legend(override.aes=list(size=8)))+
-  ggtitle('')
+  theme(axis.title.x = element_text(hjust = 0.03, vjust = 2.5, size = 25),
+        axis.title.y = element_text(hjust = 0.04, vjust = -0.1, angle=90, size = 25),
+        legend.text = element_text(size = 19))+
+  annotate("segment", x =-13, xend = -7, y = -15, yend = -15, linewidth = 0.8, arrow = arrow(type = "closed", length = unit(0.05, "npc")))+
+  annotate("segment", x =-13, xend = -13, y = -15, yend = -8, linewidth = 0.8, arrow = arrow(type = "closed", length = unit(0.05, "npc")))
 dev.off()
 
 #Split data for plotting
 chLgtv_ips <- subset(chimeric_mock, Treatment == 'rChLGTV' & Genotype == 'IPS1')
 chLgtv_wt <- subset(chimeric_mock, Treatment == 'rChLGTV' & Genotype == 'WT')
+Lgtv_ips <- subset(ParseSeuratObj_int, Treatment == 'rLGTV' & Genotype == 'IPS1' & manualAnnotation != 'unknown' )
+Lgtv_wt <- subset(ParseSeuratObj_int, Treatment == 'rLGTV' & Genotype == 'WT' & manualAnnotation != 'unknown')
 mock_ips <- subset(chimeric_mock, Treatment == 'PBS'  & Genotype == 'IPS1')
 mock_wt <- subset(chimeric_mock, Treatment == 'PBS'  & Genotype == 'WT')
 
@@ -126,6 +134,7 @@ dev.off()
 chimeric_mock_organ_counts <- chimeric_mock[[]] %>% 
   group_by(Genotype, Treatment, Organ) %>% 
   dplyr::summarise(cell_count = n()) 
+chimeric_mock_organ_counts$Genotype = factor(chimeric_mock_organ_counts$Genotype, levels = c('WT', 'IPS1'))
 
 pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cerebrum_cellPopBars.pdf", width = 5, height = 8)
 chimeric_mock_organ_counts %>% 
@@ -134,7 +143,7 @@ chimeric_mock_organ_counts %>%
   geom_bar(stat = 'identity', position = 'dodge', color = 'black')+
   xlab('')+
   ylab('cell count')+
-  scale_fill_manual(values = c(umap_color_list[4], '#E36F39'))+
+  scale_fill_manual(values = c('#E36F39', umap_color_list[4]))+
   theme_classic()+
   theme(text = element_text(size = 22))+
   ggtitle('Cerebrum')+
@@ -148,7 +157,7 @@ chimeric_mock_organ_counts %>%
   geom_bar(stat = 'identity', position = 'dodge', color = 'black')+
   xlab('')+
   ylab('cell count')+
-  scale_fill_manual(values = c(umap_color_list[4], '#E36F39'))+
+  scale_fill_manual(values = c('#E36F39', umap_color_list[4]))+
   theme_classic()+
   theme(text = element_text(size = 22))+
   ggtitle('Cerebellum')+
@@ -261,6 +270,7 @@ neo_data_to_plot <- left_join(ParseBarcodePlate, final_neo_count, by = 'orig_id'
 neo_data_to_plot$total_reads[is.na(neo_data_to_plot$total_reads)] <- 0
 neo_data_to_plot_chimeric <- dplyr::filter(neo_data_to_plot, Treatment != 'rLGTV')
 neo_data_to_plot_chimeric$treatment_geno = paste(neo_data_to_plot_chimeric$Treatment, neo_data_to_plot_chimeric$Genotype, sep = '_')
+neo_data_to_plot_chimeric$treatment_geno <- factor(neo_data_to_plot_chimeric$treatment_geno, levels = c('PBS_WT', 'rChLGTV_WT', 'PBS_IPS1', 'rChLGTV_IPS1'))
 neo_data_to_plot_chimeric$well_numbered <- factor(seq(1:nrow(neo_data_to_plot_chimeric)))
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/neomycin_levels_dot.pdf', height = 6, width = 10)
@@ -274,7 +284,7 @@ ggplot(neo_data_to_plot_chimeric, aes(x = well_numbered, y = total_reads, fill =
   theme(text = element_text(size = 24),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank())+
-  scale_fill_manual(values = c('#39B6E3', '#E35539', '#3986E3', '#E36F39'))+
+  scale_fill_manual(values = c( '#E36F39', '#E35539', '#39B6E3', '#3986E3'))+
   ylab('Total Neo reads')+
   xlab('Well')
 dev.off()
@@ -329,7 +339,7 @@ wt_chimeric_macs[[]] %>%
   dplyr::mutate(Genotype = factor(Genotype, levels = c('WT', 'IPS1')),
                 treatment_time_to_plot = factor(treatment_time_to_plot, levels = c('PBS', 'Day 3', 'Day 4', 'Day 5'))) %>% 
   ggplot(aes(x = treatment_time_to_plot, y = (cell_count), fill = Genotype))+
-  geom_bar(stat = 'identity', position = 'dodge', color = '#074F00', width =  0.6, linewidth	= 1.3)+
+  geom_bar(stat = 'identity', position = 'dodge', color = 'black', width =  0.6, linewidth	= 1)+
   facet_wrap(~manualAnnotation, nrow = 1) +
   theme_classic()+
   theme(text = element_text(size = 24),
@@ -448,16 +458,19 @@ resident_cell_types <- c('Endothelial', 'Microglia', 'Oligodendrocytes', 'Astroc
 
 chLgtv_ips_res <- subset(chimeric_mock, Treatment == 'rChLGTV' & Genotype == 'IPS1' & manualAnnotation %in% resident_cell_types)
 chLgtv_wt_res <- subset(chimeric_mock, Treatment == 'rChLGTV' & Genotype == 'WT' & manualAnnotation %in% resident_cell_types)
+Lgtv_wt_res <- subset(Lgtv_wt,  manualAnnotation %in% resident_cell_types)
+Lgtv_ips_res <- subset(Lgtv_ips, manualAnnotation %in% resident_cell_types)
 mock_ips_res <- subset(chimeric_mock, Treatment == 'PBS'  & Genotype == 'IPS1' & manualAnnotation %in% resident_cell_types)
 mock_wt_res <- subset(chimeric_mock, Treatment == 'PBS'  & Genotype == 'WT'& manualAnnotation %in% resident_cell_types)
 
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/infected_resident_ips_props.pdf", width = 5, height = 8)
 table(chLgtv_ips_res$Timepoint, chLgtv_ips_res$manualAnnotation) %>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
   scale_fill_manual(values = umap_color_list)+
   theme_classic()+
-  theme(legend.position = 'none',
+  theme(
         axis.text.x = element_text(size = 22),
         axis.text.y = element_text(size = 22),
         axis.title=element_text(size=22),
@@ -465,21 +478,25 @@ table(chLgtv_ips_res$Timepoint, chLgtv_ips_res$manualAnnotation) %>%
   xlab('')+
   ggtitle('ChLGTV IPS1')+
   ylab('Proportion of cells')
+dev.off()
 
-table(chLgtv_wt_res$Timepoint, chLgtv_wt_res$manualAnnotation) %>% 
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/infected_resident_wt_props.pdf", width = 5, height = 8)
+table(Lgtv_ips_res$Timepoint, Lgtv_ips_res$manualAnnotation) %>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
   ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
   geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
   scale_fill_manual(values = umap_color_list)+
   theme_classic()+
-  theme(legend.position = 'none',
+  theme(
         axis.text.x = element_text(size = 22),
         axis.text.y = element_text(size = 22),
         axis.title=element_text(size=22),
         plot.title = element_text(size = 22))+
   xlab('')+
-  ggtitle('ChLGTV WT')+
+  ggtitle('LGTV IPS')+
   ylab('Proportion of cells')
+
+
 
 table(mock_ips_res$Timepoint, mock_ips_res$manualAnnotation) %>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
@@ -495,6 +512,7 @@ table(mock_ips_res$Timepoint, mock_ips_res$manualAnnotation) %>%
   xlab('')+
   ggtitle('Mock IPS')+
   ylab('Proportion of cells')
+dev.off()
 
 table(mock_wt_res$Timepoint, mock_wt_res$manualAnnotation) %>% 
   as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 

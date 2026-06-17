@@ -263,21 +263,22 @@ sum(!ips_five_astro_isgs  %in% wt_five_astro_isgs)
 #Heatmap all isgs by genotype
 wt_infected <- subset(wt, Treatment == 'rChLGTV')
 tiff("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/wt_all_isg_heatmap.tiff", width = 700, height = 1800)
-DoHeatmap(wt_infected, features = all_ISGs_type1, group.by = 'Timepoint', slot = 'data')+
+DoHeatmap(wt_infected, features = all_ISGs_type1, group.by = 'Timepoint', slot = 'data', size = 16)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0))
+                       values = c(1.0,0.7,0.4,0), limits = c(0, 6.1))+
+  theme(plot.title = element_text(size = 1))
 dev.off()
 
 ips_infected <- subset(ips, Treatment == 'rChLGTV')
 tiff("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/ips_all_isg_heatmap.tiff", width = 700, height = 1800)
-DoHeatmap(ips_infected, features = all_ISGs_type1, group.by = 'Timepoint', slot = 'data')+
+DoHeatmap(ips_infected, features = all_ISGs_type1, group.by = 'Timepoint', slot = 'data', size = 16)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0))
+                       values = c(1.0,0.7,0.4,0), limits = c(0, 6.1))
 dev.off()
 
 pbs <- subset(ParseSeuratObj_int, Treatment %in% c('PBS'))
 tiff("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/pbs_all_isg_heatmap.tiff", width = 700, height = 1800)
-DoHeatmap(pbs, features = all_ISGs_type1, group.by = 'Timepoint', slot = 'data')+
+DoHeatmap(pbs, features = all_ISGs_type1, group.by = 'Timepoint', slot = 'data', size = 16)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                       values = c(1.0,0.7,0.4,0))
+                       values = c(1.0,0.7,0.4,0), limits = c(0, 6.1))
 dev.off()

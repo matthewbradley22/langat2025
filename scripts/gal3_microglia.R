@@ -709,7 +709,7 @@ FeaturePlot(wt_cerebrum_microglia, features = 'Ccl12', reduction = 'micro.umap')
 #mhc 2 proteins
 mhc2 = c("H2-Aa",  "H2-Ab1",  "H2-DMa",  "H2-DMb1", "H2-DMb2" ,"H2-Eb1" )
 
-mhc2_dot <- DotPlot(wt_cerebrum_microglia, features = mhc2, group.by = 'infected_clusters', scale = FALSE)$data
+mhc2_dot <- DotPlot(wt_cerebrum_microglia, features = mhc2, group.by = 'treatment_time', scale = FALSE)$data
 mhc2_dot$id = factor(mhc2_dot$id, levels = c('mock', '0', '1', '2', '3', '4'))
 
 ggplot(mhc2_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
@@ -719,8 +719,8 @@ ggplot(mhc2_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pc
                        values = c(0, 0.3, 0.6, 1))+
   ggtitle('mhc2')
 
-FeaturePlot(wt_cerebrum_microglia, features = 'Ccl12', reduction = 'micro.umap')+
-  ggtitle('Ccl12')
+FeaturePlot(wt_cerebrum_microglia, features = 'H2-D1', reduction = 'micro.umap')+
+  ggtitle('H2-D1')
 
 #ISGs (some from https://link.springer.com/article/10.1186/s12974-025-03471-x#Sec27)
 isg_list = c('Tnf', 'Il1b', 'Isg15')
@@ -750,3 +750,25 @@ DotPlot(wt_cerebrum_microglia, features = 'Adgre1', group.by = 'infected_cluster
   scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
                        values = c(0, 0.3, 0.6, 1))+
   ggtitle('F4/80')
+
+#Microglia cluster 14 score
+microglia_clust_14 <- dplyr::filter(hsv_gene_list, cluster == 14 & celltype == 'Microglia') %>% dplyr::pull(gene)
+
+wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, features = list(clust14 = microglia_clust_14), name = 'hsv_clust_14_score')
+wt_cerebrum_microglia$treatment_time <- paste(wt_cerebrum_microglia$Treatment, wt_cerebrum_microglia$Timepoint, sep = '_')
+
+DotPlot(wt_cerebrum_microglia, features = 'clust14hsv_clust_14_score', group.by = 'treatment_time', scale = FALSE)$data %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled))+
+  geom_tile()+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Clust 14 scores')
+
+VlnPlot(wt_cerebrum_microglia,  features = 'clust14hsv_clust_14_score', group.by = 'treatment_time', pt.size = 0)
+FeaturePlot(wt_cerebrum_microglia, reduction = 'micro.umap', features = 'clust14hsv_clust_14_score')
+  ggtitle('Microglia')+
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())+
+  ylab('UMAP2')+
+  xlab('UMAP1')
