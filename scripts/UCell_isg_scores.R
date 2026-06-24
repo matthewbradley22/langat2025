@@ -282,3 +282,11 @@ DoHeatmap(pbs, features = all_ISGs_type1, group.by = 'Timepoint', slot = 'data',
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0), limits = c(0, 6.1))
 dev.off()
+
+#Saving one as pdf to get a clear scale bar for figure
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/ips_all_isg_heatmap.pdf", width = 7, height = 18)
+DoHeatmap(wt_infected, features = all_ISGs_type1, group.by = 'Timepoint', slot = 'data', size = 16)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0), limits = c(0, 6.1))+
+  theme(plot.title = element_text(size = 1))
+dev.off()

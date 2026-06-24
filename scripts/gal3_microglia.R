@@ -255,9 +255,9 @@ ggplot(neg_regulation_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled,
   ggtitle('Anti inflammatory')
 
 
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#- - - - - - - - - - - - - - - - - - - - - 
 #### DEGs between infected clusters #####
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#- - - - - - - - - - - - - - - - - - - - - 
 
 #Infected microglia cluster markers and paths
 infected_clust_markers <- FindAllMarkers(microglia_infected, group.by = 'seurat_clusters', 
@@ -381,6 +381,20 @@ for(i in levels(wt_cerebrum_microglia$infected_clusters)){
 #Name list elements 
 names(deg_vs_mock_list) = paste('cluster',  levels(wt_cerebrum_microglia$infected_clusters)[1:5])
 
+num_sig_genes <- lapply(deg_vs_mock_list, FUN = function(x){
+  sig_x <- dplyr::filter(x, p_val_adj < 0.01 & avg_log2FC > 1)
+  nrow(sig_x)
+})
+
+as.data.frame(num_sig_genes) %>% t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = 'group') %>% 
+  ggplot(aes(x = group, y = V1))+
+  geom_bar(stat = 'identity', , color = 'black', fill ='lightgrey')+
+  ylab('Num Upregulated DEGs')+
+  xlab('Cluster')+
+  theme_classic()
+
 #Look at pathways
 path_vs_mock_list = list()
 for(i in 1:length(deg_vs_mock_list)){
@@ -418,6 +432,29 @@ for(i in 1:length(path_vs_mock_list)){
   dev.off()
 }
 
+# Look at genes differntially expressed between infected clusters,
+#as well as between the given cluster and mock.
+
+sig_vs_all <- list()
+for(i in 0:4){
+  clust_vs_infected <- dplyr::filter(infected_clust_markers, cluster == i & avg_log2FC > 1 & p_val_adj < 0.01)
+  clust_vs_mock <-dplyr::filter(deg_vs_mock_list[[i+1]], avg_log2FC > 1 & p_val_adj < 0.01)
+  clust_sig <- clust_vs_infected[rownames(clust_vs_infected) %in% rownames(clust_vs_mock),]
+  sig_vs_all[[length(sig_vs_all) + 1]] = clust_sig
+}
+
+top_sig_genes <- unlist(lapply(sig_vs_all, FUN = function(x){
+  rownames(head(x, n = 3))
+}))
+
+top_sig_genes_dot <- DotPlot(wt_cerebrum_microglia, features = top_sig_genes, group.by = 'infected_clusters', scale = FALSE)$data
+top_sig_genes_dot$id = factor(top_sig_genes_dot$id, levels = rev(c('mock', '0', '1', '2', '3', '4')))
+
+ggplot(top_sig_genes_dot, aes(x = features.plot, y = id, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0))+
+  theme_classic()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #### DEGs between each infected cluster and all cells including mock #####
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -673,7 +710,7 @@ DotPlot(wt_cerebrum_microglia, features = 'Cybb', group.by = 'infected_clusters'
                        values = c(0, 0.3, 0.6, 1))+
   ggtitle('Cybb')
 
-# - - - - - - - - - - - - - - - - - -
+# - - - -- - - - - - - - - - - - - -
 #### Hallmark apoptosis genes ####
 # - - - - - - - - - - - - - - - - - - 
 gene_sets <- msigdbr(species = "mouse", db_species = "MM")
@@ -772,3 +809,21 @@ FeaturePlot(wt_cerebrum_microglia, reduction = 'micro.umap', features = 'clust14
         axis.ticks = element_blank())+
   ylab('UMAP2')+
   xlab('UMAP1')
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#### Pathways from https://www.sciencedirect.com/science/article/pii/S0896627325008037#sec2 ####
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+#Homeostatic
+plotList_homeo <- lapply(c('Tmem119', 'Cx3cr1'), featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 5.5)
+do.call(ggarrange, c(plotList_homeo, common.legend = TRUE, legend = 'right'))
+
+#inflammatory
+plotList_inf <- lapply(c('Nfkb1', 'Il1b'), featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 5.5)
+do.call(ggarrange, c(plotList_inf, common.legend = TRUE, legend = 'right'))
+
+#stress
+plotList_stress <- lapply(c('Hsph1', 'Hspd1'), featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 5.5)
+do.call(ggarrange, c(plotList_stress, common.legend = TRUE, legend = 'right'))
+
+FeaturePlot(wt_cerebrum_microglia, features = 'C5ar1', reduction = 'micro.umap')

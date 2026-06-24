@@ -5,6 +5,7 @@ library(UpSetR)
 library(ggplot2)
 library(stringr)
 library(tidyr)
+library(gprofiler2)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -233,8 +234,9 @@ DotPlot(ependymal, features = c('Cxcl10'), scale = FALSE,
         group.by = 'geno_timepoint_treatment')+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.8))
 
-######### Look at number of degs by celltype ############
-## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+# - - - - - - - - - - - - - - - - - - - - - - - -
+###### Look at number of degs by celltype #######
+# - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 #Pseudobulk comparison of celltype number of degs between infected and uninfected - split between genotypes to reduce time
@@ -307,8 +309,9 @@ num_markers_df %>% tidyr::pivot_longer(cols = tidyr::starts_with('degs'), names_
   ggtitle('Total DEGs per celltype')
 
 
-###### Infected astrocytes vs other cell types #######
-## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - 
+###### Infected astrocytes vs other cell types ######
+# - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 #Can look at degs in astrocytes in mock mice, the infected,
 #then compare which genes are upregulated in infection but not mock
@@ -359,8 +362,9 @@ DimPlot(astrocytes_cerebellum, reduction = 'astrocytes_cerebellum_umap', group.b
   ylab('')+
   ggtitle('Cerebellum Astrocytes')
 
-######### Genes upregulated by celltype for upsetplot ##########
-## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+####### Genes upregulated by celltype for upsetplot ########
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 wt_chimeric <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment %in% c('PBS', 'rChLGTV'))
 ips_chimeric <- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment %in% c('PBS', 'rChLGTV'))
@@ -594,24 +598,24 @@ upset_dat_wt_five <- generate_upset_dat(wt_five_degs)
 upset_dat_ips_three <- generate_upset_dat(ips_three_degs)
 upset_dat_ips_five <- generate_upset_dat(ips_five_degs)
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_three_upset.pdf', height = 8, width = 13, onefile = FALSE)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_three_upset.pdf', height = 9, width = 11, onefile = FALSE)
 UpSetR::upset(upset_dat_wt_three, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
-              nintersects = 8)
+              nintersects = 5)
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_five_upset.pdf', height = 8, width = 13, onefile = FALSE)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_five_upset.pdf', height = 8, width = 11, onefile = FALSE)
 UpSetR::upset(upset_dat_wt_five, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
-              nintersects = 8)
+              nintersects = 5)
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_three_upset.pdf', height = 8, width = 13, onefile = FALSE)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_three_upset.pdf', height = 8, width = 11, onefile = FALSE)
 UpSetR::upset(upset_dat_ips_three, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
-              nintersects = 8)
+              nintersects = 5)
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_five_upset.pdf', height = 8, width = 13, onefile = FALSE)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_five_upset.pdf', height = 8, width = 11, onefile = FALSE)
 UpSetR::upset(upset_dat_ips_five, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
-              nintersects = 8)
+              nintersects = 5)
 dev.off()
 
 #Regenerate upset data manually in order to run pathway analyses on gene lists
@@ -692,40 +696,50 @@ names(ips_upset_five_gene_groups) = ips_cell_five_groupings
 
 #Run pathway analysis
 wt_upset_pathways <- lapply(wt_upset_gene_groups, FUN = function(x){
-  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP'))
 })
 names(wt_upset_pathways) <- c('micro', 'endo', 'common', 'astro', 'epen', 'cp')
 
 ips_upset_pathways <- lapply(ips_upset_gene_groups, FUN = function(x){
-  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP'))
 })
 names(ips_upset_pathways) <- c('micro', 'epen', 'astro', 'endo', 'common', 'micro_macro')
 
 wt_upset_five_pathways <- lapply(wt_upset_five_gene_groups, FUN = function(x){
-  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP'))
 })
 names(wt_upset_five_pathways) <- c('micro', 'epen', 'cp', 'common', 'endo', 'macro')
 
 ips_upset_five_pathways <- lapply(ips_upset_five_gene_groups, FUN = function(x){
-  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+  gprofiler2::gost(query = x, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP'))
 })
 names(ips_upset_five_pathways) <- c('micro', 'endo', 'astro', 'cp', 'common', 'macro')
 
 #Map function easier than lapply for me to keep names as a column
-top_paths_by_celltype <- function(data_name, cell_labels){
+top_paths_by_celltype <- function(data_name, cell_labels, num_paths = 5, unique_intersections = FALSE){
   dat <- Map(function(df,name){
-    df_final <- head(df$result[c('term_name', 'p_value', 'intersection_size')], n = 5)
+    #Unique intersections will only return pathways that do not share the exact same gene set
+    if(unique_intersections){
+      if(length(df) > 0){
+        df <- df$result %>% dplyr::group_by(intersection) %>%  
+          dplyr::slice_head(n = 1) %>% dplyr::arrange(p_value)
+      }
+    }else{
+      df <- df$result
+    }
+    df_final <- head(df[c('term_name', 'p_value', 'intersection_size')], n = num_paths)
     df_final$source = name
     df_final
   }, data_name, cell_labels)
+  
   return(dat)
 }
 
 #Get top paths by gene grouping for each time genotype group
-select_path_columns <- top_paths_by_celltype(wt_upset_pathways, names(wt_upset_pathways))
-select_path_columns_ips <- top_paths_by_celltype(ips_upset_pathways, names(ips_upset_pathways))
-select_path_columns_five <- top_paths_by_celltype(wt_upset_five_pathways, names(wt_upset_five_pathways))
-select_path_columns_ips_five <- top_paths_by_celltype(ips_upset_five_pathways, names(ips_upset_five_pathways))
+select_path_columns <- top_paths_by_celltype(wt_upset_pathways, names(wt_upset_pathways), num_paths = 3, unique_intersections = TRUE)
+select_path_columns_ips <- top_paths_by_celltype(ips_upset_pathways, names(ips_upset_pathways),  num_paths = 3, unique_intersections = TRUE)
+select_path_columns_five <- top_paths_by_celltype(wt_upset_five_pathways, names(wt_upset_five_pathways), num_paths = 3, unique_intersections = TRUE)
+select_path_columns_ips_five <- top_paths_by_celltype(ips_upset_five_pathways, names(ips_upset_five_pathways), num_paths = 3, unique_intersections = TRUE)
 
 #No endothelial paths, make blank df
 select_path_columns_ips$endo <- data.frame(term_name = '', p_value =1, intersection_size=0, source = 'endo')
@@ -780,20 +794,20 @@ common_gene_plot <- function(dat){
   plot(p1)
 }
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day3_wt_common_paths.pdf', height = 4, width = 8)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day3_wt_common_paths.pdf', height = 4, width = 7)
 common_gene_plot(wt_common)
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day3_ips_common_paths.pdf', height = 4, width = 8)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day3_ips_common_paths.pdf', height = 4, width = 7)
 common_gene_plot(ips_common)
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day5_wt_common_paths.pdf', height = 4, width = 8)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day5_wt_common_paths.pdf', height = 4, width = 7)
 common_gene_plot(wt_five_common)
 dev.off()
 
 #Change name to fit plot better
-ips_five_common$term_name[4] = 'interspecies interaction between organisms'
+#ips_five_common$term_name[4] = 'interspecies interaction between organisms'
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/timepont_fig/day5_ips_common_paths.pdf', height = 4, width = 8)
 common_gene_plot(ips_five_common)
 dev.off()

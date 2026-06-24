@@ -1,0 +1,625 @@
+#Function code taken from https://github.com/neurorestore/Augur/blob/master/R/calculate_auc.R
+library(tester)
+library(parallel)
+library(purrr)
+
+input = cerebrum_lgtv_wt
+meta = NULL
+label_col = "label"
+cell_type_col = "cell_type"
+n_subsamples = 50
+subsample_size = 20
+folds = 3
+min_cells = NULL
+var_quantile = 0.5
+feature_perc = 0.5
+n_threads = 4
+show_progress = T
+select_var = T
+augur_mode = c('default', 'velocity', 'permute')
+classifier = c("rf", "lr")
+# random forest parameters
+rf_params = list(trees = 100,
+                 mtry = 2,
+                 min_n = NULL,
+                 importance = 'accuracy')
+# logistic regression parameters
+lr_params = list(mixture = 1, penalty = 'auto')
+
+#Keeping above vectors with same names to remember options 
+classifier = 'rf'
+augur_mode = c('default')
+
+  # check number of folds/subsample size are compatible (n > 1 in every fold)
+  if (n_subsamples > 1 & subsample_size / folds < 2) {
+    stop("subsample_size / n_folds must be greater than or equal to 2")
+  }
+  # make sure regression is only used with random rand_forest
+  if (is.null(min_cells)) {
+    min_cells = subsample_size
+  }
+  
+  # check glmnet is installed for logistic regression
+  if (classifier == 'lr' && !requireNamespace("glmnet", quietly = TRUE)) {
+    stop("install \"glmnet\" R package to run Augur with logistic regression ",
+         "classifier", call. = FALSE)
+  }
+  
+  # extract cell types and label from metadata
+  if ("Seurat" %in% class(input)) {
+    # confirm Seurat is installed
+    if (!requireNamespace("Seurat", quietly = TRUE)) {
+      stop("install \"Seurat\" R package for Augur compatibility with ",
+           "input Seurat object", call. = FALSE)
+    }
+    
+    meta = input@meta.data %>%
+      droplevels()
+    cell_types = meta[[cell_type_col]]
+    labels = meta[[label_col]]
+    expr = Seurat::GetAssayData(input)
+    
+    # print default assay
+    default_assay = Seurat::DefaultAssay(input)
+    message("using default assay: ", default_assay, " ...")
+  } else if ("cell_data_set" %in% class(input)) {
+    # confirm monocle3 is installed
+    if (!requireNamespace("monocle3", quietly = TRUE)) {
+      stop("install \"monocle3\" R package for Augur compatibility with ",
+           "input monocle3 object", call. = FALSE)
+    }
+    
+    meta = monocle3::pData(input) %>%
+      droplevels() %>%
+      as.data.frame()
+    cell_types = meta[[cell_type_col]]
+    labels = meta[[label_col]]
+    expr = monocle3::exprs(input)
+  } else if ("SingleCellExperiment" %in% class(input)){
+    # confirm SingleCellExperiment is installed
+    if (!requireNamespace("SingleCellExperiment", quietly = TRUE)) {
+      stop("install \"SingleCellExperiment\" R package for Augur ",
+           "compatibility with input SingleCellExperiment object",
+           call. = FALSE)
+    }
+    
+    meta = SummarizedExperiment::colData(input) %>%
+      droplevels() %>%
+      as.data.frame()
+    cell_types = meta[[cell_type_col]]
+    labels = meta[[label_col]]
+    expr = SummarizedExperiment::assay(input)
+  } else {
+    # data frame or matrix plus metadata data frame
+    if (is.null(meta)) {
+      stop("must provide metadata if not supplying a Seurat or monocle object")
+    }
+    
+    # check if input is sparse matrix or numberic matrix/df
+    valid_input = is(input, 'sparseMatrix') ||
+      tester::is_numeric_matrix(input) ||
+      tester::is_numeric_dataframe(input)
+    if (!valid_input){
+      stop("input must be Seurat, monocle, sparse matrix, numeric matrix, or ",
+           "numeric data frame")
+    }
+    
+    
+    # extract columns
+    expr = input
+    meta %<>% droplevels()
+    cell_types = meta[[cell_type_col]]
+    labels = meta[[label_col]]
+  }
+  
+  # label factor doesn't matter anyway
+  if (!is.numeric(meta[[label_col]])) {
+    meta[[label_col]] = as.factor(as.character(meta[[label_col]]))
+    labels = meta[[label_col]]
+  }
+  
+  # check dimensions are non-zero
+  if (length(dim(expr)) != 2 || !all(dim(expr) > 0)) {
+    stop("expression matrix has at least one dimension of size zero")
+  }
+  
+  # check dimensions match
+  n_cells1 = nrow(meta)
+  n_cells2 = ncol(expr)
+  if (n_cells1 != n_cells2) {
+    stop("number of cells in metadata (", n_cells1, ") does not match number ",
+         "of cells in expression (", n_cells2, ")")
+  }
+  
+  # check at least two labels
+  if (n_distinct(labels) == 1) {
+    stop("only one label provided: ", unique(labels))
+  }
+  
+  # check for missing labels or cell types
+  if (any(is.na(labels))) {
+    stop("labels contain ", sum(is.na(labels)), "missing values")
+  }
+  if (any(is.na(cell_types))) {
+    stop("cell types contain ", sum(is.na(cell_types)), "missing values")
+  }
+  
+  # make sure `label` is not a rowname in `input` (feature in RF)
+  if ("label" %in% rownames(expr)) {
+    warning("row `label` exists in input; changing ...")
+    to_fix = which(rownames(expr) == "label")
+    rownames(expr)[to_fix] = paste0("label", seq_along(rownames(expr)[to_fix]))
+  }
+  
+  # fix column names that ranger can't handle
+  ## (here, they are still rows)
+  rf_engine = "randomForest" ## set to randomForest - don't use ranger
+  if (classifier == "rf" && rf_engine == "ranger") {
+    invalid_rows = any(grepl("-|\\.|\\(|\\)", rownames(expr)))
+    if (invalid_rows) {
+      warning("classifier `rf` with engine `ranger` cannot handle characters ",
+              "-.() in column names; replacing ...")
+      expr %<>% set_rownames(gsub("-|\\.|\\(|\\)", "", rownames(.)))
+    }
+  }
+  
+  # remove missing values
+  missing = is.na(expr)
+  if (any(missing)) {
+    stop("matrix contains ", sum(missing), "missing values")
+  }
+  
+  # detect mode
+  if (is.numeric(labels)) {
+    mode = "regression"
+    multiclass = F
+    
+    # throw a warning if there are only three or less values
+    if (n_distinct(labels) <= 3) {
+      warning("doing regression with only ", n_distinct(labels),
+              " unique values")
+    }
+  } else {
+    mode = "classification"
+    
+    # check whether we are working with multiclass data
+    multiclass = n_distinct(labels) > 2
+    # check classifier is compatible with classification problem
+    if (multiclass & classifier == "lr") {
+      stop("multi-class classification with classifier = 'lr' is currently not ",
+           "supported in tidymodels `logistic_reg`")
+    }
+    
+    # make sure y is a factor if doing classification
+    if (!is.factor(labels)) {
+      warning("coercing labels to factor ...")
+      labels %<>% as.factor()
+    }
+  }
+  
+  # check if showing progress or not
+  if (show_progress == T) {
+    apply_fun = pbmclapply
+  } else {
+    apply_fun = mclapply
+  }
+  
+  # check augur mode
+  if (augur_mode == 'velocity') {
+    # reset feature selection
+    message("disabling feature selection for augur_mode=\"velocity\" ...")
+    feature_perc = 1
+    var_quantile = 1
+  } else if (augur_mode == 'permute' & n_subsamples < 100) {
+    message("resetting n_subsamples from ", n_subsamples, " to ", n_subsamples,
+            " for augur_mode=\"permute\" ...")
+    # reset default subsamples
+    n_subsamples = 500
+  }
+  # Pre-define functions used within loop
+  seeded_rf <- function(form, data) {
+    target_indexes = which(colnames(data) == form[[2]]) # form[[2]] gets the lhs vars of the formula!
+    if (mode == 'classification') {
+      y_var = data[, target_indexes] %>% t() %>% as.factor() # This retrieves all columns corresponding to lhs vars
+    } else if (mode == 'regression') {
+      y_var = data[, target_indexes] %>% t() 
+    }
+    x_var = data[, -target_indexes] # This retrieves all columns which are not in lhs vars (equivalent to '.')
+    
+    # Additional, small amounts of preprocessing were required, as you can see above.
+    original_seed <- .Random.seed # Save the state of the random seed
+    set.seed(1) # We have to do this in order to have similar behaviour to parsnip.
+    
+    forest <- randomForest(
+      y = y_var,
+      x = x_var,
+      importance = TRUE,
+      localImp = TRUE,
+      ntree = rf_params$trees,
+      mtry = rf_params$mtry,
+      min_n = rf_params$min_n,
+      type = mode
+    )
+    .Random.seed <- original_seed # Restore random seed state
+    return (forest)
+  }
+  
+  apply_fun = mclapply
+  # predict on the left-out data
+  retrieve_class_preds = function(split, recipe, model) {
+    test = bake(recipe, assessment(split))
+    tbl = tibble(
+      true = test$label,
+      pred = predict(model, test),
+      prob = predict(model, test, type = 'prob')) %>%
+      # convert prob from nested df to columns
+      cbind(.$prob) %>%
+      select(-prob)
+    
+    # Restore output syntax to be the exact same as that of parsnip
+    colnames(tbl)[levels(test$label) == colnames(tbl)] %<>% paste0(".pred_", .)
+    return(tbl)
+  }
+  retrieve_reg_preds = function(split, recipe, model) {
+    test = bake(recipe, assessment(split))
+    tbl = tibble(
+      true = test$label,
+      pred = as.numeric(predict(model, test))
+    )
+    return(tbl)
+  }
+  
+#### Error begins here ####
+  # iterate over cell type clusters
+  res = apply_fun(unique(cell_types),
+                  mc.cores = n_threads, function(cell_type) {
+                    # skip this cell type if there aren't enough cells
+                    y = labels[cell_types == cell_type]
+                    if (mode == 'classification') {
+                      if (min(table(y)) < min_cells) {
+                        warning("skipping cell type ", cell_type,
+                                ": minimum number of cells (", min(table(y)),
+                                ") is less than ", min_cells)
+                        return(list())
+                      }
+                    } else if (mode == 'regression') {
+                      if (length(y) < min_cells) {
+                        warning("skipping cell type ", cell_type,
+                                ": total number of cells (", length(y),
+                                ") is less than ", min_cells)
+                        return(list())
+                      }
+                    }
+                    # subset the entire expression matrix to this cell type
+                    X = expr[, cell_types == cell_type]
+                    
+                    # select features by variance
+                    min_features_for_selection = 1000
+                    if (nrow(X) >= min_features_for_selection & select_var) {
+                      X %<>% select_variance(var_quantile, filter_negative_residuals = F)
+                    }
+                    
+                    # set up subsamples and results bin
+                    tmp_results = data.frame()
+                    tmp_importances = data.frame()
+                    
+                    # evalulate the predictions
+                    if (mode == 'regression') {
+                      multi_metric = metric_set(ccc, huber_loss_pseudo, huber_loss,
+                                                mae, mape, mase, rpd, rpiq, rsq_trad, rsq, smape, rmse)
+                    } else {
+                      multi_metric = metric_set(accuracy, precision, recall, sens,
+                                                spec, npv, ppv, roc_auc)
+                    }
+                    
+                    prob_select = 3
+                    if (mode == "classification") {
+                      estimator = ifelse(multiclass, "macro", "binary")
+                      if (multiclass)
+                        prob_select = seq(3, 3 + n_distinct(labels) - 1)
+                      metric_fun = function(x)
+                        multi_metric(x,
+                                     truth = true,
+                                     estimate = pred,
+                                     prob_select,
+                                     estimator = estimator)
+                    } else {
+                      metric_fun = function(x)
+                        multi_metric(x,
+                                     truth = true,
+                                     estimate = pred,
+                                     prob_select)
+                    }
+                    
+                    importance_name = 'importance'
+                    if (mode == 'regression') {
+                      if (rf_params$importance == 'accuracy') {
+                        impval_name = "%IncMSE"
+                      } else {
+                        impval_name = 'IncNodePurity'
+                      }
+                    } else {
+                      if (rf_params$importance == 'accuracy') {
+                        impval_name = 'MeanDecreaseAccuracy'
+                      } else {
+                        impval_name = 'MeanDecreaseGini'
+                      }
+                    }
+                    if (rf_engine == "ranger") {
+                      importance_name = "variable.importance"
+                      impval_name = ".x[[i]]"
+                    }
+                    
+                    n_iter = ifelse(n_subsamples < 1, 1, n_subsamples)
+                    for (subsample_idx in seq_len(n_iter)) {
+                      # seed RNG for reproducibility
+                      set.seed(subsample_idx)
+                      
+                      # optionally, permute the labels
+                      if (augur_mode == 'permute') {
+                        y = sample(y)
+                      }
+                      
+                      # optionally, skip the subsampling process
+                      if (n_subsamples < 1) {
+                        # randomly select features
+                        if (nrow(X) >= min_features_for_selection &
+                            feature_perc < 1) {
+                          X0 = select_random(X, feature_perc)
+                        } else {
+                          X0 = X
+                        }
+                        X0 %<>%
+                          t() %>%
+                          as.matrix() %>%
+                          as.data.frame() %>%
+                          # fix any non-unique columns
+                          repair_names() %>%
+                          # add labels
+                          mutate(label = y)
+                      } else {
+                        if (mode == 'regression') {
+                          subsample_idxs = data.frame(label = y,
+                                                      position = seq_along(y)) %>%
+                            do(sample_n(., subsample_size)) %>%
+                            pull(position)
+                        } else {
+                          subsample_idxs = data.frame(label = y,
+                                                      position = seq_along(y)) %>%
+                            group_by(label) %>%
+                            do(sample_n(., subsample_size)) %>%
+                            pull(position)
+                        }
+                        y0 = y[subsample_idxs]
+                        # randomly select features
+                        if (nrow(X) >= min_features_for_selection &
+                            feature_perc < 1) {
+                          X0 = select_random(X, feature_perc)
+                        } else {
+                          X0 = X
+                        }
+                        # coerce to data frame
+                        X0 %<>%
+                          extract(, subsample_idxs) %>%
+                          BiocGenerics::t() %>%
+                          extract(, colVars(.) > 0) %>%
+                          as.matrix() %>%
+                          as.data.frame() %>%
+                          # fix any non-unique columns
+                          repair_names() %>%
+                          # convert labels back to a factor
+                          mutate(label = y0)
+                      }
+                      
+                      # set up model
+                      if (classifier == "lr") {
+                        family = ifelse(multiclass, 'multinomial', 'binomial')
+                        
+                        if (is.null(lr_params$penalty) || lr_params$penalty == 'auto') {
+                          # first, get optimized penalty for dataset
+                          lr_params$penalty = withCallingHandlers({
+                            glmnet::cv.glmnet(X0 %>%
+                                                ungroup() %>%
+                                                select(-label) %>%
+                                                as.matrix() %>%
+                                                extract(, setdiff(colnames(.), 'label')),
+                                              X0$label,
+                                              nfolds = folds,
+                                              family = family) %>%
+                              extract2("lambda.1se")
+                          }, warning = function(w) {
+                            if (grepl("dangerous ground", conditionMessage(w)))
+                              invokeRestart("muffleWarning")
+                          })
+                        }
+                        
+                        clf = logistic_reg(mixture = lr_params$mixture,
+                                           penalty = lr_params$penalty,
+                                           mode = 'classification') %>%
+                          set_engine('glmnet', family = family)
+                      } else if (classifier != "rf") {
+                        stop("invalid classifier: ", classifier)
+                      }
+                      
+                      # fit models in cross-validation
+                      if (mode == "classification") {
+                        cv = vfold_cv(X0, v = folds, strata = 'label')
+                      } else {
+                        cv = vfold_cv(X0, v = folds)
+                      }
+                      
+                      withCallingHandlers({
+                        folded = cv %>%
+                          mutate(
+                            recipes = splits %>%
+                              map(~ prepper(., recipe = recipe(.$data, label ~ .))),
+                            test_data = splits %>% map(analysis),
+                            fits = map2(
+                              recipes,
+                              test_data,
+                              ~ seeded_rf(
+                                form = label ~ .,
+                                data = bake(object = .x, new_data = .y)
+                              )
+                            )
+                          )
+                      }, warning = function(w) {
+                        if (grepl("dangerous ground", conditionMessage(w)))
+                          invokeRestart("muffleWarning")
+                      })
+                      
+                      predictions = folded %>%
+                        mutate(
+                          pred = list(
+                            splits,
+                            recipes,
+                            fits
+                          )
+                        )
+                      if (mode == 'regression') {
+                        predictions = predictions %>%
+                          mutate(pred = pmap(pred, retrieve_reg_preds))
+                      } else {
+                        predictions = predictions %>%
+                          mutate(pred = pmap(pred, retrieve_class_preds))
+                      }
+                      
+                      eval = predictions %>%
+                        mutate(
+                          metrics = pred %>%
+                            map(metric_fun)
+                        ) %>%
+                        extract2('metrics')
+                      
+                      # clean up the results
+                      result = eval %>%
+                        map2_df(., row.names(folded), ~ mutate(.x, fold = .y))
+                      names(result) %<>% gsub("\\.", "", .)
+                      result %<>% mutate(cell_type = cell_type,
+                                         subsample_idx = subsample_idx)
+                      
+                      # also calculate feature importance
+                      importance = NULL
+                      if (classifier == "rf") {
+                        importance = folded %>%
+                          pull(fits) %>%
+                          # map("fit") %>% # this is now no longer needed
+                          map(importance_name) %>%
+                          map(as.data.frame) %>%
+                          map(~ rownames_to_column(., 'gene')) %>%
+                          map2_df(1:length(.), ~ mutate(.x, fold = .y)) %>%
+                          mutate(cell_type = cell_type,
+                                 subsample_idx = subsample_idx) %>%
+                          dplyr::rename(importance = impval_name)
+                        # rearrange columns
+                        importance %<>% dplyr::select(cell_type, subsample_idx, fold, gene, importance)
+                      } else if (classifier == "lr") {
+                        # standardized coefficients with Agresti method
+                        # cf. https://think-lab.github.io/d/205/#3
+                        coefs = folded %>%
+                          pull(fits) %>%
+                          map("fit") %>%
+                          map(~ as.matrix(coef(., s = lr_params$penalty)))
+                        sds = folded %>%
+                          pull(splits) %>%
+                          map('data') %>%
+                          # omit labels
+                          map(~ extract(., , -ncol(.))) %>%
+                          map(~ apply(., 2, sd))
+                        std_coefs = map(seq_len(folds), ~ coefs[[.]][-1, 1] * sds[[.]])
+                        importance = std_coefs %>%
+                          map(~ data.frame(gene = names(.), std_coef = .)) %>%
+                          setNames(seq_len(folds)) %>%
+                          map2_df(names(.), ~ mutate(.x, fold = .y)) %>%
+                          mutate(cell_type = cell_type,
+                                 subsample_idx = subsample_idx) %>%
+                          # rearrange columns
+                          dplyr::select(cell_type, subsample_idx, fold, gene, std_coef)
+                      }
+                      
+                      # rearrange columns
+                      result %<>%
+                        dplyr::select(cell_type, subsample_idx, fold, metric, estimator,
+                                      estimate)
+                      
+                      # add to results
+                      tmp_results %<>% bind_rows(result)
+                      tmp_importances %<>% bind_rows(importance)
+                    }
+                    list(results = tmp_results, importances = tmp_importances)
+                  }
+  )
+  
+  # ignore warnings from yardstick
+  if (any(map_lgl(res, ~ "warning" %in% class(.)))) {
+    res = res$value
+  }
+  
+  # make sure at least one cell type worked
+  if (all(lengths(res) == 0))
+    stop("no cell type had at least ", min_cells, " cells in all conditions")
+  
+  # summarise AUCs (or CCCs) per cell type
+  if (mode == "classification") {
+    AUCs = res %>%
+      map("results") %>%
+      bind_rows() %>%
+      filter(metric == "roc_auc") %>%
+      group_by(cell_type, subsample_idx) %>%
+      summarise(estimate = mean(estimate)) %>%
+      ungroup() %>%
+      group_by(cell_type) %>%
+      summarise(auc = mean(estimate)) %>%
+      ungroup() %>%
+      arrange(desc(auc))
+  } else if (mode == "regression") {
+    CCCs = res %>%
+      map("results") %>%
+      bind_rows() %>%
+      filter(metric == "ccc") %>%
+      group_by(cell_type, subsample_idx) %>%
+      summarise(estimate = mean(estimate)) %>%
+      ungroup() %>%
+      group_by(cell_type) %>%
+      summarise(ccc = mean(estimate)) %>%
+      ungroup() %>%
+      arrange(desc(ccc))
+  }
+  
+  # clean up results across lapply folds
+  feature_importances = res %>%
+    map("importances") %>%
+    bind_rows()
+  results = res %>%
+    map("results") %>%
+    bind_rows()
+  
+  # create Augur object
+  params = list(
+    n_subsamples = n_subsamples,
+    subsample_size = subsample_size,
+    folds = folds,
+    min_cells = min_cells,
+    var_quantile = var_quantile,
+    feature_perc = feature_perc,
+    n_threads = n_threads,
+    classifier = classifier
+  )
+  if (classifier == "rf")
+    params$rf_params = rf_params
+  if (classifier == "lr")
+    params$lr_params = lr_params
+  obj = list(
+    X = expr,
+    y = labels,
+    cell_types = cell_types,
+    parameters = params,
+    results = results,
+    feature_importance = feature_importances
+  )
+  if (mode == "classification") {
+    obj$AUC = AUCs
+  } else if (mode == "regression") {
+    obj$CCC = CCCs
+  }
+  

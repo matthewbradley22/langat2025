@@ -556,6 +556,10 @@ astro_ips_5_genes_paths$result$term_name
 #Endo ips
 endo_ips_5_genes <- dplyr::filter(deg_celltypes_split_filtered, celltype == 'Endothelial' & final_geno == 'ips')$gene_name
 
+# - - - - - - - - - - - - - - - - - - 
+#### Mock WT vs Mock IPS1 by celltype
+# - - - - - - - - - - - - - - - - - - 
+
 #FInd celltype degs between mock ips and mock wt
 deg_counts_mock_celltype <- list()
 celltypes_of_interest <- unique(mock_only$manualAnnotation)
@@ -590,8 +594,8 @@ deg_mock_counts_df$celltype <- factor(deg_mock_counts_df$celltype, levels = c('u
                                                                               'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
                                                                               'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
                                                                               'Choroid Plexus', 'Astrocytes'))
-
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mock_ips_vs_wt_celltype.pdf', height = 12, width = 10)
+deg_mock_counts_df$geno <- factor(deg_mock_counts_df$geno, levels = c('ips', 'wt'))
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mock_ips_vs_wt_celltype.pdf', height = 10, width = 10)
 ggplot(deg_mock_counts_df, aes(x = celltype, y = count, fill = geno))+
   geom_bar(stat = 'identity', position = 'dodge', color = 'black')+
   coord_flip()+
@@ -600,7 +604,8 @@ ggplot(deg_mock_counts_df, aes(x = celltype, y = count, fill = geno))+
   ggtitle('Mock WT vs IPS1')+
   theme_classic()+
   theme(text = element_text(size = 38))+
-  scale_fill_manual(values = c(umap_color_list[4], umap_color_list[10]))
+  scale_fill_manual(values = c(umap_color_list[4],  umap_color_list[10]))+ 
+  guides(fill = guide_legend(reverse = TRUE))
 dev.off()
 
 mock_cp_up <- gprofiler2::gost(query = rownames(deg_counts_mock_celltype$`Choroid Plexus_wt_up`), organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG')) 

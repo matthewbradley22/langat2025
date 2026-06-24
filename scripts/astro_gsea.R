@@ -8,6 +8,7 @@ library(irGSEA)
 library(clusterProfiler)
 library(org.Mm.eg.db)
 library(enrichplot)
+library(DOSE)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -36,51 +37,67 @@ astros <- subset(chimeric_mock, manualAnnotation == 'Astrocytes')
 
 #Test gsea with day 3 wt vs mock
 astros_day3 <- subset(astros, Timepoint == 'Day 3' | Treatment == 'PBS')
-astros_day3_wt <- subset(astros, (Genotype == 'WT' & Timepoint == 'Day 3') | Treatment == 'PBS')
-astros_day3_ips <- subset(astros, (Genotype == 'IPS1' & Timepoint == 'Day 3') | Treatment == 'PBS')
-astros_day5_wt <- subset(astros, (Genotype == 'WT' & Timepoint == 'Day 5') | Treatment == 'PBS')
-astros_day5_ips <- subset(astros, (Genotype == 'IPS1' & Timepoint == 'Day 5') | Treatment == 'PBS')
+astros_day4 <- subset(astros, Timepoint == 'Day 4' | Treatment == 'PBS')
+astros_day5 <- subset(astros, Timepoint == 'Day 5' | Treatment == 'PBS')
+
+astros_day3_wt <- subset(astros, (Timepoint == 'Day 3' & Treatment == 'rChLGTV' & Genotype == 'WT') | Treatment == 'PBS')
+astros_day5_wt <- subset(astros, (Timepoint == 'Day 5' & Treatment == 'rChLGTV' & Genotype == 'WT')  | Treatment == 'PBS')
+astros_day3_ips <- subset(astros, (Timepoint == 'Day 3' & Treatment == 'rChLGTV' & Genotype == 'IPS1')  | Treatment == 'PBS')
+astros_day5_ips <- subset(astros, (Timepoint == 'Day 5' & Treatment == 'rChLGTV' & Genotype == 'IPS1')  | Treatment == 'PBS')
 
 #GSEA
+#Only run on specific go lists
+defense_response_to_virus <- read.table("~/Documents/ÖverbyLab/gene_lists_for_gsea/defense_response_to_virus.txt", quote="\"", comment.char="")
+pos_reg_type_1_inf_production <- read.table("~/Documents/ÖverbyLab/gene_lists_for_gsea/pos_reg_type_1_int_production.txt", quote="\"", comment.char="")
+type_1_inf_production <- read.table("~/Documents/ÖverbyLab/gene_lists_for_gsea/type_1_inf_production.txt", quote="\"", comment.char="")
+
+defense_response_to_virus <- defense_response_to_virus$V1
+pos_reg_type_1_inf_production <- pos_reg_type_1_inf_production$V1
+type_1_inf_production <- type_1_inf_production$V1
+
+custom_lists = list('defense_response_to_virus' = defense_response_to_virus, 
+                    'type_1_inf_production' = type_1_inf_production)
+
 #Calculate enrichment scores. Tried with 4 cores which froze computer. 1 seems to work fine
 irgsea_score_fun <- function(dat){
   return(irGSEA.score(object = dat, assay = "RNA", 
                slot = "data", seeds = 123, ncores = 1,
                min.cells = 3, min.feature = 0,
-               custom = F, geneset = NULL, msigdb = T, 
-               species = "Mus musculus", category = "H",  
-               subcategory = NULL, geneid = "symbol",
-               method = c("AUCell", "UCell", "singscore", 
-                          "ssgsea", "JASMINE", "viper"),
+               custom = TRUE, geneset = custom_lists, msigdb = T, 
+               species = "Mus musculus", category = "C5",  
+               subcategory = 'GO:BP', geneid = "symbol",
+               method = c("UCell", "singscore", 
+                          "ssgsea", "JASMINE", "viper"), #,"AUCell", ),
                aucell.MaxRank = NULL, ucell.MaxRank = NULL, 
                kcdf = 'Gaussian'))
 }
 
 astros_day3 <- irgsea_score_fun(astros_day3)
-astros_day3_wt <- irgsea_score_fun(astros_day3_wt)
+astros_day4 <- irgsea_score_fun(astros_day4)
+astros_day5 <- irgsea_score_fun(astros_day5)
 
 #Integrate differential gene sets
 irgsea_result_fun <- function(dat){
   return(irGSEA.integrate(object = dat, 
                                  group.by = "Treatment",
                                  metadata = NULL, col.name = NULL,
-                                 method = c("AUCell","UCell","singscore",
+                                 method = c("UCell","singscore",
                                             "ssgsea", "JASMINE", "viper")))
 }
 
 result_dge_3 <- irgsea_result_fun(astros_day3)
-result_dge_wt_3 <- irgsea_result_fun(astros_day3_wt)
+result_dge_4 <- irgsea_result_fun(astros_day4)
+result_dge_5 <- irgsea_result_fun(astros_day5)
 
 #Heatmap of sig pathways
-irGSEA.heatmap(object = result_dge_wt_3, 
-               method = "RRA",
-               top = 50, 
-               show.geneset = NULL)
-
-
 irGSEA.heatmap(object = result_dge_3,
                method = "RRA",
                top = 50,
+               show.geneset = NULL)
+
+irGSEA.heatmap(object = result_dge_4, 
+               method = "RRA",
+               top = 50, 
                show.geneset = NULL)
 
 #UMAP astrocytes and do density scatter plots
@@ -95,13 +112,63 @@ prep_astro_umap <- function(astro_dat, num_dims = 20, returnElbow = FALSE, reduc
 }
 
 astros_day3 <- prep_astro_umap(astros_day3, num_dims = 20, reduc_name = 'day_3_astro')
-astros_day3_wt <- prep_astro_umap(astros_day3_wt, num_dims = 20, reduc_name = 'day_wt_3_astro')
+astros_day4 <- prep_astro_umap(astros_day4, num_dims = 20, reduc_name = 'day_4_astro')
+astros_day5 <- prep_astro_umap(astros_day5, num_dims = 20, reduc_name = 'day_5_astro')
 
 #density scatter
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/density_feature_plots/ucell_day3_defenseVirus.pdf', height = 6, width = 6)
 irGSEA.density.scatterplot(object = astros_day3,
                            method = "UCell",
-                           show.geneset = "HALLMARK-INTERFERON-ALPHA-RESPONSE",
-                           reduction = "day_3_astro")
+                           show.geneset = "defense-response-to-virus",
+                           reduction = "day_3_astro")+ 
+  scale_color_viridis_c(limits = c(0,0.0011))
+  
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/density_feature_plots/ucell_day4_defenseVirus.pdf', height = 6, width = 6)
+irGSEA.density.scatterplot(object = astros_day4,
+                           method = "UCell",
+                           show.geneset = "defense-response-to-virus",
+                           reduction = "day_4_astro")+ 
+  scale_color_viridis_c(limits = c(0,0.0011))
+
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/density_feature_plots/ucell_day5_defenseVirus.pdf', height = 6, width = 6)
+irGSEA.density.scatterplot(object = astros_day5,
+                           method = "UCell",
+                           show.geneset = "defense-response-to-virus",
+                           reduction = "day_5_astro")+ 
+  scale_color_viridis_c(limits = c(0,0.0011))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/density_feature_plots/ucell_day3_type1Inf.pdf', height = 6, width = 6)
+irGSEA.density.scatterplot(object = astros_day3,
+                           method = "UCell",
+                           show.geneset = "type-1-inf-production",
+                           reduction = "day_3_astro")+
+  scale_color_viridis_c(limits = c(0,0.0006))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/density_feature_plots/ucell_day4_type1Inf.pdf', height = 6, width = 6)
+irGSEA.density.scatterplot(object = astros_day4,
+                           method = "UCell",
+                           show.geneset = "type-1-inf-production",
+                           reduction = "day_4_astro")+
+  scale_color_viridis_c(limits = c(0,0.0006))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/density_feature_plots/ucell_day5_type1Inf.pdf', height = 6, width = 6)
+irGSEA.density.scatterplot(object = astros_day5,
+                           method = "UCell",
+                           show.geneset = "type-1-inf-production",
+                           reduction = "day_5_astro")+
+  scale_color_viridis_c(limits = c(0,0.0006))
+dev.off()
+
+# - - - - - - - - - - - - - - - - - - 
+#### GSEA erichment line plots ####
+# - - - - - - - - - - - - - - - - - - 
 
 #Switch to clusterprofiler for multi enrichment plots
 #Make ranked gene list for cluterprofiler
@@ -169,3 +236,79 @@ gseaplot2(day5_ips_gsea, geneSetID = 1:6, subplots = 1) +
   theme(legend.position = 'right',
         text = element_text(size = 18))
 dev.off()
+
+#Custom gsea plots with multiple days on one plot
+
+#First, defense response to virus pathway
+
+timepoint_gsea_plot <- function(pathway_name){
+  dat_list = list(day3_wt_gsea, day5_wt_gsea, day3_ips_gsea, day5_ips_gsea)
+  plot_labels = c('wt day 3', 'wt day 5', 'ips day 3', 'ips day 5')
+  
+  dat_to_plot_list <- lapply(dat_list, FUN = function(x){
+    pathway_row <- which(x@result$Description == pathway_name)
+    gsInfo(x, pathway_row)
+  })
+  
+  for(i in 1:4){
+    dat_to_plot_list[[i]]$sample = plot_labels[i]
+  }
+  
+  dat_to_plot <- do.call(rbind, dat_to_plot_list)
+  
+  length(unique(c(dat_to_plot$Description))) == 1  #Double checking same pathway is plotted
+  
+  dat_to_plot$sample = factor(dat_to_plot$sample, levels = plot_labels)
+  
+  ggplot(dat_to_plot, aes_(x = ~x)) + xlab(NULL) +
+    theme_classic(11) +
+    theme(panel.grid.major = element_line(colour = "grey92"),
+          panel.grid.minor = element_line(colour = "grey92"),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor.y = element_blank(),
+          text = element_text(size = 24)) +
+    scale_x_continuous(expand=c(0,0))+
+    geom_line(aes_(y = ~runningScore, color= ~sample),
+              size=1) +
+    theme(legend.position = c(.8, .8), legend.title = element_blank(),
+          legend.background = element_rect(fill = "transparent"))+
+    ggtitle(pathway_name)
+}
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/response_to_virus_gsea.pdf', width = 7, height = 6)
+timepoint_gsea_plot('defense response to virus')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/type_1_inf_production.pdf', width = 7, height = 6)
+timepoint_gsea_plot('type I interferon production')
+dev.off()
+#timepoint_gsea_plot('negative regulation of innate immune response')
+
+## extract gsea result of selected geneSet
+#Copied from enrichplot docs https://rdrr.io/bioc/enrichplot/src/R/gseaplot.R
+
+gseaScores <- getFromNamespace("gseaScores", "DOSE")
+
+gsInfo <- function(object, geneSetID) {
+  geneList <- object@geneList
+  
+  if (is.numeric(geneSetID))
+    geneSetID <- object@result[geneSetID, "ID"]
+  
+  geneSet <- object@geneSets[[geneSetID]]
+  exponent <- object@params[["exponent"]]
+  df <- gseaScores(geneList, geneSet, exponent, fortify=TRUE)
+  df$ymin <- 0
+  df$ymax <- 0
+  pos <- df$position == 1
+  h <- diff(range(df$runningScore))/20
+  df$ymin[pos] <- -h
+  df$ymax[pos] <- h
+  df$geneList <- geneList
+  
+  df$Description <- object@result[geneSetID, "Description"]
+  return(df)
+}
+
+
+

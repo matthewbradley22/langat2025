@@ -53,7 +53,8 @@ umap_astro_group <- function(astro_dat, num_dims = 20, returnElbow = FALSE, main
     scale_color_manual(values = group_colors)+
     ylab('Umap2')+
     xlab('Umap1')+
-    theme(text = element_text(size = 24))+
+    theme(text = element_text(size = 24),
+          axis.text = element_text(size = 30))+
     guides(color=guide_legend(override.aes=list(size=6)))
   print(p1)
 }
@@ -181,6 +182,7 @@ dev.off()
 astro_day3 <- VennDiagram::venn.diagram(list(wt = rownames(wt_astro_degs_sig), ips = rownames(ips_astro_degs_sig)), filename = NULL,
                                      fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
 grid::grid.draw(astro_day3)
+
 #Look at all cell types to see if trend is the same
 ips <- subset(ParseSeuratObj_int, Treatment != 'rLGTV' & (Timepoint == 'Day 3' | Treatment == 'PBS') & Genotype == 'IPS1')
 wt <- subset(ParseSeuratObj_int, Treatment != 'rLGTV' & (Timepoint == 'Day 3' | Treatment == 'PBS') & Genotype == 'WT')

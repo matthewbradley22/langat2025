@@ -292,39 +292,44 @@ dev.off()
 #Infiltrating cell counts over time, normalized to day 3
 wt_chimeric_infiltrating <- subset(chimeric_mock, manualAnnotation %in% c("T cells", "Nk cells",
                                                                         "Granulocytes", "B Cells"))
-levels_infil <- c('B Cells', 'Granulocytes', 
+levels_infil <- (c('B Cells', 'Granulocytes', 
                   'Nk cells',
-                  'T cells')
+                  'T cells'))
 wt_chimeric_macs <- subset(chimeric_mock, manualAnnotation %in% c("Macrophage/Monocytes"))
 
 #Function to plot celltype proportions over time
-barplot_counts <- function(dat, cell_levels, bar_width = 0.5){
+barplot_counts <- function(dat, cell_levels, bar_width = 0.5, mac = FALSE){
+  if(mac){
+    celltypes <- 'Macrophage/Monocytes'
+  }else{
+    celltypes <- c("T cells", "Nk cells", "Granulocytes", "B Cells")
+  }
   plot_cells = dat[[]] %>% 
     dplyr::mutate(Timepoint = ifelse(Treatment == 'PBS', 'PBS', Timepoint)) %>% 
-    dplyr::group_by(Timepoint, manualAnnotation, Genotype, Treatment) %>% 
-    dplyr::summarise(cell_count = n())  %>% 
+    dplyr::group_by(Timepoint, Genotype, Treatment, manualAnnotation) %>% 
+    dplyr::summarise(cell_count = n()) %>% mutate(freq = cell_count / sum(cell_count)) %>% 
+    dplyr::filter(manualAnnotation %in% celltypes) %>% 
     dplyr::mutate(manualAnnotation = factor(manualAnnotation, levels = cell_levels)) %>% 
     dplyr::mutate(treatment_time_to_plot = case_when(Treatment == 'PBS' ~ 'PBS',
-                                                     Treatment == 'rChLGTV' & Timepoint == 'Day 3' ~ 'Day 3',
-                                                     Treatment == 'rChLGTV' & Timepoint == 'Day 4' ~ 'Day 4',
-                                                     Treatment == 'rChLGTV' & Timepoint == 'Day 5' ~ 'Day 5')) %>% 
+                                                     Treatment == 'rChLGTV' & Timepoint == 'Day 3' ~ '3',
+                                                     Treatment == 'rChLGTV' & Timepoint == 'Day 4' ~ '4',
+                                                     Treatment == 'rChLGTV' & Timepoint == 'Day 5' ~ '5')) %>% 
     dplyr::mutate(Genotype = factor(Genotype, levels = c('WT', 'IPS1')),
-                  treatment_time_to_plot = factor(treatment_time_to_plot, levels = c('PBS', 'Day 3', 'Day 4', 'Day 5'))) %>% 
-    ggplot(aes(x = treatment_time_to_plot, y = (cell_count), fill = Genotype))+
+                  treatment_time_to_plot = factor(treatment_time_to_plot, levels = c('PBS', '3', '4', '5'))) %>% 
+    ggplot(aes(x = treatment_time_to_plot, y = (freq), fill = Genotype))+
     geom_bar(stat = 'identity', position = 'dodge', color = 'black', width =  bar_width)+
     facet_wrap(~manualAnnotation, nrow = 1) +
     theme_classic()+
-    theme(text = element_text(size = 24),
-          axis.text.x = element_text(angle = 90))+
-    ylab('Cell count')+
-    xlab('')+
-    scale_fill_manual(values = c(umap_color_list[4], umap_color_list[10]))
+    theme(text = element_text(size = 36),
+          axis.text.x = element_text(angle = 0))+
+    ylab('Proportion of total cells')+
+    xlab('Day')+
+    scale_fill_manual(values = c('#E36F39', umap_color_list[4]))
+  print(plot_cells)
 }
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/infiltrating_counts.pdf', height = 6, width = 17)
-infil_plot <- barplot_counts(wt_chimeric_infiltrating, cell_levels = levels_infil, bar_width  = 0.9)
-mac_plot <- barplot_counts(wt_chimeric_macs, cell_levels = 'Macrophage/Monocytes', bar_width  = 0.6)
-ggarrange(infil_plot, mac_plot, ncol = 2, common.legend = TRUE, legend = 'right') 
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/infiltrating_no_macro_counts.pdf', height = 8, width = 14)
+barplot_counts(chimeric_mock, cell_levels = levels_infil, bar_width  = 0.9)
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/macrophage_counts.pdf', height = 6, width = 8)
