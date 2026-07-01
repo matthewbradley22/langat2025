@@ -402,6 +402,7 @@ lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype')
   xlab('')
 dev.off()
 
+
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/lrp8_mock_infiltrating_dotplot.pdf', height = 5, width = 6)
 lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype'), sep = '_') %>% 
   dplyr::filter(treatment == 'PBS' & celltype %in% c('T cells', 'Nk cells', 'Macrophage/Monocytes', 'Granulocytes', 'B Cells')) %>% 
@@ -451,6 +452,21 @@ lrp8_dat_time %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'time'
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0))+
   theme_classic()
+
+#Check if lrp8 is significant between groups
+mock_samples <- subset(chimeric_mock, Treatment == 'PBS')
+celltypes <- as.character(unique(mock_samples$manualAnnotation))
+
+lrp8_by_cell <- lapply(celltypes, FUN = function(x){
+  cur_cells <- subset(mock_samples, manualAnnotation == x)
+  cur_markers <- FindAllMarkers(cur_cells, group.by = 'Genotype', test.use = 'MAST')  
+  lrp8_levels <- cur_markers['Lrp8',]
+  lrp8_levels
+})
+
+#Nothing significant at log fold change and p-value level
+names(lrp8_by_cell) = celltypes
+lrp8_by_cell
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - 
 #### Cell proportions of resident celltypes only ####

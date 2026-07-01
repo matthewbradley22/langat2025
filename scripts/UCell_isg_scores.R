@@ -290,3 +290,5 @@ DoHeatmap(wt_infected, features = all_ISGs_type1, group.by = 'Timepoint', slot =
                        values = c(1.0,0.7,0.4,0), limits = c(0, 6.1))+
   theme(plot.title = element_text(size = 1))
 dev.off()
+
+

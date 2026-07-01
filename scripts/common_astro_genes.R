@@ -7,6 +7,7 @@ library(UCell)
 library(RColorBrewer)
 library(VennDiagram)
 library(ggpubr)
+library(eulerr)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 ############ Loading in all data (single-cell, bulk, single-nuclei) ############ 
@@ -97,7 +98,7 @@ dds_mavs_res_sig <- dds_mavs_res %>% as.data.frame() %>% dplyr::filter(padj < 0.
 plotCounts(dds_mavs, gene = 'ENSMUSG00000054160', intgroup = 'Treatment')
 dds_mavs_res_sig$GENEID = rownames(dds_mavs_res_sig)
 
-########## Venn diagrams comparing single cell and bulk degs ########## 
+########## Venn diagrams comparing sc to sc and bulk to bulk ########## 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 
 #Venn diagram, turn off log file saving
@@ -198,7 +199,6 @@ all_45_upset <- UpSetR::fromList(list('sc_wt_45' = sc_astro_wt_45_markers_sig$ge
 
 UpSetR::upset(all_45_upset, nsets = 4, order.by = 'freq', text.scale = 2, nintersects = 8)
 
-
 #Look at pathways between shared genes
 shared_genes <- sc_astro_markers_chlgtv[sc_astro_markers_chlgtv$gene %in% bulk_sig_gene_symbols,]$gene
 shared_genes_paths <- gprofiler2::gost(shared_genes, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
@@ -277,57 +277,37 @@ mouse_gene_sets <- all_gene_sets %>%
   split(x = .$gene_symbol, f = .$gs_name)
 
 #Get total number of positive DEGs as above, but subset to ISGs
-ifnA_response <- mouse_gene_sets$HALLMARK_INTERFERON_ALPHA_RESPONSE
-ifnA_GOBP_response <- mouse_gene_sets$GOBP_RESPONSE_TO_INTERFERON_ALPHA
-type1_response <- mouse_gene_sets$GOBP_RESPONSE_TO_TYPE_I_INTERFERON
-all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
+#ifnA_response <- mouse_gene_sets$HALLMARK_INTERFERON_ALPHA_RESPONSE
+#ifnA_GOBP_response <- mouse_gene_sets$GOBP_RESPONSE_TO_INTERFERON_ALPHA
+#type1_response <- mouse_gene_sets$GOBP_RESPONSE_TO_TYPE_I_INTERFERON
+#all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
 
 #single cell ISG degs
 sc_wt_3_isgs <- sc_astro_wt_3_markers_sig[rownames(sc_astro_wt_3_markers_sig) %in% all_ISGs_type1,]
 sc_ips_3_isgs <- sc_astro_ips_3_markers_sig[rownames(sc_astro_ips_3_markers_sig) %in% all_ISGs_type1,]
-sc_wt_45_isgs <- sc_astro_wt_45_markers_sig[rownames(sc_astro_wt_45_markers_sig) %in% all_ISGs_type1,]
-sc_ips_45_isgs <- sc_astro_ips_45_markers_sig[rownames(sc_astro_ips_45_markers_sig) %in% all_ISGs_type1,]
+sc_wt_4_isgs <- sc_astro_wt_4_markers_sig[rownames(sc_astro_wt_4_markers_sig) %in% all_ISGs_type1,]
+sc_ips_4_isgs <- sc_astro_ips_4_markers_sig[rownames(sc_astro_ips_4_markers_sig) %in% all_ISGs_type1,]
 
 #Bulk ISG degs
 wt_bulk_isgs <- bulk_sig_gene_symbols[bulk_sig_gene_symbols %in% all_ISGs_type1]
 ips_bulk_isgs <- bulk_sig_genes_mavs_symbols[bulk_sig_genes_mavs_symbols %in% all_ISGs_type1]
 
-#sc vs bulk isg expression
-#Wt day 3
-VennDiagram::venn.diagram(x = list(sc_wt_3_isgs$gene, wt_bulk_isgs),
-                          category.names = c('SC', 'bulk'),
-                          filename = '~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/bulk_sc_wt_3_isgs.png',
-                          resolution = 300,
-                          fill = c("#B3E2CD", "#FDCDAC"),
-                          cat.cex = 3,
-                          cex = 3)
+#sc vs bulk isg expression. bulk combined by time
+sc_wt_genes <- sc_wt_4_isgs$gene
+bulk_wt_genes <- dds_wt_res_sig$SYMBOL[dds_wt_res_sig$SYMBOL %in% all_ISGs_type1]
+wt_euler <- euler(list('sc' = sc_wt_genes, 'bulk' = bulk_wt_genes))
 
-#WT day 4/5
-VennDiagram::venn.diagram(x = list(sc_wt_45_isgs$gene, wt_bulk_isgs),
-                          category.names = c('SC', 'bulk'),
-                          filename = '~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/bulk_sc_wt_45_isgs.png',
-                          resolution = 300,
-                          fill = c("#B3E2CD", "#FDCDAC"),
-                          cat.cex = 3,
-                          cex = 3)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/day4_vs_bulk_combined_wt.pdf')
+plot(wt_euler, quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
+dev.off()
 
-#IPS day 3
-VennDiagram::venn.diagram(x = list(sc_ips_3_isgs$gene, ips_bulk_isgs),
-                          category.names = c('SC', 'bulk'),
-                          filename = '~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/bulk_sc_ips_3_isgs.png',
-                          resolution = 300,
-                          fill = c("#B3E2CD", "#FDCDAC"),
-                          cat.cex = 3,
-                          cex = 3)
+sc_ips_genes <- sc_ips_4_isgs$gene
+bulk_ips_genes <- dds_mavs_res_sig$SYMBOL[dds_mavs_res_sig$SYMBOL %in% all_ISGs_type1]
+mavs_euler <- euler(list('sc' = sc_ips_genes, 'bulk' = bulk_ips_genes))
 
-#IPSday 4/5
-VennDiagram::venn.diagram(x = list(sc_ips_45_isgs$gene, ips_bulk_isgs),
-                          category.names = c('SC', 'bulk'),
-                          filename = '~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/bulk_sc_ips_45_isgs.png',
-                          resolution = 300,
-                          fill = c("#B3E2CD", "#FDCDAC"),
-                          cat.cex = 3,
-                          cex = 3)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/day4_vs_bulk_combined_ips.pdf')
+plot(mavs_euler, quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
+dev.off()
 
 #Do isgs go up over time in bulk?
 wt_gene_names <- ensembldb::select(EnsDb.Mmusculus.v79, keys= rownames(dds_wt), keytype = "GENEID", columns = c("SYMBOL","GENEID"))

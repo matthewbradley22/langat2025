@@ -211,3 +211,40 @@ ips_umap <- DimPlot(ips, reduction = 'ips_umap', group.by = 'treatment_organ')+
 
 grid.arrange(wt_umap, ips_umap, ncol=2)
 
+#dotplot of relevant isgs across all groups
+top_isgs <- head(rownames(wt_astro_degs_sig), n = 8)
+
+astrocytes_all <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV')
+astrocytes_all$treatment_genotype_time <- paste(astrocytes_all$Treatment, astrocytes_all$Genotype, astrocytes_all$Timepoint, sep = '_')
+
+isg_dot_dat <- DotPlot(astrocytes_all, features = top_isgs, scale = FALSE, group.by = 'treatment_genotype_time')$data
+
+plot_dot_dat <- function(dat){
+  dat %>% tidyr::separate(id, into = c('treatment', 'genotype', 'timepoint'), sep = '_') %>% 
+    dplyr::mutate(geno_time = paste(genotype, timepoint, sep = ' ')) %>% 
+    ggplot(aes(x = geno_time, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
+    geom_point(pch = 21)+
+    facet_wrap(~treatment, scales = 'free')+
+    theme_classic()+
+    scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                         values = c(1.0,0.7,0.4,0))+
+    theme(text = element_text(size = 17),
+          axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/top_isg_dotplot.pdf', width = 7, height = 6)
+plot_dot_dat(isg_dot_dat)
+dev.off()
+
+#Look at cytokines and mhc II genes
+mhc_dot_dat <- DotPlot(astrocytes_all, features = c('H2-Aa', 'H2-Ab1', 'H2-Ea', 'H2-Eb1', 'H2-DMb1'), scale = FALSE, group.by = 'treatment_genotype_time')$data
+plot_dot_dat(mhc_dot_dat)
+
+cyto_dot_dat <- DotPlot(astrocytes_all, features = c('Tnf', 'Il6', 'Ccl4', 'Ccl2', 'Ccl5',
+                                                     'Il12a', 'Cxcl1', 'Il1a', 'Il2', 'Il15', 'Cxcl10'), scale = FALSE, group.by = 'treatment_genotype_time')$data
+plot_dot_dat(cyto_dot_dat)
+
+cyto_recept_dot <- DotPlot(astrocytes_all, features = c('Cxcr4', 'Ccr1', 'Ccr5', 'Cx3cr1'), scale = FALSE, group.by = 'treatment_genotype_time')$data
+plot_dot_dat(cyto_recept_dot)
+
+

@@ -191,13 +191,92 @@ create_gsea_object <- function(dat, min.p.val = 0.05){
                        keyType = 'SYMBOL')
 }
 
+#Visualization options for gsea results
 day3_wt_gsea <- create_gsea_object(astros_day3_wt)
 day3_ips_gsea <- create_gsea_object(astros_day3_ips, min.p.val = 1)
 day5_wt_gsea <- create_gsea_object(astros_day5_wt)
 day5_ips_gsea <- create_gsea_object(astros_day5_ips)
 
-dotplot(day3_wt_gsea, showCategory=10)
 
+
+create_emap <- function(gsea_dat){
+  print(emapplot(pairwise_termsim(gsea_dat), showCategory = 7, node_label="none" )+
+    theme_classic() +
+    scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","#FFD1A6"), 
+                          values = c(0,0.4,0.7,1.0),
+                          limits = c(1, 2*10^-8))+
+    theme(axis.text = element_blank(),
+          axis.ticks = element_blank())+
+    ylab('')+
+    xlab(''))+
+    ggrepel::geom_text_repel(aes(x = x, y = y, label = name), size = 5)
+}
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_emap.pdf', width = 7, height = 6)
+create_emap(day3_wt_gsea) 
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day3_emap.pdf', width = 7, height = 6)
+create_emap(day3_ips_gsea)
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day5_emap.pdf', width = 7, height = 6)
+create_emap(day5_wt_gsea)
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day5_emap.pdf', width = 7, height = 6)
+create_emap(day5_ips_gsea)
+dev.off()
+
+dotplot(day3_wt_gsea, showCategory=7)+
+  theme_classic() +
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","#FFD1A6"), 
+                        values = c(0,0.4,0.7,1.0),
+                        limits = c(1, 2*10^-8))
+
+gseaplot2(day3_wt_gsea, geneSetID = 1:5, pvalue_table = TRUE)
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_ridgeplot.pdf', width = 7, height = 6)
+ridgeplot(day3_wt_gsea, showCategory = 7) + labs(x = "enrichment distribution") + 
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#D9530B","#F57456","#FFD1A6","#FFEEE0"), 
+                       values = c(0,0.4,0.6,1.0),
+                       limits = c(1, 2*10^-8))+
+  theme(text = element_text(size = 18))+
+  xlim(0, 8.5)
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day3_ridgeplot.pdf', width = 7, height = 6)
+ridgeplot(day3_ips_gsea, showCategory = 7) + labs(x = "enrichment distribution") + 
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#D9530B","#F57456","#FFD1A6","#FFEEE0"), 
+                       values = c(0,0.4,0.6,1.0),
+                       limits = c(1, 2*10^-8))+
+  xlim(0, 8.5)+
+  theme(text = element_text(size = 18))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day5_ridgeplot.pdf', width = 7, height = 6)
+ridgeplot(day5_wt_gsea, showCategory = 7) + labs(x = "enrichment distribution") + 
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#D9530B","#F57456","#FFD1A6","#FFEEE0"), 
+                       values = c(0,0.4,0.6,1.0),
+                       limits = c(1, 2*10^-8))+
+  theme(text = element_text(size = 18))+
+  xlim(0, 8.5)
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day5_ridgeplot.pdf', width = 7, height = 6)
+ridgeplot(day5_ips_gsea, showCategory = 7) + labs(x = "enrichment distribution") + 
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#D9530B","#F57456","#FFD1A6","#FFEEE0"), 
+                       values = c(0,0.4,0.6,1.0),
+                       limits = c(1, 2*10^-8))+
+  theme(text = element_text(size = 18))+
+  xlim(0, 8.5)
+dev.off()
+
+#Top pathway gsea running score plots
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_gsea2_plot.pdf', width = 9, height = 5)
 gseaplot2(day3_wt_gsea, geneSetID = 1:6, subplots = 1) +
   ylim(c(-0.15,0.7))+
@@ -309,6 +388,3 @@ gsInfo <- function(object, geneSetID) {
   df$Description <- object@result[geneSetID, "Description"]
   return(df)
 }
-
-
-

@@ -182,15 +182,15 @@ netVisual_bubble(ips_cells_four_cc, targets.use = 'Astrocytes', remove.isolate =
 dev.off()
 #Astrocyte interactions
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_source.pdf", width = 8, height =6)
-plot_source_targets(mock_cells_cc, source_cell = 'Astrocytes')
+plot_source_targets(mock_wt_cells_cc, source_cell = 'Astrocytes')
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_astro_source.pdf", width = 8, height =6)
-plot_source_targets(wt_cells_cc, source_cell = 'Astrocytes')
+plot_source_targets(wt_cells_three_cc, source_cell = 'Astrocytes')
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_astro_source.pdf", width = 8, height =6)
-plot_source_targets(ips_cells_cc, source_cell = 'Astrocytes')
+plot_source_targets(ips_cells_three_cc, source_cell = 'Astrocytes')
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_target.pdf", width = 8, height =6)
@@ -198,43 +198,43 @@ plot_source_targets(mock_cells_cc, target_cell = 'Astrocytes')
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_astro_target.pdf", width = 8, height =6)
-plot_source_targets(wt_cells_cc, target_cell = 'Astrocytes')
+plot_source_targets(wt_cells_three_cc, target_cell = 'Astrocytes')
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_astro_target.pdf", width = 8, height =6)
-plot_source_targets(ips_cells_cc, target_cell = 'Astrocytes')
+plot_source_targets(ips_cells_three_cc, target_cell = 'Astrocytes')
 dev.off()
 
 #Endothelial interactions
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_endo_source.pdf", width = 8, height = 6)
-plot_source_targets(mock_cells_cc, source_cell = 'Endothelial')
+plot_source_targets(mock_wt_cells_cc, source_cell = 'Endothelial')
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_endo_source.pdf", width = 8, height = 6)
-plot_source_targets(wt_cells_cc, source_cell = 'Endothelial')
+plot_source_targets(wt_cells_three_cc, source_cell = 'Endothelial')
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_endo_target.pdf", width = 8, height = 6)
-plot_source_targets(wt_cells_cc, target_cell = 'Endothelial')
+plot_source_targets(wt_cells_three_cc, target_cell = 'Endothelial')
 dev.off()
 
 #Microglia interactions
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_micro_source.pdf", width = 8, height = 6)
-plot_source_targets(wt_cells_cc, source_cell = 'Microglia')
+plot_source_targets(wt_cells_three_cc, source_cell = 'Microglia')
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_micro_target.pdf", width = 8, height = 6)
-plot_source_targets(wt_cells_cc, target_cell ='Microglia')
+plot_source_targets(wt_cells_three_cc, target_cell ='Microglia')
 dev.off()
 
 #Can view weights 
-wt_cells_cc@net
+mock_wt_cells_cc@net
 
 #Look at specific pathways
 CellChatDB$interaction$pathway_name
-wt_cells_cc@netP$pathways %>% sort()
+mock_wt_cells_cc@netP$pathways %>% sort()
 
-#Look at ligand-receptor pairs in select pathwayy
+#Look at ligand-receptor pairs in select pathway
 CellChatDB$interaction[CellChatDB$interaction$pathway_name == 'CCL',]$ligand %>% unique()
 
 #Plot pathways overtime
@@ -261,11 +261,11 @@ ccl_wt_plots[[1]]
 ccl_ips_plots <- path_over_time('TNF', genotype = 'IPS1')
 ccl_ips_plots[[1]]
 
-netVisual_aggregate(mock_cells_cc, signaling = 'CCL', vertex.weight = NULL)
+netVisual_aggregate(mock_wt_cells_cc, signaling = 'CCL', vertex.weight = NULL)
 
 #Aggregate pathway chord diagram
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/cellchat_agg_chord.pdf", width = 20, height =16)
-netVisual_aggregate(wt_cells_cc, signaling = pathways.show, layout = "chord")
+netVisual_aggregate(wt_cells_three_cc, signaling = pathways.show, layout = "chord")
 dev.off()
 
 #Side by side pathway heatmaps for two datasets
@@ -306,7 +306,7 @@ ht2 <- netAnalysis_signalingRole_heatmap(wt_cells_cc, pattern = "incoming")
 ht1
 
 #Look at top pathways between astros and neurons
-int_path_heatmap <- function(cc_dat, source_cells = NULL, target_cells = NULL, main = ""){
+int_path_heatmap <- function(cc_dat, source_cells = NULL, target_cells = NULL, main = "", prob_limit = 0.1){
   comm_subset <-  subsetCommunication(cc_dat, slot.name = "net",
                                        sources.use = source_cells, targets.use = target_cells,
                                        signaling = NULL,
@@ -318,7 +318,7 @@ int_path_heatmap <- function(cc_dat, source_cells = NULL, target_cells = NULL, m
   comm_subset$interaction_name <- factor(comm_subset$interaction_name, levels = comm_subset$interaction_name[order(comm_subset$prob)])
   
   #Plot
-  final_plot <- comm_subset %>% dplyr::arrange(prob) %>% dplyr::filter(prob > 0.1) %>% 
+  final_plot <- comm_subset %>% dplyr::arrange(prob) %>% dplyr::filter(prob > prob_limit) %>% 
     ggplot(aes(x = cell_int, y = interaction_name, fill = prob))+
     geom_tile(color = 'black')+
     ylab('')+
@@ -332,7 +332,7 @@ int_path_heatmap <- function(cc_dat, source_cells = NULL, target_cells = NULL, m
   print(final_plot)
 }
 
-int_path_heatmap(mock_cells_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'mock')
+int_path_heatmap(wt_cells_three_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'mock')
 int_path_heatmap(wt_cells_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'wt')
 int_path_heatmap(ips_cells_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'ips1')
 
@@ -342,11 +342,11 @@ DotPlot(wt_cells, features = 'Negr1', group.by = 'manualAnnotation')
 
 #Try chord diagram
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/astro_to_neuron_chord.pdf", width = 20, height =16)
-netVisual_chord_gene(wt_cells_cc, sources.use = 'Astrocytes', targets.use = 'Neurons', lab.cex = 1.1,legend.pos.y = 30)
+netVisual_chord_gene(wt_cells_three_cc, sources.use = 'Astrocytes', targets.use = 'Neurons', lab.cex = 1.1,legend.pos.y = 30)
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/neuron_to_astro_chord.pdf", width = 20, height =16)
-netVisual_chord_gene(wt_cells_cc, sources.use = 'Neurons', targets.use = 'Astrocytes', lab.cex = 1.1,legend.pos.y = 30)
+netVisual_chord_gene(wt_cells_three_cc, sources.use = 'Neurons', targets.use = 'Astrocytes', lab.cex = 1.1,legend.pos.y = 30)
 dev.off()
 
 #Can plot select signalling pathways
@@ -414,22 +414,22 @@ pattern = 'outgoing'
 slot.name = "netP"
 
 ########### Comparative analysis between day 3 (or 4) and mock by genotype ########### 
-## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 cellchat_wt_3_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_three_cc), add.names = c('PBS', 'WT_inf'))
 cellchat_wt_4_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_four_cc), add.names = c('PBS', 'WT_inf'))
 compareInteractions(cellchat_wt_merged, show.legend = F, group = c(1,2))
 netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count')
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_astro_target.pdf', width = 5, height = 5)
-netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
+netVisual_diffInteraction(cellchat_wt_3_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_astro_source.pdf', width = 5, height = 5)
-netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
+netVisual_diffInteraction(cellchat_wt_4_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_signal_changes.pdf', width = 10, height = 8)
-netAnalysis_signalingChanges_scatter(cellchat_wt_merged, idents.use = "Astrocytes", label.size = 6)+
+netAnalysis_signalingChanges_scatter(cellchat_wt_4_merged, idents.use = "Astrocytes", label.size = 9)+
   theme(text = element_text(size = 24))+
   xlim(c(-0.4, 3))+
   ylim(c(-0.4, 2.5))
@@ -458,7 +458,7 @@ netVisual_diffInteraction(cellchat_ips_3_merged, weight.scale = T, measure = 'co
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_signal_changes.pdf', width = 10, height = 8)
-netAnalysis_signalingChanges_scatter(cellchat_ips_3_merged, idents.use = "Astrocytes", label.size = 6)+
+netAnalysis_signalingChanges_scatter(cellchat_ips_4_merged, idents.use = "Astrocytes", label.size = 9)+
   theme(text = element_text(size = 24))+
   xlim(c(-0.4, 3))+
   ylim(c(-0.4, 2.5))

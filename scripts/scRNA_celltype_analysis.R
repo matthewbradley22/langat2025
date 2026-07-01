@@ -750,36 +750,71 @@ select_path_columns_five_df <- do.call(rbind, select_path_columns_five)
 select_path_columns_ips_five_df <- do.call(rbind, select_path_columns_ips_five)
 
 select_path_columns_df$source = factor(select_path_columns_df$source, levels = c('micro', 'common', 'endo', 'astro', 'epen', 'cp'))
-select_path_columns_ips_df$source <- factor(select_path_columns_ips_df$source, levels = c('micro', 'epen', 'common', 'endo'))
+select_path_columns_ips_df$source <- factor(select_path_columns_ips_df$source, levels = c('micro', 'epen', 'astro','common', 'endo'))
+select_path_columns_five_df$source = factor(select_path_columns_five_df$source, levels = c('micro', 'epen', 'cp', 'ascommontro', 'endo', 'macro'))
+select_path_columns_ips_five_df$source = factor(select_path_columns_ips_five_df$source, levels = c('micro', 'endo', 'astro', 'cp', 'common', 'macro'))
 
 wt_common <- dplyr::filter(select_path_columns_df, source == 'common')
 ips_common <- dplyr::filter(select_path_columns_ips_df, source == 'common')
 wt_five_common <- dplyr::filter(select_path_columns_five_df, source == 'common')
 ips_five_common <- dplyr::filter(select_path_columns_ips_five_df, source == 'common')
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day_3_wt_paths.pdf', height = 8, width = 19)
-ggplot(select_path_columns_df, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
+wt_3_celltype <- dplyr::filter(select_path_columns_df, source != 'common')
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_3_wt_paths.pdf', height = 14, width = 21)
+ggplot(wt_3_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
   geom_bar(stat = 'identity')+
   coord_flip()+
   facet_wrap(~source, scales = 'free_y', ncol = 2)+
   xlab('')+
   theme_classic()+
-  theme(text = element_text(size= 26))+
-  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F')+
-  ylim(c(0,113))
+  theme(text = element_text(size= 44))+
+  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F', limits = c(0,113))+
+  ylim(c(0,113))+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day_3_ips_paths.pdf', height = 8, width = 19)
-ggplot(select_path_columns_ips_df, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
+ips_3_celltype <- dplyr::filter(select_path_columns_ips_df, source != 'common')
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_3_ips_paths.pdf', height = 14, width = 21)
+ggplot(ips_3_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
   geom_bar(stat = 'identity')+
   coord_flip()+
-  facet_wrap(~source, scales = 'free_y')+
+  facet_wrap(~source, scales = 'free_y', ncol = 2)+
   xlab('')+
   theme_classic()+
-  theme(text = element_text(size= 26))+
-  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F')+
-  ylim(c(0,113))
+  theme(text = element_text(size= 44))+
+  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F',  limits = c(0,113))+
+  ylim(c(0,113))+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))
 dev.off()
+
+wt_5_celltype <- dplyr::filter(select_path_columns_five_df, source != 'common')
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_5_wt_paths.pdf', height = 14, width = 21)
+ggplot(wt_5_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
+  geom_bar(stat = 'identity')+
+  coord_flip()+
+  facet_wrap(~source, scales = 'free_y', ncol = 2)+
+  xlab('')+
+  theme_classic()+
+  theme(text = element_text(size= 44))+
+  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F', limits = c(0,113))+
+  ylim(c(0,113))+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))
+dev.off()
+
+ips_5_celltype <- dplyr::filter(select_path_columns_ips_five_df, source != 'common')
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_5_ips_paths.pdf', height = 14, width = 21)
+ggplot(ips_5_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
+  geom_bar(stat = 'identity')+
+  coord_flip()+
+  facet_wrap(~source, scales = 'free_y', ncol = 2)+
+  xlab('')+
+  theme_classic()+
+  theme(text = element_text(size= 44))+
+  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F', limits = c(0,113))+
+  ylim(c(0,113))+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))
+dev.off()
+
 
 common_gene_plot <- function(dat){
   p1 <- ggplot(dat, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value)))+
