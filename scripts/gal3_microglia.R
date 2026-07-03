@@ -34,6 +34,48 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 wt_cerebrum <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT')
 table(wt_cerebrum$manualAnnotation, wt_cerebrum$Genotype, wt_cerebrum$Treatment, wt_cerebrum$Timepoint)
 
+#Plot resident cell ratios
+wt_cerebrum_resident_mock <- subset(wt_cerebrum, manualAnnotation %in% c('Astrocytes', 'Oligodendrocytes', 'Microglia', 'Endothelial',
+                                                                    'Choroid Plexus', 'Immature Neurons', 'Ependymal', 'Pericytes',
+                                                                    'Muscle cells', 'Neurons') & Treatment == 'PBS')
+
+wt_cerebrum_resident_inf <- subset(wt_cerebrum, manualAnnotation %in% c('Astrocytes', 'Oligodendrocytes', 'Microglia', 'Endothelial',
+                                                                         'Choroid Plexus', 'Immature Neurons', 'Ependymal', 'Pericytes',
+                                                                         'Muscle cells', 'Neurons') & Treatment == 'rLGTV')
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/mock_resident_cell_bars.pdf', width = 5, height = 5)
+table(wt_cerebrum_resident_mock$Timepoint, wt_cerebrum_resident_mock$manualAnnotation) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = umap_color_list)+
+  theme_classic()+
+  theme(axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
+  xlab('')+
+  ggtitle('Mock resident')+
+  ylab('Proportion of cells')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/infected_resident_cell_bars.pdf', width = 6, height = 5)
+table(wt_cerebrum_resident_inf$Timepoint, wt_cerebrum_resident_inf$manualAnnotation) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  scale_fill_manual(values = umap_color_list)+
+  theme_classic()+
+  theme(axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
+  xlab('')+
+  ggtitle('Infected resident')+
+  ylab('Proportion of cells')
+dev.off()
+
+#Subset to just microglia for further analysis
 wt_cerebrum_microglia <- subset(wt_cerebrum, manualAnnotation == 'Microglia')
 table(wt_cerebrum_microglia$Genotype, wt_cerebrum_microglia$Treatment, 
       wt_cerebrum_microglia$Timepoint, wt_cerebrum_microglia$manualAnnotation)
@@ -90,13 +132,10 @@ DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by
       ylab('UMAP2')+
   xlab('UMAP1')
 
-mock_markers <- FindMarkers(wt_cerebrum_microglia, ident.1 = 5, ident.2 = 0, group.by = 'seurat_clusters', test.use = 'MAST')
-mock_markers <- dplyr::filter(mock_markers, p_val_adj < 0.01 & avg_log2FC > 1)
-FeaturePlot(wt_cerebrum_microglia, features = 'Egr1', reduction = 'micro.umap')
+wt_cerebrum_microglia[[]] %>% dplyr::group_by(Treatment, Timepoint) %>% 
+  dplyr::summarise(mean_count = mean(nCount_RNA), mean_features = mean(nFeature_RNA), mean_mt = mean(percent.mt))
 
-mock_comp_paths <- gprofiler2::gost(query = rownames(mock_markers), organism = 'mmusculus', evcodes = TRUE,
-                 sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
-
+table(wt_cerebrum_microglia$Treatment, wt_cerebrum_microglia$seurat_clusters)
 # - - - - - - - - - - - - - - - - - - 
 #### Across time infected samples ####
 # - - - - - - - - - - - - - - - - - - 
@@ -146,6 +185,29 @@ DimPlot(microglia_mock, reduction = 'micro.mock.umap', label = FALSE, group.by =
   ylab('UMAP2')+
   xlab('UMAP1')
 dev.off()
+
+#Look at markers separating day 3 and day 5 mock microglia
+mock_markers <- FindAllMarkers(microglia_mock, group.by = 'Timepoint', test.use = 'MAST')
+mock_markers_3 <- dplyr::filter(mock_markers, p_val_adj < 0.01 & avg_log2FC > 1 & cluster == 'Day 3')
+mock_markers_5 <- dplyr::filter(mock_markers, p_val_adj < 0.01 & avg_log2FC > 1 & cluster == 'Day 5')
+
+mock_comp_paths <- gprofiler2::gost(query = mock_markers_5$gene, organism = 'mmusculus', evcodes = TRUE,
+                                    sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+
+mock_comp_paths$result
+
+FeaturePlot(wt_cerebrum_microglia, features = 'Egr1', reduction = 'micro.umap')
+FeaturePlot(microglia_mock, features = 'Egr1', reduction = 'micro.mock.umap')
+
+mock_dot_dat <- DotPlot(microglia_mock, features = head(mock_markers_5$gene, n = 10), group.by = 'Timepoint', scale = FALSE)$data
+
+mock_dot_dat %>% dplyr::mutate(features.plot = factor(features.plot, levels = rev(head(mock_markers_5$gene, n = 10)))) %>% 
+  ggplot(aes(x = id, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Mock microglia markers')
 
 #Timepoint markers microglia
 #Infected
@@ -319,6 +381,7 @@ dev.off()
 
 FeaturePlot(microglia_infected, features = 'Vcam1', reduction = 'micro.inf.umap')
 
+
 #Compare some of the specific groups to narrow down roles
 cluster_0_3 <- FindMarkers(microglia_infected, group.by = 'seurat_clusters', ident.1 = '0', ident.2 = '3',
                                          test.use = 'MAST')
@@ -365,6 +428,33 @@ DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by
         axis.ticks = element_blank())+
   ylab('UMAP2')+
   xlab('UMAP1')
+
+table(wt_cerebrum_microglia$infected_clusters, wt_cerebrum_microglia$Timepoint) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% dplyr::mutate(freq_props = Freq/sum(Freq))%>% 
+  dplyr::mutate(Var1 = factor(Var1, levels = c('mock', '0', '1', '2', '3', '4'))) %>% 
+  ggplot(aes(x = Var1, y = freq_props, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  theme_classic()+
+  theme(axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
+  xlab('')+
+  ggtitle('')+
+  ylab('Proportion of cells')
+
+table(wt_cerebrum_microglia$infected_clusters, wt_cerebrum_microglia$Timepoint) %>% 
+  as.data.frame() %>% dplyr::group_by(Var1) %>% 
+  dplyr::mutate(Var1 = factor(Var1, levels = c('mock', '0', '1', '2', '3', '4'))) %>% 
+  ggplot(aes(x = Var1, y = Freq, fill = Var2))+
+  geom_bar(stat = 'identity', position = 'stack', width = 0.6)+
+  theme_classic()+
+  theme(axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 22),
+        axis.title=element_text(size=22),
+        plot.title = element_text(size = 22))+
+  xlab('')+
+  ylab('Proportion of cells')
 
 #Find infected markers vs mock
 deg_vs_mock_list = list()
@@ -432,6 +522,12 @@ for(i in 1:length(path_vs_mock_list)){
   dev.off()
 }
 
+#Bar plots with grouped clusters
+path_vs_mock_list
+
+lapply(path_vs_mock_list, FUN = function(x){
+  
+})
 # Look at genes differntially expressed between infected clusters,
 #as well as between the given cluster and mock.
 
@@ -455,6 +551,34 @@ ggplot(top_sig_genes_dot, aes(x = features.plot, y = id, fill = avg.exp.scaled, 
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                        values = c(1.0,0.7,0.4,0))+
   theme_classic()
+
+#Top deg heatmap
+all_clust_markers <-  FindAllMarkers(wt_cerebrum_microglia, group.by = 'infected_clusters', 
+                                     test.use = 'MAST', only.pos = TRUE)
+
+#Making cluster a factor a ordering by that so mock can be next to cluster 0 on heatmp
+top_inf_clust_genes <- all_clust_markers %>% 
+  dplyr::group_by(cluster) %>% 
+  dplyr::slice_head(n = 10) %>% 
+  dplyr::mutate(cluster = factor(cluster, levels = c('mock', '0', '1', '2', '3', '4'))) %>% 
+  dplyr::arrange(cluster) %>% 
+  dplyr::pull(gene)
+
+top_gene_dot_dat <- DotPlot(wt_cerebrum_microglia, features = unique(top_inf_clust_genes), group.by = 'infected_clusters', scale = FALSE)$data
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/cluster_markers.pdf', height = 9, width = 6)
+top_gene_dot_dat %>% 
+  dplyr::mutate(features.plot = factor(features.plot, levels = rev(unique(top_inf_clust_genes)))) %>% 
+  dplyr::mutate(id = factor(id, levels = c('mock', '0', '1', '2', '3', '4'))) %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled)) +
+  geom_tile()+
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0))+
+  ylab('')+
+  xlab('cluster')+
+  theme(axis.text = element_text(size = 16))
+dev.off()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #### DEGs between each infected cluster and all cells including mock #####
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -475,7 +599,7 @@ for(i in 1:length(unique(infected_all_sig$cluster))){
   infected_vs_all_path_list[[length(infected_vs_all_path_list) + 1]] = cur_cluster_paths$result
 }
 
-#No DEGs in cluster 1
+#No significant pathways in cluster 1
 names(infected_vs_all_path_list) = paste0('cluster_', c('0', '2', '3', '4', 'mock'))
 
 for(i in 1:length(infected_vs_all_path_list)){
@@ -497,8 +621,6 @@ infected_vs_all_path_list$cluster_2
 infected_vs_all_path_list$cluster_3
 infected_vs_all_path_list$cluster_4
 infected_vs_all_path_list$cluster_mock
-
-
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 #### Microglia groups from https://www.nature.com/articles/s41590-026-02472-z ####
@@ -827,3 +949,5 @@ plotList_stress <- lapply(c('Hsph1', 'Hspd1'), featurePlotLight, data = wt_cereb
 do.call(ggarrange, c(plotList_stress, common.legend = TRUE, legend = 'right'))
 
 FeaturePlot(wt_cerebrum_microglia, features = 'C5ar1', reduction = 'micro.umap')
+
+

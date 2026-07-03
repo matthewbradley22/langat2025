@@ -141,7 +141,7 @@ cells_with_not_enough <- ParseSeuratObj_int[[]] %>% dplyr::filter(Treatment == '
   dplyr::filter(count < 50)
 groups_to_not_keep <- paste(cells_with_not_enough$Timepoint, cells_with_not_enough$Genotype, cells_with_not_enough$manualAnnotation, sep = '_')
 #Should filter by cell count so we don't have some groups that are 10 cells total
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/corrected_viral_counts_mock.pdf', width = 8, height = 5)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/corrected_viral_counts_mock.pdf', width = 7, height = 5)
 ParseSeuratObj_int[[]] %>% dplyr::filter(Treatment == 'PBS') %>% 
   dplyr::filter(manualAnnotation != 'unknown') %>% 
   dplyr::mutate(time_geno_celltype = paste(Timepoint, Genotype, manualAnnotation, sep = '_')) %>% 
@@ -160,7 +160,8 @@ ParseSeuratObj_int[[]] %>% dplyr::filter(Treatment == 'PBS') %>%
   ggtitle('Mock viral count')+
   theme_classic()+
   theme(text = element_text(size = 16))+
-  ylab('')
+  ylab('')+
+  xlab('Day')
 dev.off()
 
 #Do same for infected samples

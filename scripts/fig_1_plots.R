@@ -8,7 +8,6 @@ library(readr)
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
-ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
 
 #Check data
 umap_color_list <- c( "#7047A1", "#B370AE","#292270",  "#166DF0","#6D92F8",  "#6DC3F8", "#8a0000","#F76363", "#FF96A2", "#D6644B", 
@@ -136,7 +135,7 @@ chimeric_mock_organ_counts <- chimeric_mock[[]] %>%
   dplyr::summarise(cell_count = n()) 
 chimeric_mock_organ_counts$Genotype = factor(chimeric_mock_organ_counts$Genotype, levels = c('WT', 'IPS1'))
 
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cerebrum_cellPopBars.pdf", width = 5, height = 8)
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cerebrum_cellPopBars.pdf", width = 6, height = 8)
 chimeric_mock_organ_counts %>% 
   dplyr::filter(Organ == 'Cerebrum') %>% 
   ggplot(aes(x = Treatment, y = cell_count, fill = Genotype))+
@@ -150,7 +149,7 @@ chimeric_mock_organ_counts %>%
   ylim(c(0, 26000))
 dev.off()
 
-pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cerebellum_cellPopBars.pdf", width = 5, height = 8)
+pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/cerebellum_cellPopBars.pdf", width = 6, height = 8)
 chimeric_mock_organ_counts %>% 
   dplyr::filter(Organ == 'Cerebellum') %>% 
   ggplot(aes(x = Treatment, y = cell_count, fill = Genotype))+
@@ -410,6 +409,7 @@ lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype')
                                                         'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
                                                         'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
                                                         'Choroid Plexus', 'Astrocytes'))) %>% 
+  dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
   ggplot(aes(x = geno, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
@@ -417,7 +417,7 @@ lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype')
                        limits = c(0,1.7))+
   scale_size(limits = c(0, 85))+
   theme_classic()+
-  ggtitle('Mock LRP8')+
+  ggtitle('Mock Immune LRP8')+
   theme(text = element_text(size = 16))+
   ylab('')+
   xlab('')
@@ -430,6 +430,7 @@ lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype')
                                                         'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
                                                         'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
                                                         'Choroid Plexus', 'Astrocytes'))) %>% 
+  dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
   ggplot(aes(x = geno, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
