@@ -416,9 +416,9 @@ for(i in 1:length(deg_genes_by_celltype_names)){
 deg_genes_by_celltype_split <- deg_genes_by_celltype %>% tidyr::separate(comp, c('celltype', 'time', 'geno', 'direction'), sep = '_')
 
 deg_genes_by_celltype_heatmap_dat <- deg_genes_by_celltype_split %>%  
-  filter(direction == "up") %>%
-  group_by(celltype, time) %>% 
-  summarise(
+  dplyr::filter(direction == "up") %>%
+  dplyr::group_by(celltype, time) %>% 
+  dplyr::summarise(
     wt  = sum(geno == "wt"  & !gene_name %in% gene_name[geno == "ips"]),
     ips = sum(geno == "ips" & !gene_name %in% gene_name[geno == "wt"]),
     both     = sum(geno == "wt"  &  gene_name %in% gene_name[geno == "ips"]),
@@ -431,9 +431,9 @@ deg_genes_by_celltype_heatmap_dat <- deg_genes_by_celltype_split %>%
   )
 
 deg_genes_by_celltype_heatmap_dat_down <- deg_genes_by_celltype_split %>%  
-  filter(direction == "down") %>%
-  group_by(celltype, time) %>% 
-  summarise(
+  dplyr::filter(direction == "down") %>%
+  dplyr::group_by(celltype, time) %>% 
+  dplyr::summarise(
     wt  = sum(geno == "wt"  & !gene_name %in% gene_name[geno == "ips"]),
     ips = sum(geno == "ips" & !gene_name %in% gene_name[geno == "wt"]),
     both     = sum(geno == "wt"  &  gene_name %in% gene_name[geno == "ips"]),
