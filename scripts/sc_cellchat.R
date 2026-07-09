@@ -149,11 +149,13 @@ ggpubr::ggarrange(ips_p3, ips_p4, ips_p5, nrow = 1, ncol = 3)
 ggpubr::ggarrange(wt_p3, ips_p3, nrow = 1, ncol = 2)
 
 #Plot general cell-cell trends
-netVisual_circle(wt_cells_cc@net$count, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
-netVisual_circle(wt_cells_cc@net$weight, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
-
-netVisual_circle(ips_cells_cc@net$count, vertex.weight = groupSize_ips, weight.scale = T, label.edge= F, title.name = "Number of interactions")
-netVisual_circle(ips_cells_cc@net$weight, vertex.weight = groupSize_ips, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+if(FALSE){
+  netVisual_circle(wt_cells_cc@net$count, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+  netVisual_circle(wt_cells_cc@net$weight, vertex.weight = groupSize_wt, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+  
+  netVisual_circle(ips_cells_cc@net$count, vertex.weight = groupSize_ips, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+  netVisual_circle(ips_cells_cc@net$weight, vertex.weight = groupSize_ips, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+}
 
 #Look at specific cell type interactions
 #Had to recreate aggregateNet function in cellChatBug.R in order to use sources and targets. Bug reported on github
@@ -194,7 +196,7 @@ plot_source_targets(ips_cells_three_cc, source_cell = 'Astrocytes')
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_target.pdf", width = 8, height =6)
-plot_source_targets(mock_cells_cc, target_cell = 'Astrocytes')
+plot_source_targets(mock_wt_cells_cc, target_cell = 'Astrocytes')
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_astro_target.pdf", width = 8, height =6)
@@ -255,18 +257,21 @@ path_over_time <- function(pathway, genotype){
   }
 }
 
-ccl_wt_plots <- path_over_time('TNF', genotype = 'WT')
-ccl_wt_plots[[1]]
+if(FALSE){
+  ccl_wt_plots <- path_over_time('TNF', genotype = 'WT')
+  ccl_wt_plots[[1]]
+  
+  ccl_ips_plots <- path_over_time('TNF', genotype = 'IPS1')
+  ccl_ips_plots[[1]]
+  
+  netVisual_aggregate(mock_wt_cells_cc, signaling = 'CCL', vertex.weight = NULL)
+  
+  #Aggregate pathway chord diagram
+  pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/cellchat_agg_chord.pdf", width = 20, height =16)
+  netVisual_aggregate(wt_cells_three_cc, signaling = pathways.show, layout = "chord")
+  dev.off()
+}
 
-ccl_ips_plots <- path_over_time('TNF', genotype = 'IPS1')
-ccl_ips_plots[[1]]
-
-netVisual_aggregate(mock_wt_cells_cc, signaling = 'CCL', vertex.weight = NULL)
-
-#Aggregate pathway chord diagram
-pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/cellchat_agg_chord.pdf", width = 20, height =16)
-netVisual_aggregate(wt_cells_three_cc, signaling = pathways.show, layout = "chord")
-dev.off()
 
 #Side by side pathway heatmaps for two datasets
 #Have to use patchwork to get both heatmaps to show legends, therefore have to do this draw grid grab stuff
@@ -415,6 +420,7 @@ slot.name = "netP"
 
 ########### Comparative analysis between day 3 (or 4) and mock by genotype ########### 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
 cellchat_wt_3_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_three_cc), add.names = c('PBS', 'WT_inf'))
 cellchat_wt_4_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_four_cc), add.names = c('PBS', 'WT_inf'))
 compareInteractions(cellchat_wt_merged, show.legend = F, group = c(1,2))

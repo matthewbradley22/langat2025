@@ -142,7 +142,7 @@ chimeric_mock_organ_counts %>%
   geom_bar(stat = 'identity', position = 'dodge', color = 'black')+
   xlab('')+
   ylab('cell count')+
-  scale_fill_manual(values = c('#E36F39', umap_color_list[4]))+
+  scale_fill_manual(values = c("#B3BFE2", "#FDC0AC"))+
   theme_classic()+
   theme(text = element_text(size = 22))+
   ggtitle('Cerebrum')+
@@ -156,7 +156,7 @@ chimeric_mock_organ_counts %>%
   geom_bar(stat = 'identity', position = 'dodge', color = 'black')+
   xlab('')+
   ylab('cell count')+
-  scale_fill_manual(values = c('#E36F39', umap_color_list[4]))+
+  scale_fill_manual(values = c("#B3BFE2", "#FDC0AC"))+
   theme_classic()+
   theme(text = element_text(size = 22))+
   ggtitle('Cerebellum')+
@@ -276,14 +276,14 @@ pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/neomycin_levels_
 #neo_data_to_plot_chimeric %>% 
   #dplyr::group_by(Treatment, Genotype) %>% 
   #dplyr::summarise(mean_counts = mean(total_reads)) %>% 
-ggplot(neo_data_to_plot_chimeric, aes(x = well_numbered, y = total_reads, fill = treatment_geno))+
+ggplot(neo_data_to_plot_chimeric, aes(x = factor(well_numbered, levels = rev(neo_data_to_plot_chimeric$well_numbered)), y = total_reads, fill = treatment_geno))+
   geom_bar(stat = 'identity')+
   ggtitle('Neomycin-resistance gene')+
   theme_classic()+
   theme(text = element_text(size = 24),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank())+
-  scale_fill_manual(values = c( '#E36F39', '#E35539', '#39B6E3', '#3986E3'))+
+  scale_fill_manual(values = c( '#39B6E3', '#3986E3', '#E36F39', '#E35539'))+
   ylab('Total Neo reads')+
   xlab('Well')
 dev.off()
@@ -323,7 +323,7 @@ barplot_counts <- function(dat, cell_levels, bar_width = 0.5, mac = FALSE){
           axis.text.x = element_text(angle = 0))+
     ylab('Proportion of total cells')+
     xlab('Day')+
-    scale_fill_manual(values = c('#E36F39', umap_color_list[4]))
+    scale_fill_manual(values = c("#B3BFE2", "#FDC0AC"))
   print(plot_cells)
 }
 
@@ -350,7 +350,7 @@ wt_chimeric_macs[[]] %>%
         axis.text.x = element_text(angle = 0))+
   ylab('Cell count')+
   xlab('')+
-  scale_fill_manual(values = c('white', 'grey'))
+  scale_fill_manual(values = c("#B3BFE2", "#FDC0AC"))
 dev.off()
 #Bad plot i think since hard to see size of differences
 wt_chimeric_infiltrating <- subset(chimeric_mock, manualAnnotation %in% c("T cells", "Nk cells",
