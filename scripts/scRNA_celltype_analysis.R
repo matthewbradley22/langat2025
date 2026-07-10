@@ -366,132 +366,135 @@ DimPlot(astrocytes_cerebellum, reduction = 'astrocytes_cerebellum_umap', group.b
 ####### Genes upregulated by celltype for upsetplot ########
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-wt_chimeric <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment %in% c('PBS', 'rChLGTV'))
-ips_chimeric <- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment %in% c('PBS', 'rChLGTV'))
-
-#Can skip for loop and read in data here
-degs_by_celltype_wt <- readRDS('~/Documents/ÖverbyLab/cell_upsetPlots/wt_celltype_degs.rds')
-degs_by_celltype_ips <- readRDS('~/Documents/ÖverbyLab/cell_upsetPlots/ips_celltype_degs.rds')
-
-#Or run for loop
-celltypes <- unique(wt_chimeric$manualAnnotation)
-degs_by_celltype_wt <- list()
-degs_by_celltype_ips <- list()
-
-for(i in 1:length(celltypes)){
-  print(paste('Beginning celltype', celltypes[i]))
-  cur_dat_wt <- subset(wt_chimeric, manualAnnotation == celltypes[i])
-  cur_dat_ips <- subset(ips_chimeric, manualAnnotation == celltypes[i])
-  celltype_markers_wt <- FindMarkers(cur_dat_wt, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
-              test.use = 'MAST')
-  celltype_markers_ips <- FindMarkers(cur_dat_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
-                                     test.use = 'MAST')
-  degs_by_celltype_wt[[i]] = celltype_markers_wt
-  degs_by_celltype_ips[[i]] = celltype_markers_ips
-  names(degs_by_celltype_wt)[[i]] = celltypes[i]
-  names(degs_by_celltype_ips)[[i]] = celltypes[i]
-  print(paste('Done with celltype', celltypes[i]))
-}
-
-#saveRDS(degs_by_celltype_wt, '~/Documents/ÖverbyLab/cell_upsetPlots/wt_celltype_degs.rds')
-#saveRDS(degs_by_celltype_ips, '~/Documents/ÖverbyLab/cell_upsetPlots/ips_celltype_degs.rds')
-
-celltype_markers_sig_wt <- lapply(degs_by_celltype_wt, FUN = function(x){
-  celltype_dat <- as.data.frame(x)
-  celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
-})
-
-celltype_markers_sig_ips <- lapply(degs_by_celltype_ips, FUN = function(x){
-  celltype_dat <- as.data.frame(x)
-  celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
-})
-
-num_degs_wt <- lapply(celltype_markers_sig_wt, nrow)
-num_degs_wt_df <- data.frame(celltypes = names(celltype_markers_sig_wt), num_degs = unlist(num_degs_wt))
-num_degs_wt_df
-
-deg_names_wt <- lapply(celltype_markers_sig_wt, FUN = function(x){
-  rownames(x)
-})
-
-deg_names_ips <- lapply(celltype_markers_sig_ips, FUN = function(x){
-  rownames(x)
-})
-
-upset_dat_wt <- UpSetR::fromList(deg_names_wt)
-upset_dat_ips <- UpSetR::fromList(deg_names_ips)
-
-#Upset plots of upregulated degs
-#Copying these with ~700 x 1400 dimensions
-UpSetR::upset(upset_dat_wt, nsets = 10, order.by = 'freq', text.scale = 2)
-UpSetR::upset(upset_dat_ips, nsets = 10, order.by = 'freq', text.scale = 2)
-
-#Get commonly upregulated genes between celltypes in upset data
-#If these return null for some reason, check that macrophage/monocytes are labelled as such in the deg_names dataframes
-shared_wt_genes <- Reduce(intersect, deg_names_wt[c('Microglia', 'Choroid Plexus', 'Ependymal', 'Macrophage/Monocytes', 'Endothelial', 'T cells', 'Astrocytes')])
-shared_ips_genes <- Reduce(intersect, deg_names_ips[c('Microglia', 'Choroid Plexus', 'Ependymal', 'Endothelial', 'Macrophage/Monocytes', 'T cells', 'Astrocytes')])
-
-unique_wt <- length(shared_wt_genes[!shared_wt_genes %in% shared_ips_genes])
-unique_ips <- length(shared_ips_genes[!shared_ips_genes %in% shared_wt_genes])
-shared_genes <- length(intersect(x = shared_ips_genes, y = shared_wt_genes))
-
-ips_vs_wt_up_genes <- data.frame('type' = factor(c('wt_only', 'ips_only', 'shared'), levels = c('wt_only', 'ips_only', 'shared')), 
-                                 counts = c(unique_wt, unique_ips, shared_genes))
-
-ggplot(ips_vs_wt_up_genes, aes(x = type, y = counts, fill = type))+
-  geom_bar(stat = 'identity')+
-  theme(legend.position = 'none')+
-  scale_fill_manual(values = c("#A0AEF2", "#88BBBD",  "#AD88BD"))
-
-#Function that, given a list of findmarkers output (dataframes with lfc and pvals etc...), named by celltype,
-#returns a genes only upregulated in given celltype
-unqiue_celltype_markers <- function(markers_list, celltype){
-  all_marker_names <- lapply(markers_list, FUN = function(x){
+#This is not split by time so skipping for now 
+if(FALSE){
+  wt_chimeric <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment %in% c('PBS', 'rChLGTV'))
+  ips_chimeric <- subset(ParseSeuratObj_int, Genotype == 'IPS1' & Treatment %in% c('PBS', 'rChLGTV'))
+  
+  #Can skip for loop and read in data here
+  degs_by_celltype_wt <- readRDS('~/Documents/ÖverbyLab/cell_upsetPlots/wt_celltype_degs.rds')
+  degs_by_celltype_ips <- readRDS('~/Documents/ÖverbyLab/cell_upsetPlots/ips_celltype_degs.rds')
+  
+  #Or run for loop
+  celltypes <- unique(wt_chimeric$manualAnnotation)
+  degs_by_celltype_wt <- list()
+  degs_by_celltype_ips <- list()
+  
+  for(i in 1:length(celltypes)){
+    print(paste('Beginning celltype', celltypes[i]))
+    cur_dat_wt <- subset(wt_chimeric, manualAnnotation == celltypes[i])
+    cur_dat_ips <- subset(ips_chimeric, manualAnnotation == celltypes[i])
+    celltype_markers_wt <- FindMarkers(cur_dat_wt, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
+                                       test.use = 'MAST')
+    celltype_markers_ips <- FindMarkers(cur_dat_ips, group.by = 'Treatment', ident.1 = 'rChLGTV', ident.2 = 'PBS', 
+                                        test.use = 'MAST')
+    degs_by_celltype_wt[[i]] = celltype_markers_wt
+    degs_by_celltype_ips[[i]] = celltype_markers_ips
+    names(degs_by_celltype_wt)[[i]] = celltypes[i]
+    names(degs_by_celltype_ips)[[i]] = celltypes[i]
+    print(paste('Done with celltype', celltypes[i]))
+  }
+  
+  #saveRDS(degs_by_celltype_wt, '~/Documents/ÖverbyLab/cell_upsetPlots/wt_celltype_degs.rds')
+  #saveRDS(degs_by_celltype_ips, '~/Documents/ÖverbyLab/cell_upsetPlots/ips_celltype_degs.rds')
+  
+  celltype_markers_sig_wt <- lapply(degs_by_celltype_wt, FUN = function(x){
+    celltype_dat <- as.data.frame(x)
+    celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
+  })
+  
+  celltype_markers_sig_ips <- lapply(degs_by_celltype_ips, FUN = function(x){
+    celltype_dat <- as.data.frame(x)
+    celltype_dat[celltype_dat$p_val_ad < 0.01 & celltype_dat$avg_log2FC > 1,]
+  })
+  
+  num_degs_wt <- lapply(celltype_markers_sig_wt, nrow)
+  num_degs_wt_df <- data.frame(celltypes = names(celltype_markers_sig_wt), num_degs = unlist(num_degs_wt))
+  num_degs_wt_df
+  
+  deg_names_wt <- lapply(celltype_markers_sig_wt, FUN = function(x){
     rownames(x)
   })
-  non_celltype_markers <- unname(unlist(all_marker_names[!names(all_marker_names) %in% celltype]))
-  celltype_markers <- unname(unlist(all_marker_names[celltype]))
-  unique_celltype_markers <- celltype_markers[!celltype_markers %in% non_celltype_markers]
-  return(unique_celltype_markers)
-}
-
-#Get all genes upregulated in non astrocytes in infection
-astro_genes_wt <- unqiue_celltype_markers(celltype_markers_sig_wt, 'Astrocytes')
-micro_genes_wt <- unqiue_celltype_markers(celltype_markers_sig_wt, 'Microglia')
-
-#No pathways
-gprofiler2::gost(query = astro_genes_wt, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
-
-#Lots of cell cycle genes
-micro_paths <- gprofiler2::gost(query = micro_genes_wt, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
-micro_paths$result
-
-#Dotplot specific genes
-wt_chimeric_known <- subset(wt_chimeric, manualAnnotation != 'unknown')
-
-for(i in 1:length(astro_genes)){
-  gene_dot <- DotPlot(wt_chimeric, features = c(astro_genes[[i]]), group.by = 'Treatment_celltype', scale = FALSE)$data
+  
+  deg_names_ips <- lapply(celltype_markers_sig_ips, FUN = function(x){
+    rownames(x)
+  })
+  
+  upset_dat_wt <- UpSetR::fromList(deg_names_wt)
+  upset_dat_ips <- UpSetR::fromList(deg_names_ips)
+  
+  #Upset plots of upregulated degs
+  #Copying these with ~700 x 1400 dimensions
+  UpSetR::upset(upset_dat_wt, nsets = 10, order.by = 'freq', text.scale = 2)
+  UpSetR::upset(upset_dat_ips, nsets = 10, order.by = 'freq', text.scale = 2)
+  
+  #Get commonly upregulated genes between celltypes in upset data
+  #If these return null for some reason, check that macrophage/monocytes are labelled as such in the deg_names dataframes
+  shared_wt_genes <- Reduce(intersect, deg_names_wt[c('Microglia', 'Choroid Plexus', 'Ependymal', 'Macrophage/Monocytes', 'Endothelial', 'T cells', 'Astrocytes')])
+  shared_ips_genes <- Reduce(intersect, deg_names_ips[c('Microglia', 'Choroid Plexus', 'Ependymal', 'Endothelial', 'Macrophage/Monocytes', 'T cells', 'Astrocytes')])
+  
+  unique_wt <- length(shared_wt_genes[!shared_wt_genes %in% shared_ips_genes])
+  unique_ips <- length(shared_ips_genes[!shared_ips_genes %in% shared_wt_genes])
+  shared_genes <- length(intersect(x = shared_ips_genes, y = shared_wt_genes))
+  
+  ips_vs_wt_up_genes <- data.frame('type' = factor(c('wt_only', 'ips_only', 'shared'), levels = c('wt_only', 'ips_only', 'shared')), 
+                                   counts = c(unique_wt, unique_ips, shared_genes))
+  
+  ggplot(ips_vs_wt_up_genes, aes(x = type, y = counts, fill = type))+
+    geom_bar(stat = 'identity')+
+    theme(legend.position = 'none')+
+    scale_fill_manual(values = c("#A0AEF2", "#88BBBD",  "#AD88BD"))
+  
+  #Function that, given a list of findmarkers output (dataframes with lfc and pvals etc...), named by celltype,
+  #returns a genes only upregulated in given celltype
+  unqiue_celltype_markers <- function(markers_list, celltype){
+    all_marker_names <- lapply(markers_list, FUN = function(x){
+      rownames(x)
+    })
+    non_celltype_markers <- unname(unlist(all_marker_names[!names(all_marker_names) %in% celltype]))
+    celltype_markers <- unname(unlist(all_marker_names[celltype]))
+    unique_celltype_markers <- celltype_markers[!celltype_markers %in% non_celltype_markers]
+    return(unique_celltype_markers)
+  }
+  
+  #Get all genes upregulated in non astrocytes in infection
+  astro_genes_wt <- unqiue_celltype_markers(celltype_markers_sig_wt, 'Astrocytes')
+  micro_genes_wt <- unqiue_celltype_markers(celltype_markers_sig_wt, 'Microglia')
+  
+  #No pathways
+  gprofiler2::gost(query = astro_genes_wt, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+  
+  #Lots of cell cycle genes
+  micro_paths <- gprofiler2::gost(query = micro_genes_wt, organism = 'mmusculus', evcodes = TRUE, sources = c('GO:BP', 'KEGG'))
+  micro_paths$result
+  
+  #Dotplot specific genes
+  wt_chimeric_known <- subset(wt_chimeric, manualAnnotation != 'unknown')
+  
+  for(i in 1:length(astro_genes)){
+    gene_dot <- DotPlot(wt_chimeric, features = c(astro_genes[[i]]), group.by = 'Treatment_celltype', scale = FALSE)$data
+    gene_dot_meta <- str_split_fixed(gene_dot$id, pattern = '_', n = 2)
+    colnames(gene_dot_meta) <- c('treatment', 'celltype')
+    gene_dot <- cbind(gene_dot, gene_dot_meta)
+    
+    print(ggplot(gene_dot, aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
+            geom_tile()+
+            scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                                 values = c(1.0,0.7,0.4,0))+
+            ggtitle(astro_genes[[i]]))
+  }
+  
+  gene_dot <- DotPlot(wt_chimeric_known, features = c('Grm5'), group.by = 'Treatment_celltype', scale = FALSE)$data
   gene_dot_meta <- str_split_fixed(gene_dot$id, pattern = '_', n = 2)
   colnames(gene_dot_meta) <- c('treatment', 'celltype')
   gene_dot <- cbind(gene_dot, gene_dot_meta)
-  
-  print(ggplot(gene_dot, aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
+  ggplot(gene_dot, aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
     geom_tile()+
     scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
                          values = c(1.0,0.7,0.4,0))+
-    ggtitle(astro_genes[[i]]))
+    ggtitle('Grm5')
+  
 }
-
-gene_dot <- DotPlot(wt_chimeric_known, features = c('Grm5'), group.by = 'Treatment_celltype', scale = FALSE)$data
-gene_dot_meta <- str_split_fixed(gene_dot$id, pattern = '_', n = 2)
-colnames(gene_dot_meta) <- c('treatment', 'celltype')
-gene_dot <- cbind(gene_dot, gene_dot_meta)
-ggplot(gene_dot, aes(x = treatment, y = celltype, fill = avg.exp.scaled))+
-        geom_tile()+
-        scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                             values = c(1.0,0.7,0.4,0))+
-        ggtitle('Grm5')
-
 
 ########### UpSet plots by timepoint ########### 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 

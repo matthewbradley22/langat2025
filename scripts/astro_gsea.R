@@ -198,41 +198,74 @@ day5_wt_gsea <- create_gsea_object(astros_day5_wt)
 day5_ips_gsea <- create_gsea_object(astros_day5_ips)
 
 
-
-create_emap <- function(gsea_dat){
-  print(emapplot(pairwise_termsim(gsea_dat), showCategory = 7, node_label="none" )+
-    theme_classic() +
-    scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","#FFD1A6"), 
-                          values = c(0,0.4,0.7,1.0),
-                          limits = c(1, 2*10^-8))+
-    theme(axis.text = element_blank(),
-          axis.ticks = element_blank())+
-    ylab('')+
-    xlab(''))+
-    ggrepel::geom_text_repel(aes(x = x, y = y, label = name), size = 5)
+if(FALSE){
+  create_emap <- function(gsea_dat){
+    print(emapplot(pairwise_termsim(gsea_dat), showCategory = 7, node_label="none" )+
+            theme_classic() +
+            scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","#FFD1A6"), 
+                                  values = c(0,0.4,0.7,1.0),
+                                  limits = c(1, 2*10^-8))+
+            theme(axis.text = element_blank(),
+                  axis.ticks = element_blank())+
+            ylab('')+
+            xlab(''))+
+      ggrepel::geom_text_repel(aes(x = x, y = y, label = name), size = 5)
+  }
+  
+  pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_emap.pdf', width = 7, height = 6)
+  create_emap(day3_wt_gsea) 
+  dev.off()
+  
+  pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day3_emap.pdf', width = 7, height = 6)
+  create_emap(day3_ips_gsea)
+  dev.off()
+  
+  pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day5_emap.pdf', width = 7, height = 6)
+  create_emap(day5_wt_gsea)
+  dev.off()
+  
+  pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day5_emap.pdf', width = 7, height = 6)
+  create_emap(day5_ips_gsea)
+  dev.off()
+  
 }
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_emap.pdf', width = 7, height = 6)
-create_emap(day3_wt_gsea) 
-dev.off()
-
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day3_emap.pdf', width = 7, height = 6)
-create_emap(day3_ips_gsea)
-dev.off()
-
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day5_emap.pdf', width = 7, height = 6)
-create_emap(day5_wt_gsea)
-dev.off()
-
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day5_emap.pdf', width = 7, height = 6)
-create_emap(day5_ips_gsea)
-dev.off()
-
-dotplot(day3_wt_gsea, showCategory=7)+
+#Dot plots
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_dotplot.pdf', width = 5.5, height = 6)
+enrichplot::dotplot(day3_wt_gsea, showCategory=7, x = 'NES')+
   theme_classic() +
-  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","#FFD1A6"), 
-                        values = c(0,0.4,0.7,1.0),
-                        limits = c(1, 2*10^-8))
+  scale_fill_gradientn(colours = c("#F03C0C","#FFD1A6","#FFEEE0"), 
+                       values = c(0,0.5,1.0),
+                       limits = c(1, 2*10^-8))+
+  scale_size(range = c(0, 9), limits = c(0, 200))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day3_dotplot.pdf', width = 5.5, height = 6)
+enrichplot::dotplot(day3_ips_gsea, showCategory=7, x = 'NES')+
+  theme_classic() +
+  scale_fill_gradientn(colours = c("#F03C0C","#FFD1A6","#FFEEE0"), 
+                       values = c(0,0.5,1.0),
+                       limits = c(1, 2*10^-8))+
+  scale_size(range = c(0, 9), limits = c(0, 200))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day5_dotplot.pdf', width = 5.5, height = 6)
+enrichplot::dotplot(day5_wt_gsea, showCategory=7, x = 'NES')+
+  theme_classic() +
+  scale_fill_gradientn(colours = c("#F03C0C","#FFD1A6","#FFEEE0"), 
+                       values = c(0,0.5,1.0),
+                       limits = c(1, 2*10^-8))+
+  scale_size(range = c(0, 9), limits = c(0, 200))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day5_dotplot.pdf', width = 5.5, height = 6)
+enrichplot::dotplot(day5_ips_gsea, showCategory=7, x = 'NES')+
+  theme_classic() +
+  scale_fill_gradientn(colours = c("#F03C0C","#FFD1A6","#FFEEE0"), 
+                       values = c(0,0.5,1.0),
+                       limits = c(1, 2*10^-8))+
+  scale_size(range = c(0, 9), limits = c(0, 200))
+dev.off()
 
 gseaplot2(day3_wt_gsea, geneSetID = 1:5, pvalue_table = TRUE)
 

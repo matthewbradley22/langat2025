@@ -585,7 +585,6 @@ for(i in 1:length(celltypes_of_interest)){
     print(paste('Not enough cells in group', current_celltype))
   }
 }
-
 deg_mock_counts <- unlist(lapply(deg_counts_mock_celltype, nrow))
 deg_mock_counts_df <- data.frame(comp = names(deg_mock_counts), count = deg_mock_counts)
 deg_mock_counts_df <- deg_mock_counts_df %>% tidyr::separate(comp, into = c('celltype', 'geno', 'direction'), sep = '_') %>% 
@@ -604,7 +603,7 @@ ggplot(deg_mock_counts_df, aes(x = celltype, y = count, fill = geno))+
   ggtitle('Mock WT vs IPS1')+
   theme_classic()+
   theme(text = element_text(size = 38))+
-  scale_fill_manual(values = c(umap_color_list[4],  umap_color_list[10]))+ 
+  scale_fill_manual(values = c( "#FDC0AC", "#B3BFE2"))+ 
   guides(fill = guide_legend(reverse = TRUE))
 dev.off()
 

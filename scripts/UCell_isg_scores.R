@@ -60,9 +60,9 @@ isg_intersections <- euler(c('Type1' = length(all_ISGs_type1_unique),
                              'Type2' = length(all_ISGs_type2_unique),
                              'Type1&Type2' = length(ISGs_in_both)))
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/day3_fig/day3_plots/isg_venn_diagram.pdf', width = 6, height = 5)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/isg_venn_diagram.pdf', width = 6, height = 5)
 plot(isg_intersections, quantities = list(type = "counts"),
-     fill = c(brewer.pal(3, "Pastel2")[1:2]))
+     fill = c('#E8E8E8', '#E8E8E8'))
 dev.off()
 
 #Should also try ucell module scores

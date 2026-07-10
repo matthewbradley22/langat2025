@@ -383,11 +383,12 @@ table(chimeric_mock$manualAnnotation, chimeric_mock$Genotype, chimeric_mock$Trea
 #Only doing residential celltypes that have at least 200 cells in each genotype for this plot
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/lrp8_mock_resident_dotplot.pdf', height = 4, width = 5)
 lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype'), sep = '_') %>% 
-  dplyr::filter(treatment == 'PBS' & !celltype %in% c('T cells', 'Nk cells', 'Macrophage/Monocytes', 'Granulocytes', 'B Cells', 'Pericytes', 'Muscle cells')) %>% 
+  dplyr::filter(treatment == 'PBS' & !celltype %in% c('T cells', 'Nk cells', 'Macrophage/Monocytes', 'Granulocytes', 'B Cells', 'Pericytes', 'Muscle cells', 'unknown')) %>% 
   dplyr::mutate(celltype = factor(celltype, levels = c( 'unknown',  'T cells',   'Nk cells', 'Macrophage/Monocytes', 
                                                         'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
                                                         'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
                                                         'Choroid Plexus', 'Astrocytes'))) %>% 
+  dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
   ggplot(aes(x = geno, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
