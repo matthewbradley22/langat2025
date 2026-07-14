@@ -133,7 +133,8 @@ wt_cerebrum_microglia$custom_clusters <- dplyr::case_when(wt_cerebrum_microglia$
                                                           .default = wt_cerebrum_microglia$seurat_clusters)
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/microglia_UMAP.pdf', width = 7, height = 5)
-DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by = 'custom_clusters')+
+DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by = 'custom_clusters', 
+        cols = c('#6B9973', '#A4CE05', '#E7A515', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
       ggtitle('Microglia')+
       theme(axis.text = element_blank(), axis.ticks = element_blank())+
       ylab('UMAP2')+
@@ -151,7 +152,6 @@ table(wt_cerebrum_microglia$Treatment, wt_cerebrum_microglia$seurat_clusters)
 
 #Look across time at microglia
 microglia_infected <- subset(wt_cerebrum_microglia, Treatment == 'rLGTV')
-microglia_mock <- subset(wt_cerebrum_microglia, Treatment == 'PBS')
 
 #Infected microglia UMAP
 microglia_infected <- prepSeuratObj(microglia_infected)
@@ -178,6 +178,71 @@ DimPlot(microglia_infected, reduction = 'micro.inf.umap', label = FALSE)+
   ylab('UMAP2')+
   xlab('UMAP1')
 dev.off()
+
+#Infected timepoint markers
+microglia_infected$time_comb <- ifelse(microglia_infected$Timepoint == 'Day 5', 'Day 5', 'Day 3_4')
+infected_time_markers <- FindAllMarkers(microglia_infected, group.by = 'time_comb', test.use = 'MAST')
+top_infected_markers <- infected_time_markers %>% dplyr::filter(avg_log2FC > 1 & p_val_adj < 0.01) %>% 
+  dplyr::group_by(cluster) %>% 
+  dplyr::slice_head(n = 5)
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/microglia_inf_timepoint_genes.pdf', width = 8, height = 5)
+DotPlot(microglia_infected, features = top_infected_markers$gene, group.by = 'Timepoint', scale = FALSE)$data %>% 
+  ggplot(aes(x = features.plot, y = id, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
+        text = element_text(size = 20))+
+  ylab('')+
+  xlab('')+
+  ggtitle('Infected Microglia')
+dev.off()
+
+
+#Pathway analysis
+early_infect_markers <- infected_time_markers %>% 
+  dplyr::filter(cluster == 'Day 3_4' & p_val_adj < 0.01 & avg_log2FC > 1) 
+early_infect_markers$gene %>% write.csv(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/early_markers.csv',
+                                        row.names = FALSE, quote = FALSE)
+
+early_paths <- gprofiler2::gost(query = early_infect_markers$gene, organism = 'mmusculus', evcodes = TRUE,
+                                sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/early_time_paths.pdf', width = 6, height = 5)
+ggplot(head(early_paths$result, n = 10), aes(x = -log10(p_value), y = reorder(term_name, desc(p_value))))+
+  geom_bar(stat = 'identity', fill = '#6DC3F8', color = 'black')+
+  theme_classic()+
+  ylab('')+
+  xlab('-Log10 p-val')+
+  theme(text = element_text(size = 18))+
+  ggtitle('Early')
+dev.off()
+
+late_infect_markers <- infected_time_markers %>% 
+  dplyr::filter(cluster == 'Day 5' & p_val_adj < 0.01 & avg_log2FC > 1)
+
+late_infect_markers$gene %>% write.csv(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/late_markers.csv',
+                                       row.names = FALSE, quote = FALSE)
+
+late_paths <- gprofiler2::gost(query = late_infect_markers$gene, organism = 'mmusculus', evcodes = TRUE,
+                               sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/late_time_paths.pdf', width = 6, height = 5)
+ggplot(head(late_paths$result, n = 10), aes(x = -log10(p_value), y = reorder(term_name, desc(p_value))))+
+  geom_bar(stat = 'identity', fill = '#6DC3F8', color = 'black')+
+  theme_classic()+
+  ylab('')+
+  xlab('-Log10 p-val')+
+  theme(text = element_text(size = 18))+
+  ggtitle('Late')
+dev.off()
+
+# - - - - - - - - - - - - - - - - 
+#### Across time mock samples ####
+# - - - - - - - - - - - - - - - - 
+
+microglia_mock <- subset(wt_cerebrum_microglia, Treatment == 'PBS')
 
 #Mock microglia UMAP
 microglia_mock <- prepSeuratObj(microglia_mock)
@@ -206,6 +271,12 @@ mock_comp_paths <- gprofiler2::gost(query = mock_markers_5$gene, organism = 'mmu
 
 mock_comp_paths$result
 
+ggplot(head(mock_comp_paths$result, n = 8), aes(x = -log10(p_value), y = reorder(term_name, -p_value)))+
+  geom_bar(stat = 'identity', color = 'black', fill = 'lightgrey')+
+  theme_classic()+
+  ylab('')+
+  theme(text = element_text(size = 18))
+
 FeaturePlot(wt_cerebrum_microglia, features = 'mt-Cytb', reduction = 'micro.umap')
 FeaturePlot(microglia_mock, features = 'mt-Cytb', reduction = 'micro.mock.umap')
 
@@ -219,83 +290,54 @@ mock_dot_dat %>% dplyr::mutate(features.plot = factor(features.plot, levels = re
                        values = c(0, 0.3, 0.6, 1))+
   ggtitle('Mock microglia markers')
 
-#Timepoint markers microglia
-#Infected
+#Look at mock markers by cluster
+DimPlot(microglia_mock, reduction = 'micro.mock.umap', label = FALSE, group.by = 'custom_clusters',
+        cols = c('#6B9973', '#A4CE05', '#E7A515', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
+  ggtitle('Mock microglia')+
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())+
+  ylab('UMAP2')+
+  xlab('UMAP1')
 
-microglia_infected$time_comb <- ifelse(microglia_infected$Timepoint == 'Day 5', 'Day 5', 'Day 3_4')
-infected_time_markers <- FindAllMarkers(microglia_infected, group.by = 'time_comb', test.use = 'MAST')
-top_infected_markers <- infected_time_markers %>% dplyr::filter(avg_log2FC > 1 & p_val_adj < 0.01) %>% 
-  dplyr::group_by(cluster) %>% 
-  dplyr::slice_head(n = 5)
+mock_cluster_markers <- FindAllMarkers(microglia_mock, group.by = 'custom_clusters', test.use = 'MAST')
+sig_cluster_markers <- mock_cluster_markers %>% dplyr::filter(avg_log2FC > 1 & p_val_adj < 0.01) %>% 
+  dplyr::filter(cluster %in% c(0, 1, 2))
 
-pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/microglia_inf_timepoint_genes.pdf', width = 8, height = 5)
-DotPlot(microglia_infected, features = top_infected_markers$gene, group.by = 'Timepoint', scale = FALSE)$data %>% 
-  ggplot(aes(x = features.plot, y = id, size = pct.exp, fill = avg.exp.scaled))+
+top_mock_cluster_genes <- sig_cluster_markers %>% dplyr::group_by(cluster) %>%  dplyr::slice_head(n = 6) %>% 
+  dplyr::pull(gene) %>% unique()
+  
+DotPlot(microglia_mock, features = rev(top_mock_cluster_genes), group.by = 'custom_clusters', scale = FALSE)$data %>% 
+  dplyr::filter(id %in% c(0, 1, 2)) %>% 
+  ggplot(aes(x = id, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
   geom_point(pch = 21)+
+  theme_classic()+
   scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
                        values = c(0, 0.3, 0.6, 1))+
-  theme_classic()+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
-        text = element_text(size = 20))+
-  ylab('')+
-  xlab('')+
-  ggtitle('Infected Microglia')
-dev.off()
+  ggtitle('')
 
-#PBS
-mock_time_markers <- FindAllMarkers(microglia_mock, group.by = 'Timepoint', test.use = 'MAST')
-top_mock_markers <- mock_time_markers %>% dplyr::filter(avg_log2FC > 1 & p_val_adj < 0.01) %>% 
-  dplyr::group_by(cluster) %>% 
-  dplyr::slice_head(n = 5)
+sig_cluster_markers
+sig_cluster_paths <- lapply(c(0, 1, 2), FUN = function(x){
+  cur_markers <- dplyr::filter(sig_cluster_markers, cluster == x)
+  cur_pathways <- gprofiler2::gost(query = cur_markers$gene, organism = 'mmusculus', evcodes = TRUE,
+                                   sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+  cur_pathways
+})
 
-DotPlot(microglia_mock, features = top_mock_markers$gene, group.by = 'Timepoint', scale = FALSE)$data %>% 
-  ggplot(aes(x = features.plot, y = id, size = pct.exp, fill = avg.exp.scaled))+
-  geom_point(pch = 21)+
-  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
-                       values = c(0, 0.3, 0.6, 1))+
-  theme_classic()+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
-        text = element_text(size = 20))+
-  ylab('')+
-  xlab('')+
-  ggtitle('Mock Microglia')
-
-#Pathway analysis
-early_infect_markers <- infected_time_markers %>% 
-  dplyr::filter(cluster == 'Day 3_4' & p_val_adj < 0.01 & avg_log2FC > 1) 
-early_infect_markers$gene %>% write.csv(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/early_markers.csv',
-                                        row.names = FALSE, quote = FALSE)
-
-early_paths <- gprofiler2::gost(query = early_infect_markers$gene, organism = 'mmusculus', evcodes = TRUE,
-                                sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
-
-pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/early_time_paths.pdf', width = 6, height = 5)
-ggplot(head(early_paths$result, n = 10), aes(x = -log10(p_value), y = reorder(term_name, desc(p_value))))+
-  geom_bar(stat = 'identity', fill = '#6DC3F8', color = 'black')+
+ggplot(head(sig_cluster_paths[[2]]$result, n = 8), aes(x = -log10(p_value), y = reorder(term_name, -p_value)))+
+  geom_bar(stat = 'identity')+
   theme_classic()+
   ylab('')+
-  xlab('-Log10 p-val')+
-  theme(text = element_text(size = 18))+
-  ggtitle('Early')
-dev.off()
+  ggtitle('Cluster 1')+
+  theme(text = element_text(size = 16))
 
-late_infect_markers <- infected_time_markers %>% 
-  dplyr::filter(cluster == 'Day 5' & p_val_adj < 0.01 & avg_log2FC > 1)
-
-late_infect_markers$gene %>% write.csv(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/late_markers.csv',
-                                        row.names = FALSE, quote = FALSE)
-
-late_paths <- gprofiler2::gost(query = late_infect_markers$gene, organism = 'mmusculus', evcodes = TRUE,
-                               sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
-pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/late_time_paths.pdf', width = 6, height = 5)
-ggplot(head(late_paths$result, n = 10), aes(x = -log10(p_value), y = reorder(term_name, desc(p_value))))+
-  geom_bar(stat = 'identity', fill = '#6DC3F8', color = 'black')+
+ggplot(head(sig_cluster_paths[[3]]$result, n = 8), aes(x = -log10(p_value), y = reorder(term_name, -p_value)))+
+  geom_bar(stat = 'identity')+
   theme_classic()+
+  ggtitle('Cluster 2')+
   ylab('')+
-  xlab('-Log10 p-val')+
-  theme(text = element_text(size = 18))+
-  ggtitle('Late')
-dev.off()
+  theme(text = element_text(size = 16))
+
+FeaturePlot(microglia_mock, reduction = 'micro.mock.umap', features = 'Egr1')
 
 #Look at negative regulators of inflammation in infected samples across time
 neg_reg_genes <- c('Socs3', 'Il1rn', 'Il27', 'Lilrb4a', 'Tgfb1', 'Il10', 'Il4', 'Arg1', 'Mrc1', 'Igf1', 'Csf1')
@@ -980,7 +1022,9 @@ ggplot(lps_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct
 wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
                                               features=list('inflammatory_score' = lps_markers), maxRank = 1200, name = NULL)
 
-VlnPlot(object = wt_cerebrum_microglia, features = 'inflammatory_score', group.by = 'seurat_clusters', pt.size = 0)
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inflammatory_score_violin.pdf', height = 5, width = 7)
+VlnPlot(object = wt_cerebrum_microglia, features = 'inflammatory_score', group.by = 'custom_clusters', pt.size = 0)
+dev.off()
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 #### Microglia groups from https://www.nature.com/articles/s41586-019-0924-x ####
@@ -1128,6 +1172,59 @@ do.call(ggarrange, c(plotList_stress, common.legend = TRUE, legend = 'right'))
 
 FeaturePlot(wt_cerebrum_microglia, features = 'C5ar1', reduction = 'micro.umap')
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#### Virus associated microglia (VAM) from https://link.springer.com/article/10.1186/s12974-025-03471-x#Sec27 ####
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+#Import gene lists from sup table 3 (last excel sheet in supp)
+subcluster_gene_list <- read.csv("~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/vam_gene_list.csv")
+vam_genes <- subcluster_gene_list[subcluster_gene_list$celltype == 'Microglia' & subcluster_gene_list$cluster == 14,]$gene
+top_vam_genes <- head(vam_genes, n = 12)
+
+vam_dot <- DotPlot(wt_cerebrum_microglia, features = top_vam_genes, group.by = 'custom_clusters', scale = FALSE)$data
+
+#Dotplot of vam genes
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/Vam_dotplot.pdf', width = 6, height = 5)
+ggplot(vam_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('VAM Markers')
+dev.off()
+
+#Score and violin plot of vam genes
+wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
+                                              features=list('vam' = vam_genes), maxRank = 1200, name = NULL)
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/vam_score_violin.pdf', height = 5, width = 7)
+VlnPlot(object = wt_cerebrum_microglia, features = 'vam', group.by = 'custom_clusters', pt.size = 0)
+dev.off()
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#### Homeostasis markers from fig 3 https://www.nature.com/articles/s41380-026-03529-z#MOESM5 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+hm_markers <- c('Selplg', 'P2ry12', 'Arsb', 'Gatm', 'Tspo', 'Uba52', 'Tmem119', 'Elmo1',
+                'Adap2', 'Sall1', 'Dleu2', 'Gm15564', 'C1qc', 'C1qa', 'Hexb', 'Aif1', 'Cx3cr1', 'Rps10')
+
+hm_dot <- DotPlot(wt_cerebrum_microglia, features = hm_markers, group.by = 'custom_clusters', scale = FALSE)$data
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/homeostasis_dotplot.pdf', width = 6, height = 5)
+ggplot(hm_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Homeostasis Markers')
+dev.off()
+
+#Score and violin plot of hm genes
+wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
+                                              features=list('hm_score' = hm_markers), maxRank = 1200, name = NULL)
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/homeostasis_score_violin.pdf', height = 5, width = 7)
+VlnPlot(object = wt_cerebrum_microglia, features = 'hm_score', group.by = 'custom_clusters', pt.size = 0)
+dev.off()
 # - - - - - - - - - - - - 
 #### GSEA line plots ####
 # - - - - - - - - - - - - 
