@@ -89,8 +89,6 @@ custom_net_signal_scatter <- function(cc_obj, main = NULL, xlimit, ylimit){
   plot(p1)
 }
 
-
-
 mock_wt_cells_cc <- prep_cellchat_obj(mock_wt_cells)
 mock_ips_cells_cc <- prep_cellchat_obj(mock_ips_cells)
 
@@ -121,7 +119,12 @@ if(FALSE){
 
 #Plots split by timepoint
 wt_cells_three_cc <- prep_cellchat_obj(wt_cells_three)
-wt_p3 <- custom_net_signal_scatter(wt_cells_three_cc, main = 'WT chLGTV Day 3', xlimit = 33, ylimit = 38)
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_day_3_signal_scatter.pdf', height = 5, width = 5)
+#wt_p3 <- 
+custom_net_signal_scatter(wt_cells_three_cc, main = 'WT chLGTV Day 3', xlimit = 33, ylimit = 38)
+dev.off()
+
 
 wt_cells_four_cc <- prep_cellchat_obj(wt_cells_four)
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_day_4_signal_scatter.pdf', height = 5, width = 5)
@@ -134,10 +137,12 @@ wt_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'WT chLGTV Day 5', x
 ggpubr::ggarrange(wt_p3, wt_p4, wt_p5, nrow = 1, ncol = 3)
 
 ips_cells_three_cc <- prep_cellchat_obj(ips_cells_three)
-ips_p3 <- custom_net_signal_scatter(ips_cells_three_cc, main = 'IPS chLGTV Day 3', xlimit = 33, ylimit = 38)
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_day_3_signal_scatter.pdf', height = 5, width = 5)
+#ips_p3 <- 
+custom_net_signal_scatter(ips_cells_three_cc, main = 'IPS chLGTV Day 3', xlimit = 33, ylimit = 38)
+dev.off()
 
 ips_cells_four_cc <- prep_cellchat_obj(ips_cells_four)
-
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_day_4_signal_scatter.pdf', height = 5, width = 5)
 ips_p4 <- custom_net_signal_scatter(ips_cells_four_cc, main = 'IPS chLGTV Day 4', xlimit = 33, ylimit = 38)
 dev.off()
@@ -147,6 +152,63 @@ ips_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'IPS chLGTV Day 5',
 
 ggpubr::ggarrange(ips_p3, ips_p4, ips_p5, nrow = 1, ncol = 3)
 ggpubr::ggarrange(wt_p3, ips_p3, nrow = 1, ncol = 2)
+
+#Plot only astrocytes at each time/genotype on one plot
+#Copying code from cellchat github to ensure we match their results
+get_astro_comm_strength <- function(cc_dat, dat_label){
+  centr <- slot(cc_dat, 'netP')$centr
+  outgoing <- matrix(0, nrow = nlevels(cc_dat@idents), ncol = length(centr))
+  incoming <- matrix(0, nrow = nlevels(cc_dat@idents), ncol = length(centr))
+  dimnames(outgoing) <- list(levels(cc_dat@idents), names(centr))
+  dimnames(incoming) <- dimnames(outgoing)
+  for (i in 1:length(centr)) {
+    outgoing[,i] <- centr[[i]][['outdeg']]
+    incoming[,i] <- centr[[i]][['indeg']]
+  }
+  
+  outgoing.cells <- rowSums(outgoing)
+  incoming.cells <- rowSums(incoming)
+  
+  num.link <- aggregateNet(cc_dat, signaling = NULL, return.object = FALSE, remove.isolate = FALSE)$count
+  num.link <- rowSums(num.link) + colSums(num.link)-diag(num.link)
+  df <- data.frame(x = outgoing.cells, y = incoming.cells, labels = names(incoming.cells),
+                   Count = num.link)
+  df$labels <- factor(df$labels, levels = names(incoming.cells))
+  colnames(df)[1] = 'out_strength'
+  colnames(df)[2] = 'in_strength'
+  df$group = dat_label
+  return(df[1,])
+}
+
+wt_mock_strength <- get_astro_comm_strength(mock_wt_cells_cc, dat_label = 'wt_mock')
+wt_ips_strength <- get_astro_comm_strength(mock_ips_cells_cc,  dat_label = 'ips_mock')
+wt_3_strength <- get_astro_comm_strength(wt_cells_three_cc, dat_label = 'wt_day_3')
+wt_4_strength <- get_astro_comm_strength(wt_cells_four_cc, dat_label = 'wt_day_4')
+wt_5_strength <- get_astro_comm_strength(wt_cells_five_cc, dat_label = 'wt_day_5')
+ips_3_strength <- get_astro_comm_strength(ips_cells_three_cc, dat_label = 'ips_day_3')
+ips_4_strength <- get_astro_comm_strength(ips_cells_four_cc, dat_label = 'ips_day_4')
+ips_5_strength <- get_astro_comm_strength(ips_cells_five_cc, dat_label = 'ips_day_5')
+
+astro_comm_strengths <- rbind(wt_mock_strength, wt_3_strength, wt_4_strength, wt_5_strength, wt_ips_strength,
+                              ips_3_strength, ips_4_strength, ips_5_strength)
+
+astro_comm_strengths$group = factor(astro_comm_strengths$group, levels = c('wt_mock', 'wt_day_3', 'wt_day_4',
+                                                                           'wt_day_5', 'ips_mock', 'ips_day_3',
+                                                                           'ips_day_4', 'ips_day_5'))
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/astrocyte_signal_strength_plot.pdf', width = 7, height = 6)
+ggplot(astro_comm_strengths, aes(x = out_strength, y = in_strength))+
+  geom_point(aes(fill = group, size = Count), pch = 21)+
+  theme_classic()+
+  ylim(c(0, 35))+
+  xlim(c(0,35))+ 
+  scale_fill_manual(values=c("#FFE0B0", "#F5B376", "#D48B48", '#BD610F', 
+                              '#D9EAFF', '#95BDED', '#5B8FCF', '#1A5BAB'))+
+  scale_size(range = c(4, 8))+
+  xlab('Outgoing communication strength')+
+  ylab('Incoming communication strength')+
+  theme(text = element_text(size = 16)) 
+dev.off()
 
 #Plot general cell-cell trends
 if(FALSE){
@@ -295,15 +357,15 @@ netAnalysis_contribution(cellchat, signaling = pathways.show)
 
 # show all the interactions sending from astrocytes to neurons
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_to_neuron.pdf", width = 20, height =16)
-netVisual_chord_gene(mock_cells_cc, sources.use = 1, targets.use = c(11), lab.cex = 1,legend.pos.y = 30)
+netVisual_chord_gene(mock_wt_cells_cc, sources.use = 1, targets.use = c(11), lab.cex = 1,legend.pos.y = 30)
 dev.off()
 
 pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_astro_to_neuron.pdf", width = 20, height =16)
-netVisual_chord_gene(wt_cells_cc, sources.use = 1, targets.use = c(11), lab.cex = 1,legend.pos.y = 30)
+netVisual_chord_gene(wt_cells_three_cc, sources.use = 1, targets.use = c(11), lab.cex = 1,legend.pos.y = 30)
 dev.off()
 
 #Look at pathway centrality
-netAnalysis_signalingRole_network(wt_cells_cc, signaling = pathways.show, width = 8, height = 2.5, font.size = 10)
+netAnalysis_signalingRole_network(wt_cells_three_cc, signaling = 'Glutamate', width = 8, height = 2.5, font.size = 10)
 
 # Signaling role analysis on the aggregated cell-cell communication network from all signaling pathways
 ht1 <- netAnalysis_signalingRole_heatmap(wt_cells_cc, pattern = "outgoing")
@@ -338,8 +400,8 @@ int_path_heatmap <- function(cc_dat, source_cells = NULL, target_cells = NULL, m
 }
 
 int_path_heatmap(wt_cells_three_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'mock')
-int_path_heatmap(wt_cells_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'wt')
-int_path_heatmap(ips_cells_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'ips1')
+int_path_heatmap(mock_wt_cells_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'wt')
+int_path_heatmap(ips_cells_three_cc, source_cells = 'Astrocytes', target_cells = 'Neurons', main = 'ips1')
 
 #Loot at specific gene expression
 DotPlot(mock_cells, features = 'Sv2b', group.by = 'manualAnnotation')
@@ -423,10 +485,10 @@ slot.name = "netP"
 
 cellchat_wt_3_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_three_cc), add.names = c('PBS', 'WT_inf'))
 cellchat_wt_4_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_four_cc), add.names = c('PBS', 'WT_inf'))
-compareInteractions(cellchat_wt_merged, show.legend = F, group = c(1,2))
+compareInteractions(cellchat_wt_3_merged, show.legend = F, group = c(1,2))
 netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count')
 
-pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_astro_target.pdf', width = 5, height = 5)
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_3_vs_mock_astro_target.pdf', width = 5, height = 5)
 netVisual_diffInteraction(cellchat_wt_3_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
 dev.off()
 
@@ -434,14 +496,14 @@ pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_astro_source.pdf
 netVisual_diffInteraction(cellchat_wt_4_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_signal_changes.pdf', width = 10, height = 8)
-netAnalysis_signalingChanges_scatter(cellchat_wt_4_merged, idents.use = "Astrocytes", label.size = 9)+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_3_vs_mock_signal_changes.pdf', width = 10, height = 8)
+netAnalysis_signalingChanges_scatter(cellchat_wt_3_merged, idents.use = "Astrocytes", label.size = 9)+
   theme(text = element_text(size = 24))+
-  xlim(c(-0.4, 3))+
-  ylim(c(-0.4, 2.5))
+  xlim(c(-0.4, 3.5))+
+  ylim(c(-0.4, 3))
 dev.off()
 
-netVisual_heatmap(cellchat_wt_merged, measure = 'count')
+netVisual_heatmap(cellchat_wt_3_merged, measure = 'count')
 
 #Can subtract total interactions between mock and infected:
 wt_celltype_count_diff <- cellchat_wt_merged@net[[2]][['count']] - cellchat_wt_merged@net[[1]][['count']]
@@ -455,7 +517,7 @@ cellchat_ips_5_merged<- mergeCellChat(list(mock = mock_ips_cells_cc, ips_inf = i
 compareInteractions(cellchat_ips_3_merged, show.legend = F, group = c(1,2))
 netVisual_diffInteraction(cellchat_ips_3_merged, weight.scale = T, measure = 'count')
 
-pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_astro_target.pdf', width = 5, height = 5)
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_3_vs_mock_astro_target.pdf', width = 5, height = 5)
 netVisual_diffInteraction(cellchat_ips_3_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
 dev.off()
 
@@ -463,11 +525,11 @@ pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_astro_source.pd
 netVisual_diffInteraction(cellchat_ips_3_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_signal_changes.pdf', width = 10, height = 8)
-netAnalysis_signalingChanges_scatter(cellchat_ips_4_merged, idents.use = "Astrocytes", label.size = 9)+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_3_vs_mock_signal_changes.pdf', width = 10, height = 8)
+netAnalysis_signalingChanges_scatter(cellchat_ips_3_merged, idents.use = "Astrocytes", label.size = 9)+
   theme(text = element_text(size = 24))+
-  xlim(c(-0.4, 3))+
-  ylim(c(-0.4, 2.5))
+  xlim(c(-0.4, 3.5))+
+  ylim(c(-0.4, 3))
 dev.off()
 
 #Compare mocks

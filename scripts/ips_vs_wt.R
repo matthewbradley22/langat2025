@@ -585,6 +585,10 @@ for(i in 1:length(celltypes_of_interest)){
     print(paste('Not enough cells in group', current_celltype))
   }
 }
+
+#Save data created from loop 
+#saveRDS(deg_counts_mock_celltype, file = "~/Documents/ÖverbyLab/mock_wt_vs_ips_dat.rds")
+
 deg_mock_counts <- unlist(lapply(deg_counts_mock_celltype, nrow))
 deg_mock_counts_df <- data.frame(comp = names(deg_mock_counts), count = deg_mock_counts)
 deg_mock_counts_df <- deg_mock_counts_df %>% tidyr::separate(comp, into = c('celltype', 'geno', 'direction'), sep = '_') %>% 
