@@ -349,6 +349,31 @@ gseaplot2(day5_ips_gsea, geneSetID = 1:6, subplots = 1) +
         text = element_text(size = 18))
 dev.off()
 
+#Look at genes in negative regulation of immune response pathway
+neg_reg_genes <- day5_wt_gsea@result[4,]$core_enrichment
+neg_reg_genes_split <- strsplit(neg_reg_genes, "/")[[1]]
+
+#Most clear negative regulators from pathway based on research
+neg_reg_genes_curated <- c('Usp18', 'Serping1', 'H2-T23', 'Parp14', 'Lgals9',
+                           'Dhx58', 'Clec2d')
+#'Slamf8', 'Serpinb9b', 'Clec12b'
+
+astros$treatment_geno_time <- paste(astros$Treatment, astros$Genotype, astros$Timepoint, sep = '_')
+astro_neg_dot_dat <- DotPlot(astros, features = neg_reg_genes_curated, scale = FALSE, group.by = 'treatment_geno_time')$data
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/inflammation_neg_reg.pdf', width = 6, height = 6)
+astro_neg_dot_dat %>% tidyr::separate(id, into = c('treatment', 'geno', 'time'), sep = '_') %>% 
+  dplyr::mutate(treatment_time = paste(treatment, time, sep = '_')) %>% 
+  dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
+  ggplot(aes(x = treatment_time, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  facet_wrap(~geno) + 
+  geom_point(pch = 21)+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 75, hjust = 1))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0))
+dev.off()
+
 #Custom gsea plots with multiple days on one plot
 
 #First, defense response to virus pathway
