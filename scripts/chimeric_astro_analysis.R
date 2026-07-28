@@ -233,6 +233,8 @@ isg_dot_dat <- DotPlot(astrocytes_all, features = top_isgs, scale = FALSE, group
 plot_dot_dat <- function(dat){
   dat %>% tidyr::separate(id, into = c('treatment', 'genotype', 'timepoint'), sep = '_') %>% 
     dplyr::mutate(geno_time = paste(genotype, timepoint, sep = ' ')) %>% 
+    dplyr::mutate(geno_time = factor(geno_time, levels = c('WT Day 3', 'WT Day 4', 'WT Day 5',
+                                                           'IPS1 Day 3', 'IPS1 Day 4', 'IPS1 Day 5'))) %>% 
     ggplot(aes(x = geno_time, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
     geom_point(pch = 21)+
     facet_wrap(~treatment, scales = 'free')+
@@ -243,7 +245,7 @@ plot_dot_dat <- function(dat){
           axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/top_isg_dotplot.pdf', width = 7, height = 6)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/top_isg_dotplot.pdf', width = 8, height = 6)
 plot_dot_dat(isg_dot_dat)
 dev.off()
 
@@ -278,6 +280,10 @@ plot_dot_dat(inf_dot)
 prolif_genes <- c('Mki67', 'Top2a')
 prolif_dot <- DotPlot(astrocytes_all, features = prolif_genes, scale = FALSE, group.by = 'treatment_genotype_time')$data
 plot_dot_dat(prolif_dot)
+
+#Look at Ifih1
+Ifih1_dot_dat <- DotPlot(astrocytes_all, features = c('Ifih1'), scale = FALSE, group.by = 'treatment_genotype_time')$data
+plot_dot_dat(Ifih1_dot_dat)
 
 #Look at clusters within infected astrocytes to explore heterogeneity a bit
 infected_astrocytes <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment == 'rChLGTV')

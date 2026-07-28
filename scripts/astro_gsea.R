@@ -197,7 +197,6 @@ day3_ips_gsea <- create_gsea_object(astros_day3_ips, min.p.val = 1)
 day5_wt_gsea <- create_gsea_object(astros_day5_wt)
 day5_ips_gsea <- create_gsea_object(astros_day5_ips)
 
-
 if(FALSE){
   create_emap <- function(gsea_dat){
     print(emapplot(pairwise_termsim(gsea_dat), showCategory = 7, node_label="none" )+

@@ -138,8 +138,7 @@ ggpubr::ggarrange(wt_p3, wt_p4, wt_p5, nrow = 1, ncol = 3)
 
 ips_cells_three_cc <- prep_cellchat_obj(ips_cells_three)
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_day_3_signal_scatter.pdf', height = 5, width = 5)
-#ips_p3 <- 
-custom_net_signal_scatter(ips_cells_three_cc, main = 'IPS chLGTV Day 3', xlimit = 33, ylimit = 38)
+ips_p3 <- custom_net_signal_scatter(ips_cells_three_cc, main = 'IPS chLGTV Day 3', xlimit = 33, ylimit = 38)
 dev.off()
 
 ips_cells_four_cc <- prep_cellchat_obj(ips_cells_four)
@@ -382,7 +381,7 @@ int_path_heatmap <- function(cc_dat, source_cells = NULL, target_cells = NULL, m
   comm_subset$cell_int <- paste(comm_subset$source, comm_subset$target, sep = '_')
   
   #Order interaction name by probability for plotting
-  comm_subset$interaction_name <- factor(comm_subset$interaction_name, levels = comm_subset$interaction_name[order(comm_subset$prob)])
+  comm_subset$interaction_name <- factor(comm_subset$interaction_name, levels = unique(comm_subset$interaction_name[order(comm_subset$prob)]))
   
   #Plot
   final_plot <- comm_subset %>% dplyr::arrange(prob) %>% dplyr::filter(prob > prob_limit) %>% 
@@ -486,7 +485,7 @@ slot.name = "netP"
 cellchat_wt_3_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_three_cc), add.names = c('PBS', 'WT_inf'))
 cellchat_wt_4_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_four_cc), add.names = c('PBS', 'WT_inf'))
 compareInteractions(cellchat_wt_3_merged, show.legend = F, group = c(1,2))
-netVisual_diffInteraction(cellchat_wt_merged, weight.scale = T, measure = 'count')
+netVisual_diffInteraction(cellchat_wt_3_merged, weight.scale = T, measure = 'count')
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_3_vs_mock_astro_target.pdf', width = 5, height = 5)
 netVisual_diffInteraction(cellchat_wt_3_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
@@ -502,6 +501,9 @@ netAnalysis_signalingChanges_scatter(cellchat_wt_3_merged, idents.use = "Astrocy
   xlim(c(-0.4, 3.5))+
   ylim(c(-0.4, 3))
 dev.off()
+
+netAnalysis_signalingChanges_scatter(cellchat_wt_3_merged, idents.use = "Astrocytes", label.size = 9)$data %>% 
+  dplyr::arrange(desc(incoming))
 
 netVisual_heatmap(cellchat_wt_3_merged, measure = 'count')
 
@@ -522,7 +524,7 @@ netVisual_diffInteraction(cellchat_ips_3_merged, weight.scale = T, measure = 'co
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_astro_source.pdf', width = 5, height = 5)
-netVisual_diffInteraction(cellchat_ips_3_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
+netVisual_diffInteraction(cellchat_ips_4_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_3_vs_mock_signal_changes.pdf', width = 10, height = 8)
@@ -531,6 +533,11 @@ netAnalysis_signalingChanges_scatter(cellchat_ips_3_merged, idents.use = "Astroc
   xlim(c(-0.4, 3.5))+
   ylim(c(-0.4, 3))
 dev.off()
+
+#Look at lr pairs in top pathways
+netVisual_bubble(cellchat_wt_3_merged, sources.use = 1:14, targets.use = c('Astrocytes'), 
+                 signaling = 'NCAM', comparison = c(1, 2), angle.x = 45)
+
 
 #Compare mocks
 cellchat_mock_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = mock_ips_cells_cc), add.names = c('wt_mock', 'ips_mock'))

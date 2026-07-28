@@ -20,7 +20,7 @@ wellMap <- data.frame(well = c(paste0('A', seq(1,12)), paste0('B', seq(1,12)),
 
 
 ParseMatricies <- lapply(parseOutput, FUN = function(x){
-  ReadParseBio(paste0("./data/FilteredParseOutput/", x))
+  ReadParseBio(paste0("~/Documents/ÖverbyLab/data/FilteredParseOutput/", x))
 })
 
 #Convert data to Seurat objects 
