@@ -259,18 +259,43 @@ dev.off()
 #Data created on hpc2n at /home/m/mahogny/mystore/dataset/250729_scflavi/neo_read_counts from bam files
 #Also reading in original barcoding data
 final_neo_count <- read_table("~/Documents/ÖverbyLab/data/neo_count_final_proper_correction.txt",  col_names = FALSE)
-colnames(final_neo_count) = c('total_reads', 'orig_id')
-final_neo_count$orig_id = as.numeric(final_neo_count$orig_id)
+colnames(final_neo_count) = c('corrected_neo_reads', 'cell')
+final_neo_count$cell = gsub(pattern = 'CB:Z:', replacement = '', x = final_neo_count$cell)
 
-ParseBarcodePlate <- read_csv("~/Documents/ÖverbyLab/ParseBarcodePlate.csv")
-ParseBarcodePlate$orig_id = 1:48
+ParseSeuratObj_int[[]] <- left_join(ParseSeuratObj_int[[]], final_neo_count, by = 'cell')
 
-neo_data_to_plot <- left_join(ParseBarcodePlate, final_neo_count, by = 'orig_id')
-neo_data_to_plot$total_reads[is.na(neo_data_to_plot$total_reads)] <- 0
-neo_data_to_plot_chimeric <- dplyr::filter(neo_data_to_plot, Treatment != 'rLGTV')
-neo_data_to_plot_chimeric$treatment_geno = paste(neo_data_to_plot_chimeric$Treatment, neo_data_to_plot_chimeric$Genotype, sep = '_')
-neo_data_to_plot_chimeric$treatment_geno <- factor(neo_data_to_plot_chimeric$treatment_geno, levels = c('PBS_WT', 'rChLGTV_WT', 'PBS_IPS1', 'rChLGTV_IPS1'))
-neo_data_to_plot_chimeric$well_numbered <- factor(seq(1:nrow(neo_data_to_plot_chimeric)))
+parse_counts <- ParseSeuratObj_int[['RNA']]$counts
+neo_read_matrix <- matrix(data = ParseSeuratObj_int$corrected_neo_reads, ncol = length(ParseSeuratObj_int$corrected_neo_reads))
+neo_read_matrix[is.na(neo_read_matrix)] <- 0
+rownames(neo_read_matrix) = 'neo_final'
+
+parse_counts_with_neo <- rbind(parse_counts, neo_read_matrix)
+parse_counts_with_neo_norm <- NormalizeData(parse_counts_with_neo)
+
+norm_vs_unnorm <- data.frame(unnorm = parse_counts_with_neo['neo_final',], norm = parse_counts_with_neo_norm['neo_final',] )
+ParseSeuratObj_int$neo_count_normalized <- parse_counts_with_neo_norm['neo_final',]
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/neo_expression_celltype.pdf', height = 7, width = 11)
+ParseSeuratObj_int[[]] %>% dplyr::filter(Treatment %in% c('rChLGTV', 'PBS')) %>% 
+  dplyr::filter(manualAnnotation != 'unknown') %>% 
+  dplyr::mutate(time_geno_celltype = paste( Genotype, manualAnnotation, sep = '_')) %>% 
+  dplyr::mutate(neo_presence <- ifelse(neo_count_normalized > 0, 1, 0)) %>% 
+  dplyr::group_by(Treatment, Genotype, manualAnnotation) %>% 
+  dplyr::summarise(pct.exp = sum(neo_count_normalized > 0)*100/length(neo_count_normalized),
+                   corrected.neo.expression = mean(neo_count_normalized)) %>% 
+  ggplot(aes(x = Genotype, y = manualAnnotation))+
+  facet_wrap(~Treatment)+
+  geom_point(aes(size = pct.exp, fill = corrected.neo.expression), pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0),
+                       limits = c(0, 0.15))+
+  ggtitle('Neo expression')+
+  theme_classic()+
+  theme(text = element_text(size = 24))+
+  ylab('')+
+  xlab('')
+dev.off()
+
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/neomycin_levels_dot.pdf', height = 6, width = 10)
 #neo_data_to_plot_chimeric %>% 

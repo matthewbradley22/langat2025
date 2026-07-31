@@ -603,22 +603,22 @@ upset_dat_ips_five <- generate_upset_dat(ips_five_degs)
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_three_upset.pdf', height = 9, width = 11, onefile = FALSE)
 UpSetR::upset(upset_dat_wt_three, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
-              nintersects = 5)
+              nintersects = 5, mb.ratio = c(0.6, 0.4))
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_five_upset.pdf', height = 8, width = 11, onefile = FALSE)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/wt_five_upset.pdf', height = 9, width = 11, onefile = FALSE)
 UpSetR::upset(upset_dat_wt_five, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
-              nintersects = 5)
+              nintersects = 5,  mb.ratio = c(0.6, 0.4))
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_three_upset.pdf', height = 8, width = 11, onefile = FALSE)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_three_upset.pdf', height = 9, width = 11, onefile = FALSE)
 UpSetR::upset(upset_dat_ips_three, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
-              nintersects = 5)
+              nintersects = 5, mb.ratio = c(0.6, 0.4))
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_five_upset.pdf', height = 8, width = 11, onefile = FALSE)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_celltype_fig_plots/ips_five_upset.pdf', height = 9, width = 11, onefile = FALSE)
 UpSetR::upset(upset_dat_ips_five, nsets = 6, order.by = 'freq', text.scale = 3, point.size = 4, show.numbers = FALSE, mainbar.y.max = 785,
-              nintersects = 5)
+              nintersects = 5, mb.ratio = c(0.6, 0.4))
 dev.off()
 
 #Regenerate upset data manually in order to run pathway analyses on gene lists

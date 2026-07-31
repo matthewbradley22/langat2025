@@ -27,11 +27,14 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 #Can skip loop with 
 augur_result_list <- readRDS(file = '~/Documents/ÖverbyLab/augur_results/augur_result_list.rds')
 
-organs <- unique(ParseSeuratObj_int$Organ)
-treatment <- c('rLGTV', 'rChLGTV')
+#organs <- unique(ParseSeuratObj_int$Organ)
+#treatment <- c('rLGTV', 'rChLGTV')
+treatment <- c('rChLGTV')
+organs = 'Cerebrum'
 genotypes = unique(ParseSeuratObj_int$Genotype)
-all_combos <- do.call(expand.grid, list(organs, treatment, genotypes))
-colnames(all_combos) = c('organ', 'treatment', 'genotype')
+times = unique(ParseSeuratObj_int$Timepoint)
+all_combos <- do.call(expand.grid, list(organs, treatment, genotypes, times))
+colnames(all_combos) = c('organ', 'treatment', 'genotype', 'time')
 
 #There are no cerebellum langat samples, so remove these
 all_combos <- dplyr::filter(all_combos, organ == 'Cerebrum' | treatment != 'rLGTV')
@@ -40,8 +43,11 @@ augur_result_list <- list()
 for(i in 1:nrow(all_combos)){
   cur_treatment = as.character(all_combos[i,]$treatment)
   cur_genotype = as.character(all_combos[i,]$genotype)
+  cur_time = as.character(all_combos[i,]$time)
   cur_organ = all_combos[i,]$organ
-  cur_dat <- subset(ParseSeuratObj_int, Treatment %in% c(cur_treatment, 'PBS') & Organ == cur_organ & Genotype == cur_genotype)
+  
+  cur_dat <- subset(ParseSeuratObj_int,  Organ == cur_organ &  ((Treatment %in% c(cur_treatment) &
+                      Genotype == cur_genotype & Timepoint == cur_time) | Treatment == 'PBS'))
   
   #Add columns so that augur package knows what to look for
   cur_dat$cell_type <- factor(cur_dat$manualAnnotation)
@@ -53,7 +59,7 @@ for(i in 1:nrow(all_combos)){
 }
 
 #saveRDS(augur_result_list, file = '~/Documents/ÖverbyLab/augur_results/augur_result_list.rds')
-all_combos$label <- paste(all_combos$organ, all_combos$treatment, all_combos$genotype, sep = '_')
+all_combos$label <- paste(all_combos$organ, all_combos$treatment, all_combos$genotype, all_combos$time, sep = '_')
 
 celltype_auc <- lapply(augur_result_list, FUN = function(x){
   dplyr::filter(x$AUC, !cell_type %in% c('Immature Neurons', 'Muscle cells', 'Neurons', 'Pericytes',
@@ -62,6 +68,7 @@ celltype_auc <- lapply(augur_result_list, FUN = function(x){
 
 names(celltype_auc) = all_combos$label
 
+
 augur_plot_list <- lapply(celltype_auc, FUN = function(x){
   ggplot(x, aes(x = reorder(cell_type,auc), y = auc))+
     geom_bar(stat = 'identity', color = 'black', fill = 'lightgrey')+
@@ -69,6 +76,7 @@ augur_plot_list <- lapply(celltype_auc, FUN = function(x){
     theme(axis.text.x = element_text(angle =90))+
     xlab('')
 })
+
 
 pdf('~/Documents/ÖverbyLab/augur_results/augur_plot.pdf', width = 14, height = 8)
 ggarrange(plotlist=augur_plot_list, labels = names(celltype_auc))

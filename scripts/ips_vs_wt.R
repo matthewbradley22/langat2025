@@ -623,7 +623,7 @@ mock_astro_down$result
 ####### Create ISG gene count heatmaps ####### 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 
-#Make isg heatmap from this data compared ot UCell_isg_scores script which uses data from scRNA_celltype_analysis_script
+#Make isg heatmap from this data compared or UCell_isg_scores script which uses data from scRNA_celltype_analysis_script
 make_gene_subset_heatmap <- function(gene_list, filename){
   sig_isgs <- lapply(deg_counts_time_m_vs_i_celltype, FUN = function(x){
     sig <- dplyr::filter(x, avg_log2FC > 1 & p_val_adj < 0.05) %>% 
@@ -662,6 +662,22 @@ make_gene_subset_heatmap <- function(gene_list, filename){
     dplyr::summarise(gene_count = sum(gene_count))
   
   all_cell_combo_count$genotype = factor(all_cell_combo_count$genotype, levels = c('wt', 'both', 'ips'))
+  
+  #Spaces were removed from cell labels so add back
+  all_cell_combo_count <- all_cell_combo_count %>% dplyr::mutate(celltype = case_when(celltype == 'BCells' ~ 'B Cells',
+                                                   celltype == 'ChoroidPlexus' ~ 'Choroid Plexus',
+                                                   celltype == 'ImmatureNeurons' ~ 'Immature Neurons',
+                                                   celltype == 'ImmatureNeurons' ~ 'Immature Neurons',
+                                                   celltype == 'Musclecells' ~ 'Muscle cells',
+                                                   celltype == 'Nkcells' ~ 'Nk cells',
+                                                   celltype == 'Tcells' ~ 'T cells',
+                                                   .default = celltype)) 
+  
+  all_cell_combo_count <- all_cell_combo_count %>% dplyr::mutate(time = case_when(time == 'Day3'~ 'Day 3',
+                                                                                  time == 'Day4'~ 'Day 4',
+                                                                                  time == 'Day5'~ 'Day 5'))
+  
+  
   celltype_order <- c( 'T cells',   'Nk cells', 'Macrophage/Monocytes', 
                        'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
                        'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
@@ -697,13 +713,17 @@ make_gene_subset_heatmap <- function(gene_list, filename){
     geom_tile()+
     geom_text(aes(label = gene_count))+
     scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
-                         values = c(1.0,0.7,0.4,0))+
+                         values = c(1.0,0.7,0.4,0),
+                         limits = c(0,  91))+
     theme_classic()+
     theme(axis.text = element_text(size = 16),
           strip.text = element_text(size = 14))
   print(heat_plot)
   dev.off()
-  
 }
 
+#ISG data loaded in UCell_isg_score.R
+make_gene_subset_heatmap(all_ISGs_type1, filename = 'isg_type1_by_geno_celltype_compared_all_mock.pdf')
 make_gene_subset_heatmap(all_ISGs_type2_unique, filename = 'isg_type2_by_geno_celltype_compared_all_mock.pdf')
+
+
