@@ -74,5 +74,79 @@ prepUmapSeuratObj <- function(obj, nDims, reductionName, num_neighbors = 30L, re
   obj
 }
 
+#Create a dotplot of specific gene(s) in style used for figures
+create_dot_plot <- function(dat, gene, main_title, facet = NULL, celltypes_to_plot = NULL, x_var = 'time', combine_pbs = FALSE,
+                            flip_coords = FALSE){
+  
+  #Create dotplot data for the 4 variables we commonly plot
+  dat$geno_treat_time_celltype <- paste(dat$Genotype,
+                                        dat$Treatment,
+                                        dat$Timepoint,
+                                        dat$manualAnnotation,
+                                        sep = '_')
+  
+  gene_exp <- DotPlot(dat, features = gene, group.by = 'geno_treat_time_celltype', scale = FALSE)$data
+  
+  #Separate id column so each variable is separated
+  gene_exp <- gene_exp %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'time', 'celltype'), sep = '_')
+  gene_exp <- dplyr::filter(gene_exp, celltype != 'unknown')
+  gene_exp$geno_treatment = paste(gene_exp$geno, gene_exp$treatment, sep = '_')
+  
+  #If we are grouping by treatment it can be helpful to average pbs day 3 and 5 
+  if(combine_pbs){
+    #If there is only one timepoint for infected, we could just use this
+    average_expressions = gene_exp %>%  dplyr::group_by(treatment, celltype) %>% 
+      dplyr::summarise(mean_exp = mean(avg.exp.scaled))
+    
+    #Making sure it works with multiple timepoints (don't want to average day3 and day5 infected for example)
+    #We can just filter out one of the pbs groups at the end since they now have equal expressions
+    gene_exp <- gene_exp %>% dplyr::left_join(average_expressions, by = c('treatment', 'celltype')) %>% 
+       dplyr::mutate(avg.exp.scaled = case_when(treatment != 'PBS' ~ avg.exp.scaled,
+                                                   treatment == 'PBS' ~ mean_exp)) %>% 
+      dplyr::arrange(celltype) %>% 
+      dplyr::filter(!(treatment == 'PBS' & time == 'Day 3'))
+  }
+  
+  #Select certain celltypes
+  if(!is.null(celltypes_to_plot)){
+    gene_exp <- dplyr::filter(gene_exp, celltype %in% celltypes_to_plot)
+  }
+  
+  if(length(unique(gene_exp$celltype)) == 1){
+    custom_dot <- ggplot(gene_exp, aes(x = !!sym(x_var), y = treatment, size = pct.exp, fill = avg.exp.scaled))+
+      geom_point(pch = 21)+
+      theme_classic()+
+      scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                           values = c(1.0,0.7,0.4,0))+
+      ylab('')+
+      xlab('')+
+      ggtitle(main_title)
+    
+  } else{
+    custom_dot <- ggplot(gene_exp, aes(x = !!sym(x_var), y = celltype, size = pct.exp, fill = avg.exp.scaled))+
+      geom_point(pch = 21)+
+      theme_classic()+
+      scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                           values = c(1.0,0.7,0.4,0))+
+      ylab('')+
+      xlab('')+
+      ggtitle(main_title)
+  }
+ 
+  if(!is.null(facet)){
+    custom_dot = custom_dot +
+      facet_wrap(vars(!!sym(facet)), scales = 'free')
+  }
+  
+  if(flip_coords){
+    custom_dot = custom_dot +
+      coord_flip()+
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  }
+  
+  print(custom_dot)
+}
+
+
 
 

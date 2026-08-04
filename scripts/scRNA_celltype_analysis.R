@@ -763,59 +763,59 @@ wt_five_common <- dplyr::filter(select_path_columns_five_df, source == 'common')
 ips_five_common <- dplyr::filter(select_path_columns_ips_five_df, source == 'common')
 
 wt_3_celltype <- dplyr::filter(select_path_columns_df, source != 'common')
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_3_wt_paths.pdf', height = 14, width = 21)
-ggplot(wt_3_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
-  geom_bar(stat = 'identity')+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_3_wt_paths.pdf', height = 14, width = 18)
+ggplot(wt_3_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value)))+
+  geom_bar(stat = 'identity', fill = '#B3BFE2')+
   coord_flip()+
   facet_wrap(~source, scales = 'free_y', ncol = 2)+
   xlab('')+
   theme_classic()+
   theme(text = element_text(size= 44))+
-  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F', limits = c(0,113))+
   ylim(c(0,113))+
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))+
+  geom_text(aes(label = intersection_size), size = 10)
 dev.off()
 
 ips_3_celltype <- dplyr::filter(select_path_columns_ips_df, source != 'common')
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_3_ips_paths.pdf', height = 14, width = 21)
-ggplot(ips_3_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
-  geom_bar(stat = 'identity')+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_3_ips_paths.pdf', height = 8, width = 16)
+ggplot(ips_3_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value)))+
+  geom_bar(stat = 'identity', fill = '#FDC0AC')+
   coord_flip()+
   facet_wrap(~source, scales = 'free_y', ncol = 2)+
   xlab('')+
   theme_classic()+
   theme(text = element_text(size= 44))+
-  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F',  limits = c(0,113))+
   ylim(c(0,113))+
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))+
+  geom_text(aes(label = intersection_size), size = 10)
 dev.off()
 
 wt_5_celltype <- dplyr::filter(select_path_columns_five_df, source != 'common')
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_5_wt_paths.pdf', height = 14, width = 21)
-ggplot(wt_5_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
-  geom_bar(stat = 'identity')+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_5_wt_paths.pdf', height = 14, width = 18)
+ggplot(wt_5_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value)))+
+  geom_bar(stat = 'identity', fill = '#B3BFE2')+
   coord_flip()+
   facet_wrap(~source, scales = 'free_y', ncol = 2)+
   xlab('')+
   theme_classic()+
   theme(text = element_text(size= 44))+
-  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F', limits = c(0,113))+
   ylim(c(0,113))+
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))+
+  geom_text(aes(label = intersection_size), size = 10)
 dev.off()
 
 ips_5_celltype <- dplyr::filter(select_path_columns_ips_five_df, source != 'common')
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_5_ips_paths.pdf', height = 14, width = 21)
-ggplot(ips_5_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value), fill = -log10(p_value)))+
-  geom_bar(stat = 'identity')+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/celltype_upset_paths/day_5_ips_paths.pdf', height = 14, width = 18)
+ggplot(ips_5_celltype, aes(x = reorder(term_name, rev(p_value)), y = -log10(p_value)))+
+  geom_bar(stat = 'identity', fill = '#FDC0AC')+
   coord_flip()+
   facet_wrap(~source, scales = 'free_y', ncol = 2)+
   xlab('')+
   theme_classic()+
   theme(text = element_text(size= 44))+
-  scale_fill_gradient(low = '#FFD9BA', high = '#FF874F', limits = c(0,113))+
   ylim(c(0,113))+
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 25))+
+  geom_text(aes(label = intersection_size), size = 10)
 dev.off()
 
 

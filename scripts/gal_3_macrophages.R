@@ -726,7 +726,7 @@ DotPlot(wt_cerebrum_macrophages, features = monocyte_markers_feb4, group.by = 'T
 
 #Plot gal3 only
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_over_time.pdf", width = 7, height = 6)
-DotPlot(wt_cerebrum_macrophages, features = 'Lgals3', group.by = 'time_treatment', scale = FALSE) +
+DotPlot(wt_cerebrum_macrophages, features = 'Lgals3', group.by = 'time_treatment', scale = FALSE)$data
   theme(axis.text.x = element_text(angle = 0))+
   ggtitle('Gal3 over time')+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
@@ -734,6 +734,17 @@ DotPlot(wt_cerebrum_macrophages, features = 'Lgals3', group.by = 'time_treatment
   ylab('')+
   xlab('')
 dev.off()
+
+DotPlot(wt_cerebrum_macrophages, features = 'Adgre1', group.by = 'time_treatment', scale = FALSE)$data
+
+
+  theme(axis.text.x = element_text(angle = 0))+
+  ggtitle('F4/80 over time')+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                        values = c(1.0,0.7,0.4,0))+
+  ylab('')+
+  xlab('')
+
 
 plotList_classic_mono <- lapply(monocyte_markers_feb4, featurePlotLight, data = wt_cerebrum_macrophages, 
                        reduction_choice = 'wt.infected.mac.umap', maxLim = 6)
@@ -1003,3 +1014,38 @@ do.call(ggarrange, c(sdcam_markers, common.legend = TRUE, legend = 'right'))
 
 #HSV gene list
 hsv_gene_list <- read_csv("~/Documents/ÖverbyLab/for_anna_plots/hsv_gene_list.csv")
+
+
+#Lgals3 and f480
+wt_cerebrum_macrophages$Lgals3 = FetchData(wt_cerebrum_macrophages, vars = 'rna_Lgals3', layer = 'counts')
+wt_cerebrum_macrophages$Adgre1 = FetchData(wt_cerebrum_macrophages, vars = 'rna_Adgre1', layer = 'counts')
+table(wt_cerebrum_macrophages$Lgals3>0, wt_cerebrum_macrophages$Adgre1>0 )
+wt_cerebrum_macrophages[[]] <- wt_cerebrum_macrophages[[]] %>% mutate(Lgals_Adgre_both = 
+                                                                        case_when(Lgals3 > 0 & Adgre1> 0 ~ 'Both',
+                                                                                  Lgals3 > 0 & Adgre1 == 0 ~ 'Lgals3',
+                                                                                  Lgals3 == 0 & Adgre1 > 0 ~ 'Adgre1',
+                                                                                  Lgals3 == 0 & Adgre1 == 0 ~ 'Neither'))
+
+table(wt_cerebrum_macrophages$Lgals_Adgre_both, wt_cerebrum_macrophages$time_treatment) %>% 
+  as.data.frame() %>% 
+  dplyr::group_by(Var2) %>% 
+  dplyr::mutate(percent = Freq / sum(Freq)) 
+
+
+macrophages_wt_infected$Lgals3 = FetchData(macrophages_wt_infected, vars = 'rna_Lgals3', layer = 'counts')
+macrophages_wt_infected$Adgre1 = FetchData(macrophages_wt_infected, vars = 'rna_Adgre1', layer = 'counts')
+table(macrophages_wt_infected$Lgals3>0, macrophages_wt_infected$Adgre1>0 )
+macrophages_wt_infected[[]] <- macrophages_wt_infected[[]] %>% mutate(Lgals_Adgre_both = 
+                                                                        case_when(Lgals3 > 0 & Adgre1> 0 ~ 'Both',
+                                                                                  Lgals3 > 0 & Adgre1 == 0 ~ 'Lgals3',
+                                                                                  Lgals3 == 0 & Adgre1 > 0 ~ 'Adgre1',
+                                                                                  Lgals3 == 0 & Adgre1 == 0 ~ 'Neither'))
+
+DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Lgals_Adgre_both',
+        label.size = 6, cols = c('#1CA9FB', '#FC5C5C', '#65BD40', '#BEBEBE'))+
+  ggtitle('WT infected Macrophages')+
+  xlab('')+
+  ylab('')
+
+
+

@@ -56,7 +56,7 @@ DotPlot(wt_cerebrum, features = polarization_stimulus_genes, scale = FALSE, grou
 #Split and look by timepoint
 wt_cerebrum_day3 <- subset(wt_cerebrum, Treatment == 'rLGTV' & Timepoint == 'Day 3')
 wt_cerebrum_day4 <- subset(wt_cerebrum, Treatment == 'rLGTV' & Timepoint == 'Day 4')
-wt_cerebrum_day5 <- subset(wt_cerebrum, Treatment == 'rLGTV' & Timepoint == 'Day 5')
+wt_cerebrum_day5 <- subset(wt_cerebrum, (Treatment == 'rLGTV' & Timepoint == 'Day 5') | Treatment == 'PBS')
 
 #Only keep cell types with at least 50 cells
 day3_cells_with_enough <- c(table(wt_cerebrum_day3$manualAnnotation) %>% as.data.frame() %>% 
@@ -366,4 +366,16 @@ ggplot(peri_trafficking_dot_dat, aes(x = time, y = features.plot))+
   ylab('')+
   xlab('')
 dev.off()
+
+#Plot several relevant genes in lining celltypes
+create_dot_plot(dat = wt_cerebrum, gene = 'Tspo', main_title = 'Endthelial Tspo', celltypes_to_plot = 'Endothelial')
+create_dot_plot(dat = wt_cerebrum, gene = 'Tspo', main_title = 'CP Tspo', celltypes_to_plot = 'Choroid Plexus')
+
+create_dot_plot(dat = wt_cerebrum_day5, gene = 'Tspo', main_title = 'Tspo', x_var = 'treatment', combine_pbs = TRUE, flip_coords = TRUE)
+create_dot_plot(dat = wt_cerebrum, gene = 'Lgals3', main_title = 'Lgals3', facet = 'treatment')
+
+ependymal <- subset(wt_cerebrum, manualAnnotation == 'Ependymal' & Treatment == 'rLGTV')
+ependymal_markers <- FindMarkers(ependymal, ident.1 = 'Day 5', ident.2 = 'Day 3', group.by = 'Timepoint', test.use = 'MAST')
+
+create_dot_plot(dat = wt_cerebrum, gene = 'Cxcl12', main_title = 'Cxcl12', facet = 'treatment')
 

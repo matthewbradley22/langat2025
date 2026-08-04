@@ -174,12 +174,16 @@ dev.off()
 
 DimPlot(immune, reduction = 'immune.umap', group.by = 'Treatment')
 
-#Dotplots of key genes
+#Dotplots of key genes for celltypes
 immune_wt_infected$manualAnnotation <- factor(immune_wt_infected$manualAnnotation, levels = rev(c("Microglia", 'Macrophage/Monocytes',
                                                                                               'T cells', 'Nk cells', 'Granulocytes')))
+
+#Tspo, Lgals3, Adgre1, Cd68, Cd86, Prpc, Aif1, Ccr1...
+cell_markers <- c('Tspo', 'Lgals3', 'Adgre1', 'Cd68', 'Cd86', 
+                  'Ptprc', 'Aif1', 'Ccr1', 'Ccr2', 'Ccr3', 'Ccr5', 'Tmem119', 'Csf1r')
+
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_feature_dotplot_infected.pdf", width = 9, height = 6)
-DotPlot(immune_wt_infected, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
-                             'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
+DotPlot(immune_wt_infected, features = cell_markers,
         group.by = 'manualAnnotation')+
   scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', limits = c(-2,2.5),
                         labels = c(-1, 0, 1,2),
@@ -199,8 +203,7 @@ dev.off()
 immune_wt_mock$manualAnnotation <- factor(immune_wt_mock$manualAnnotation, levels = rev(c("Microglia", 'Macrophage/Monocytes',
                                                                                               'T cells', 'Nk cells', 'Granulocytes', 'B Cells')))
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/immune_feature_dotplot_mock.pdf", width = 9, height = 6)
-DotPlot(immune_wt_mock, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
-                                         'Ccr3', 'Ccr5', 'Tmem119', 'Tspo', 'Csf1r'),
+DotPlot(immune_wt_mock, features = cell_markers,
         group.by = 'manualAnnotation')+
   scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', labels = c(-1, 0, 1, 2),
                         breaks = c(-1, 0, 1, 2), , limits = c(-2,2.5))+
@@ -227,12 +230,16 @@ wt_cerebrum_day5_known$manualAnnotation <- factor(wt_cerebrum_day5_known$manualA
                                                           'Choroid Plexus', 'Astrocytes'))
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/all_cells_immune_dotplot_.pdf", width = 9, height = 8)
+
+wt_cerebrum_day5_known_pbs <- subset(wt_cerebrum_day5_known, Treatment == 'PBS')
+wt_cerebrum_day5_known_lgtv <- subset(wt_cerebrum_day5_known, Treatment == 'rLGTV')
+
 #No Ccr3 expression
-DotPlot(wt_cerebrum_day5_known, features = c('Tspo', 'Lgals3', 'Adgre1', 'Cd68',  'Cd86', 'Ptprc',  'Ccr1', 'Ccr2', 
-                                     'Ccr3', 'Ccr5', 'Tmem119',  'Csf1r'),
-        group.by = 'manualAnnotation')+
+DotPlot(wt_cerebrum_day5_known_lgtv, features = c('Tspo', 'Lgals3', 'Adgre1', 'Cd68',  'Cd86', 'Ptprc',  'Ccr1', 'Ccr2', 
+                                     'Ccr3', 'Ccr5', 'Tmem119',  'Csf1r', 'Aif1'),
+        group.by = 'manualAnnotation', scale = TRUE)+
   scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', labels = c(-1, 0, 1,2),
-                        breaks = c(-1, 0, 1,2), , limits = c(-2,2.5))+
+                       breaks = c(-1, 0, 1,2), , limits = c(-2,2.5))+
   scale_size(range = c(2, 10), limits = c(0,100))+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.7))+
   theme(legend.position = "bottom",
@@ -242,7 +249,7 @@ DotPlot(wt_cerebrum_day5_known, features = c('Tspo', 'Lgals3', 'Adgre1', 'Cd68',
         legend.spacing.x = unit(2, "cm"))+
   guides(size = guide_legend(title.position = "top", title = 'Percent Expressed', order = 2),
          color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression'))+
-  ggtitle('All resident cells')
+  ggtitle('Mock cells')
   #labs(caption = 'Only 39 Ependymal, 53 endothelial, 72 astrocytes')
 dev.off()
 
@@ -270,7 +277,7 @@ plotList <- list(featurePlotLight('Lgals3', data = immune, reduction_choice = 'i
                  featurePlotLight('Ptprc', data = immune, reduction_choice = 'immune.umap'),
                  featurePlotLight('Ccr1', data = immune, reduction_choice = 'immune.umap'),
                  featurePlotLight('Ccr2', data = immune, reduction_choice = 'immune.umap'),
-                 featurePlotLight('Ccr3', data = immune, reduction_choice = 'immune.umap'),
+                 featurePlotLight('Aif1', data = immune, reduction_choice = 'immune.umap'),
                  featurePlotLight('Ccr5', data = immune, reduction_choice = 'immune.umap'),
                  featurePlotLight('Cd68', data = immune, reduction_choice = 'immune.umap'),
                  featurePlotLight('Cd86', data = immune, reduction_choice = 'immune.umap'),
@@ -329,21 +336,22 @@ DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnn
   ggtitle('Day 5 + pbs immune mock')
 dev.off()
 
-plotList <- list(featurePlotLight('Lgals3', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+plotList <- list(featurePlotLight('Tspo', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Lgals3', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
                  featurePlotLight('Adgre1', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Cd68', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Cd86', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
                  featurePlotLight('Ptprc', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
+                 featurePlotLight('Aif1', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
                  featurePlotLight('Ccr1', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
                  featurePlotLight('Ccr2', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
                  featurePlotLight('Ccr3', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
                  featurePlotLight('Ccr5', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Cd68', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Cd86', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
                  featurePlotLight('Tmem119', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Tspo', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
                  featurePlotLight('Csf1r', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'))
 
-pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_features.pdf',
-    width = 9, height = 6)
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_features_updated.pdf',
+    width = 9, height = 7)
 do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 dev.off()
 
@@ -380,6 +388,21 @@ DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'm
         axis.text.y=element_blank(),
         axis.ticks.x=element_blank(),
         axis.ticks.y=element_blank())
+dev.off()
+
+#Want gray versions of umaps to put above featureplots where we will just label main cell types
+pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/gray_immune_wt_infected_day5_umap.pdf',
+    width = 6, height = 6)
+DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
+        cols = rep('gray', 5))+
+  ggtitle('Immune WT Infected UMAP')+
+  xlab('Umap 1')+
+  ylab('Umap 2')+  
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.position = 'none')
 dev.off()
 
 #Microglia
@@ -434,17 +457,18 @@ FeaturePlot(immune_wt_infected, features =  'Nav3', reduction = 'wt.immune.infec
 clust11_markers_vsMac['Tmem119',]
 
 #Plot important markers
-plotList_infected <- list(featurePlotLight('Lgals3', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+plotList_infected <- list(featurePlotLight('Tspo', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Lgals3', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Adgre1', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Cd68', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Cd86', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Ptprc', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
+                 featurePlotLight('Aif1', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Ccr1', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Ccr2', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Ccr3', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Ccr5', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Cd68', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Cd86', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Tmem119', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Tspo', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
                  featurePlotLight('Csf1r', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'))
 
 lapply(plotList_infected, FUN = function(x){
@@ -454,10 +478,11 @@ lapply(plotList_infected, FUN = function(x){
 })
 
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_infected_features_day5.pdf',
-    width = 10, height = 5)
+    width = 9, height = 7)
 ggarrange(plotList_infected[[1]], plotList_infected[[2]], plotList_infected[[3]], plotList_infected[[4]], 
           plotList_infected[[5]], plotList_infected[[6]], plotList_infected[[7]], plotList_infected[[8]],
           plotList_infected[[9]], plotList_infected[[10]], plotList_infected[[11]], plotList_infected[[12]],
+          plotList_infected[[13]],
           common.legend = TRUE, legend = 'right')#ncol = 6, nrow = 2, )
 
 dev.off()

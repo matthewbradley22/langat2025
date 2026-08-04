@@ -89,17 +89,6 @@ result_dge_3 <- irgsea_result_fun(astros_day3)
 result_dge_4 <- irgsea_result_fun(astros_day4)
 result_dge_5 <- irgsea_result_fun(astros_day5)
 
-#Heatmap of sig pathways
-irGSEA.heatmap(object = result_dge_3,
-               method = "RRA",
-               top = 50,
-               show.geneset = NULL)
-
-irGSEA.heatmap(object = result_dge_4, 
-               method = "RRA",
-               top = 50, 
-               show.geneset = NULL)
-
 #UMAP astrocytes and do density scatter plots
 prep_astro_umap <- function(astro_dat, num_dims = 20, returnElbow = FALSE, reduc_name = NULL){
   astro_dat <- prepSeuratObj(astro_dat, use_all_genes = FALSE)
@@ -184,7 +173,7 @@ create_gsea_object <- function(dat, min.p.val = 0.05){
   dat_gsea<- gseGO(geneList = dat_markers_list,
                        OrgDb = org.Mm.eg.db,
                        ont   = "BP",
-                       minGSSize = 100,
+                       minGSSize = 10,
                        maxGSSize = 600,
                        pvalueCutoff = min.p.val,
                        verbose = FALSE, 
@@ -192,10 +181,10 @@ create_gsea_object <- function(dat, min.p.val = 0.05){
 }
 
 #Visualization options for gsea results
-day3_wt_gsea <- create_gsea_object(astros_day3_wt)
+day3_wt_gsea <- create_gsea_object(astros_day3_wt, min.p.val = 1)
 day3_ips_gsea <- create_gsea_object(astros_day3_ips, min.p.val = 1)
-day5_wt_gsea <- create_gsea_object(astros_day5_wt)
-day5_ips_gsea <- create_gsea_object(astros_day5_ips)
+day5_wt_gsea <- create_gsea_object(astros_day5_wt, min.p.val = 1)
+day5_ips_gsea <- create_gsea_object(astros_day5_ips, min.p.val = 1)
 
 if(FALSE){
   create_emap <- function(gsea_dat){
@@ -230,44 +219,82 @@ if(FALSE){
 }
 
 #Dot plots
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_dotplot.pdf', width = 5.5, height = 6)
-enrichplot::dotplot(day3_wt_gsea, showCategory=7, x = 'NES')+
-  theme_classic() +
-  scale_fill_gradientn(colours = c("#F03C0C","#FFD1A6","#FFEEE0"), 
-                       values = c(0,0.5,1.0),
-                       limits = c(1, 2*10^-8))+
-  scale_size(range = c(0, 9), limits = c(0, 200))
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_barplot.pdf', width = 5.5, height = 6)
+wt_3_bar_dat <- enrichplot::dotplot(day3_wt_gsea, showCategory=7, x = 'p.adjust')$data
+
+ggplot(wt_3_bar_dat, aes(x = -log10(p.adjust), y = reorder(Description, -p.adjust)))+
+  geom_col(fill = "#B3BFE2")+
+  theme_classic()+
+  xlim(c(0, 8))+ 
+  geom_vline(xintercept=-log10(0.01), linetype = 2)
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day3_dotplot.pdf', width = 5.5, height = 6)
-enrichplot::dotplot(day3_ips_gsea, showCategory=7, x = 'NES')+
-  theme_classic() +
-  scale_fill_gradientn(colours = c("#F03C0C","#FFD1A6","#FFEEE0"), 
-                       values = c(0,0.5,1.0),
-                       limits = c(1, 2*10^-8))+
-  scale_size(range = c(0, 9), limits = c(0, 200))
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day3_barplot.pdf', width = 5.5, height = 6)
+
+ips_3_bar_dat <- enrichplot::dotplot(day3_ips_gsea, showCategory=7,  x = 'p.adjust')$data
+  
+ggplot(ips_3_bar_dat, aes(x = -log10(p.adjust), y = reorder(Description, -p.adjust)))+
+  geom_col(fill = "#FDC0AC")+
+  theme_classic()+
+  scale_size(range = c(0, 9), limits = c(0, 200))+
+  xlim(c(0, 8))+ 
+  geom_vline(xintercept=-log10(0.01), linetype = 2)
+
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day5_dotplot.pdf', width = 5.5, height = 6)
-enrichplot::dotplot(day5_wt_gsea, showCategory=7, x = 'NES')+
-  theme_classic() +
-  scale_fill_gradientn(colours = c("#F03C0C","#FFD1A6","#FFEEE0"), 
-                       values = c(0,0.5,1.0),
-                       limits = c(1, 2*10^-8))+
-  scale_size(range = c(0, 9), limits = c(0, 200))
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day5_barplot.pdf', width = 6, height = 6)
+wt_5_bar_dat <- enrichplot::dotplot(day5_wt_gsea, showCategory=7, x = 'p.adjust')$data
+
+ggplot(wt_5_bar_dat, aes(x = -log10(p.adjust), y = reorder(Description, -p.adjust)))+
+  geom_col(fill = "#B3BFE2")+
+  theme_classic()+
+  scale_size(range = c(0, 9), limits = c(0, 200))+
+  xlim(c(0, 8))+ 
+  geom_vline(xintercept=-log10(0.01), linetype = 2)
+
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day5_dotplot.pdf', width = 5.5, height = 6)
-enrichplot::dotplot(day5_ips_gsea, showCategory=7, x = 'NES')+
-  theme_classic() +
-  scale_fill_gradientn(colours = c("#F03C0C","#FFD1A6","#FFEEE0"), 
-                       values = c(0,0.5,1.0),
-                       limits = c(1, 2*10^-8))+
-  scale_size(range = c(0, 9), limits = c(0, 200))
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/ips_day5_barplot.pdf', width = 5.5, height = 6)
+ips_5_bar_dat <- enrichplot::dotplot(day5_ips_gsea, showCategory=7, x = 'p.adjust')$data
+
+ggplot(ips_5_bar_dat, aes(x = -log10(p.adjust), y = reorder(Description, -p.adjust)))+
+  geom_col(fill = "#FDC0AC")+
+  theme_classic()+
+  scale_size(range = c(0, 9), limits = c(0, 200))+
+  xlim(c(0, 8))+ 
+  geom_vline(xintercept=-log10(0.01), linetype = 2)
+
 dev.off()
 
+#Use data from each genotype/time group to make a dotplot showing same info
+#as above barplots but in one plot
+pathways_to_plot <- c('response to type I interferon', 'defense response to virus', 'response to type II interferon',
+                      'cytokine-mediated signaling pathway', 'cell killing', 'antigen processing and presentation via MHC class Ib',
+                      'chemokine production', 'negative regulation of immune response')
+
+#Combine gsea results
+day3_wt_dot_dat <- cbind(day3_wt_gsea@result, data.frame('group' = 'wt_3'))
+day5_wt_dot_dat <- cbind(day5_wt_gsea@result, data.frame('group' = 'wt_5'))
+day3_ips_dot_dat <- cbind(day3_ips_gsea@result, data.frame('group' = 'ips_3'))
+day5_ips_dot_dat <- cbind(day5_ips_gsea@result, data.frame('group' = 'ips_5'))
+
+combined_dot_dat <- rbind(day3_wt_dot_dat, day5_wt_dot_dat, day3_ips_dot_dat, day5_ips_dot_dat)
+combined_dot_dat$group = factor(combined_dot_dat$group, levels = c('wt_3', 'wt_5', 'ips_3', 'ips_5'))
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/combined_gsea_dotplot.pdf', width = 8, height = 5)
+combined_dot_dat[combined_dot_dat$Description %in% pathways_to_plot,] %>% 
+  ggplot(aes(x = group, y = Description, fill = NES, size = -log10(p.adjust)))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#D9530B","#F57456","#FFD1A6","white"), 
+                       values = c(1.0,0.6,0.4,0))+
+  theme(text = element_text(size = 14))
+dev.off()
+
+#GSEA line plot
 gseaplot2(day3_wt_gsea, geneSetID = 1:5, pvalue_table = TRUE)
 
+#Ridge plots
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/wt_day3_ridgeplot.pdf', width = 7, height = 6)
 ridgeplot(day3_wt_gsea, showCategory = 7) + labs(x = "enrichment distribution") + 
   theme_classic()+
