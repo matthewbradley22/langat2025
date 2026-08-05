@@ -371,7 +371,11 @@ dev.off()
 create_dot_plot(dat = wt_cerebrum, gene = 'Tspo', main_title = 'Endthelial Tspo', celltypes_to_plot = 'Endothelial')
 create_dot_plot(dat = wt_cerebrum, gene = 'Tspo', main_title = 'CP Tspo', celltypes_to_plot = 'Choroid Plexus')
 
-create_dot_plot(dat = wt_cerebrum_day5, gene = 'Tspo', main_title = 'Tspo', x_var = 'treatment', combine_pbs = TRUE, flip_coords = TRUE)
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/tspo_dotplot.pdf', width = 8, height = 5)
+create_dot_plot(dat = wt_cerebrum_day5, gene = 'Tspo', main_title = 'Tspo', x_var = 'treatment',
+                combine_pbs = TRUE, flip_coords = TRUE)
+dev.off()
+
 create_dot_plot(dat = wt_cerebrum, gene = 'Lgals3', main_title = 'Lgals3', facet = 'treatment')
 
 ependymal <- subset(wt_cerebrum, manualAnnotation == 'Ependymal' & Treatment == 'rLGTV')

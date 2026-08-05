@@ -125,7 +125,6 @@ pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_day_3_signal_scatter.pdf',
 custom_net_signal_scatter(wt_cells_three_cc, main = 'WT chLGTV Day 3', xlimit = 33, ylimit = 38)
 dev.off()
 
-
 wt_cells_four_cc <- prep_cellchat_obj(wt_cells_four)
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_day_4_signal_scatter.pdf', height = 5, width = 5)
 wt_p4 <- custom_net_signal_scatter(wt_cells_four_cc, main = 'WT chLGTV Day 4', xlimit = 33, ylimit = 38)
@@ -201,8 +200,8 @@ ggplot(astro_comm_strengths, aes(x = out_strength, y = in_strength))+
   theme_classic()+
   ylim(c(0, 35))+
   xlim(c(0,35))+ 
-  scale_fill_manual(values=c("#FFE0B0", "#F5B376", "#D48B48", '#BD610F', 
-                              '#D9EAFF', '#95BDED', '#5B8FCF', '#1A5BAB'))+
+  scale_fill_manual(values=c('#D9EAFF', '#95BDED', '#5B8FCF', '#1A5BAB',
+                             "#FFE0B0", "#F5B376", "#D48B48", '#BD610F'))+
   scale_size(range = c(4, 8))+
   xlab('Outgoing communication strength')+
   ylab('Incoming communication strength')+
@@ -484,8 +483,10 @@ slot.name = "netP"
 
 cellchat_wt_3_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_three_cc), add.names = c('PBS', 'WT_inf'))
 cellchat_wt_4_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_four_cc), add.names = c('PBS', 'WT_inf'))
+cellchat_wt_5_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = wt_cells_five_cc), add.names = c('PBS', 'WT_inf'))
+
 compareInteractions(cellchat_wt_3_merged, show.legend = F, group = c(1,2))
-netVisual_diffInteraction(cellchat_wt_3_merged, weight.scale = T, measure = 'count')
+compareInteractions(cellchat_wt_5_merged, show.legend = F, group = c(1,2))
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_3_vs_mock_astro_target.pdf', width = 5, height = 5)
 netVisual_diffInteraction(cellchat_wt_3_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
@@ -497,6 +498,13 @@ dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_3_vs_mock_signal_changes.pdf', width = 10, height = 8)
 netAnalysis_signalingChanges_scatter(cellchat_wt_3_merged, idents.use = "Astrocytes", label.size = 9)+
+  theme(text = element_text(size = 24))+
+  xlim(c(-0.4, 3.5))+
+  ylim(c(-0.4, 3))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_5_vs_mock_signal_changes.pdf', width = 10, height = 8)
+netAnalysis_signalingChanges_scatter(cellchat_wt_5_merged, idents.use = "Astrocytes", label.size = 9)+
   theme(text = element_text(size = 24))+
   xlim(c(-0.4, 3.5))+
   ylim(c(-0.4, 3))

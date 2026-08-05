@@ -103,7 +103,8 @@ wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV')
                               Genotype == 'WT' & (Timepoint == 'Day 5' | Treatment == 'PBS'))
 
 #Upregulated in macrophages vs other cells
-mac_markers <- FindMarkers(wt_cerebrum, group.by = 'manualAnnotation', ident.1 = 'Macrophage/Monocytes', test.use = 'MAST')
+mac_markers <- FindMarkers(wt_cerebrum, group.by = 'manualAnnotation', ident.1 = 'Macrophage/Monocytes', 
+                           test.use = 'MAST')
 mac_markers_up_sig <- dplyr::filter(mac_markers, p_val_adj < 0.01 & avg_log2FC > 1)
 
 FeaturePlot(wt_cerebrum, features = rownames(mac_markers)[3], reduction = 'wt.infected.mac.umap')
@@ -150,6 +151,15 @@ DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = FAL
         label.size = 6)+
   ggtitle('WT Macrophages')
 
+#Infected vs uninfected markers, though there's barely any uninfected
+treatment_mac_markers <- FindMarkers(wt_cerebrum_macrophages, group.by = 'Treatment', test.use = 'MAST', 
+                                     ident.1 = 'rLGTV') 
+
+sig_treatment_markers <- dplyr::filter(treatment_mac_markers, p_val_adj < 0.01 & abs(avg_log2FC) > 1)
+
+write.csv(x = sig_treatment_markers, file = '~/Documents/ÖverbyLab/data/gal3/deg_lists/macrophage_lgtv_markers.csv',
+            quote = FALSE)
+
 #Only infected macs
 color_schemes <- list(c("#292270","#166DF0", "#6DC3F8"), c("#292270","#B370AE" ,"#6DC3F8"), c("#8a0000","#D6644B","#6DC3F8"),
                       c( "#292270","#6DC3F8", "#B370AE"))
@@ -195,6 +205,13 @@ dev.off()
 #Examine what separates day 5 from other timepoints
 day5_macro_markers <- FindMarkers(macrophages_wt_infected, group.by = 'Timepoint', ident.1 = 'Day 5',
                                   test.use = 'MAST')
+
+#Save timepoint markers to csv
+macro_timepoint_markers <- dplyr::filter(day5_macro_markers, abs(avg_log2FC) > 1 & p_val_adj < 0.01)
+write.csv(x = macro_timepoint_markers,
+          file ='~/Documents/ÖverbyLab/data/gal3/deg_lists/infected_macro_timepoint_markers.csv', quote = FALSE)
+
+#Genes upregulated at day 5
 day5_up_markers <- dplyr::filter(day5_macro_markers, (avg_log2FC) > 1 & p_val_adj < 0.01)
 
 #Look at genes downregulated at day 5

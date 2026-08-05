@@ -115,7 +115,7 @@ barDat %>% ggplot(aes(x = Treatment, y = prop, fill = manualAnnotation))+
   theme(text = element_text(size = 23))+
   scale_fill_manual(values = umap_color_list)+
   guides(fill=guide_legend(title="Cell Type"))
-dev.off()
+ssdev.off()
 
 #Make barplot based on timepoint
 barDat_time <- wt_cerebrum_day5[[]] %>% dplyr::group_by(Treatment, Timepoint, manualAnnotation) %>% 
@@ -138,17 +138,7 @@ cell_props <- cell_props %>% dplyr::filter(count > 0) %>%
   dplyr::arrange(timepoint) %>% 
   write.csv("~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_prop_table.csv")
 
-#Combine cxcl10 and select cl for plotting
-pdf('~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/select_chemokines_dotplot.pdf', width = 8, height = 6)
-DotPlot(sn_integrated_dat_wt, features = c('Ccl2',  'Ccl3', 'Ccl5', 'Ccl7', 'Ccl11', 'Ccl12', 'Cxcl10'), group.by = 'treatment_celltype', scale = TRUE)+
-  theme(axis.text.x = element_text(angle = 90))+
-  ylab('')+
-  xlab('')
-dev.off()
-
 #Immune cell subset
-#Need to finish labelling last mo/microglia cluster
-
 #ReUMAP
 immune <- prepSeuratObj(immune)
 ElbowPlot(immune, ndims = 40)
@@ -229,28 +219,35 @@ wt_cerebrum_day5_known$manualAnnotation <- factor(wt_cerebrum_day5_known$manualA
                                                           'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
                                                           'Choroid Plexus', 'Astrocytes'))
 
-pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/all_cells_immune_dotplot_.pdf", width = 9, height = 8)
+key_gene_dotplot <- function(dat, main_title){
+  DotPlot(dat, features = c('Tspo', 'Lgals3', 'Adgre1', 'Cd68',  'Cd86', 'Ptprc',  'Ccr1', 'Ccr2', 
+                                                    'Ccr3', 'Ccr5', 'Tmem119',  'Csf1r', 'Aif1'),
+          group.by = 'manualAnnotation', scale = TRUE)+
+    scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', labels = c(-1, 0, 1,2),
+                          breaks = c(-1, 0, 1,2), , limits = c(-2,2.5))+
+    scale_size(range = c(2, 10), limits = c(0,100))+
+    theme(axis.text.x = element_text(angle = 45, vjust = 0.7))+
+    theme(legend.position = "bottom",
+          legend.justification = "center",
+          legend.direction = "horizontal",
+          legend.title = element_text(hjust = 0.3),
+          legend.spacing.x = unit(2, "cm"))+
+    guides(size = guide_legend(title.position = "top", title = 'Percent Expressed', order = 2),
+           color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression'))+
+    ggtitle(main_title)
+}
+
+
 
 wt_cerebrum_day5_known_pbs <- subset(wt_cerebrum_day5_known, Treatment == 'PBS')
 wt_cerebrum_day5_known_lgtv <- subset(wt_cerebrum_day5_known, Treatment == 'rLGTV')
 
-#No Ccr3 expression
-DotPlot(wt_cerebrum_day5_known_lgtv, features = c('Tspo', 'Lgals3', 'Adgre1', 'Cd68',  'Cd86', 'Ptprc',  'Ccr1', 'Ccr2', 
-                                     'Ccr3', 'Ccr5', 'Tmem119',  'Csf1r', 'Aif1'),
-        group.by = 'manualAnnotation', scale = TRUE)+
-  scale_color_gradient2(low = 'blue', mid = 'white', high = 'red', labels = c(-1, 0, 1,2),
-                       breaks = c(-1, 0, 1,2), , limits = c(-2,2.5))+
-  scale_size(range = c(2, 10), limits = c(0,100))+
-  theme(axis.text.x = element_text(angle = 45, vjust = 0.7))+
-  theme(legend.position = "bottom",
-        legend.justification = "center",
-        legend.direction = "horizontal",
-        legend.title = element_text(hjust = 0.3),
-        legend.spacing.x = unit(2, "cm"))+
-  guides(size = guide_legend(title.position = "top", title = 'Percent Expressed', order = 2),
-         color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression'))+
-  ggtitle('Mock cells')
-  #labs(caption = 'Only 39 Ependymal, 53 endothelial, 72 astrocytes')
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/mock_cells_key_genes.pdf", width = 10, height = 7)
+key_gene_dotplot(wt_cerebrum_day5_known_pbs, main_title = 'PBS')
+dev.off()
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/lgtv_cells_key_genes.pdf", width = 10, height = 7)
+key_gene_dotplot(wt_cerebrum_day5_known_lgtv, main_title = 'LGTV')
 dev.off()
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/resident_feature_dotplot_mock.pdf", width = 9, height = 6)
@@ -336,24 +333,25 @@ DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnn
   ggtitle('Day 5 + pbs immune mock')
 dev.off()
 
-plotList <- list(featurePlotLight('Tspo', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Lgals3', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Adgre1', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Cd68', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Cd86', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Ptprc', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Aif1', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Ccr1', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Ccr2', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Ccr3', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Ccr5', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Tmem119', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'),
-                 featurePlotLight('Csf1r', data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap'))
+gene_marker_list <- c('Tspo', 'Lgals3', 'Adgre1', 'Cd68', 'Cd86', 'Ptprc', 'Aif1',
+                      'Ccr1', 'Ccr2', 'Ccr3', 'Ccr5', 'Tmem119', 'Csf1r')
+
+plotList <- lapply(gene_marker_list, featurePlotLight, data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap')
 
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_features_updated.pdf',
     width = 9, height = 7)
 do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 dev.off()
+
+#Save all feature plots individually too
+names(plotList) = gene_marker_list
+for(i in 1:length(plotList)){
+  file_path = paste('~/Documents/ÖverbyLab/scPlots/galectin3_proj/feature_plots/mock_', names(plotList[i]),
+                    '.pdf', sep = '')
+  pdf(file = file_path, width = 5, height = 5)
+  print(plotList[i])
+  dev.off()
+}
 
 #Infected now
 wt_cerebrum_day5_infected <- prepSeuratObj(wt_cerebrum_day5_infected)
@@ -457,19 +455,8 @@ FeaturePlot(immune_wt_infected, features =  'Nav3', reduction = 'wt.immune.infec
 clust11_markers_vsMac['Tmem119',]
 
 #Plot important markers
-plotList_infected <- list(featurePlotLight('Tspo', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Lgals3', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Adgre1', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Cd68', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Cd86', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Ptprc', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Aif1', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Ccr1', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Ccr2', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Ccr3', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Ccr5', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Tmem119', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'),
-                 featurePlotLight('Csf1r', data = immune_wt_infected, reduction_choice = 'wt.immune.infected.umap'))
+plotList_infected <- lapply(gene_marker_list, featurePlotLight, data = immune_wt_infected, 
+                   reduction_choice = 'wt.immune.infected.umap')
 
 lapply(plotList_infected, FUN = function(x){
   #Make sure 6 is high enough scale for all plots
@@ -479,13 +466,20 @@ lapply(plotList_infected, FUN = function(x){
 
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_infected_features_day5.pdf',
     width = 9, height = 7)
-ggarrange(plotList_infected[[1]], plotList_infected[[2]], plotList_infected[[3]], plotList_infected[[4]], 
-          plotList_infected[[5]], plotList_infected[[6]], plotList_infected[[7]], plotList_infected[[8]],
-          plotList_infected[[9]], plotList_infected[[10]], plotList_infected[[11]], plotList_infected[[12]],
-          plotList_infected[[13]],
-          common.legend = TRUE, legend = 'right')#ncol = 6, nrow = 2, )
+do.call(ggarrange, c(plotList_infected, common.legend = TRUE, legend = 'right'))
 
 dev.off()
+
+names(plotList_infected) = gene_marker_list
+
+for(i in 1:length(plotList)){
+  file_path = paste('~/Documents/ÖverbyLab/scPlots/galectin3_proj/feature_plots/infected_', names(plotList[i]),
+                    '.pdf', sep = '')
+  pdf(file = file_path, width = 5, height = 5)
+  print(plotList_infected[i])
+  dev.off()
+}
+
 
 #Nonclustering mac group seems to fit in inflammatory monocyte signature from here https://www.nature.com/articles/s41467-021-21407-w
 #Ly6c2high, Ccr2high, and Tgfbilow but also probably in some microglia groups they mention, check further

@@ -123,6 +123,12 @@ create_dot_plot <- function(dat, gene, main_title, facet = NULL, celltypes_to_pl
       ggtitle(main_title)
     
   } else{
+    
+    #If coordinates are flipped the order of the variable changes, so need to correct for that so pbs comes first
+    if(flip_coords){
+      gene_exp$treatment = factor(gene_exp$treatment, levels = rev(c('PBS', 'rLGTV')))
+    }
+   
     custom_dot <- ggplot(gene_exp, aes(x = !!sym(x_var), y = celltype, size = pct.exp, fill = avg.exp.scaled))+
       geom_point(pch = 21)+
       theme_classic()+
@@ -148,5 +154,22 @@ create_dot_plot <- function(dat, gene, main_title, facet = NULL, celltypes_to_pl
 }
 
 
+#Function for plotting multiple featureplots together on one scale
+featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim = 0, maxLim = 5){
+  dat = FeaturePlot(data, gene, reduction = reduction_choice)$data
+  colnames(dat) = c('umap1', 'umap2', 'ident', 'expression')
+  ggplot(dat, aes(x = umap1, y = umap2, color = expression))+
+    geom_point(size = 0.1)+  
+    theme(line = element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.ticks.y=element_blank(),
+          panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))+
+    scale_color_gradient(low = 'lightgrey', high = 'blue', limits = c(minLim,maxLim))+
+    ggtitle(gene)
+}
 
 
