@@ -502,4 +502,12 @@ FeaturePlot(wt_dat, features = 'Lrp8', reduction = 'umap.integrated')+
 dev.off()
 
 
+#Combine cxcl10 and select cl for plotting
+pdf('~/Documents/ÖverbyLab/single_nuclei_proj/sn_plots/select_chemokines_dotplot.pdf', width = 8, height = 6)
+DotPlot(sn_integrated_dat_wt, features = c('Ccl2',  'Ccl3', 'Ccl5', 'Ccl7', 'Ccl11', 'Ccl12', 'Cxcl10'), group.by = 'treatment_celltype', scale = TRUE)+
+  theme(axis.text.x = element_text(angle = 90))+
+  ylab('')+
+  xlab('')
+dev.off()
+
 

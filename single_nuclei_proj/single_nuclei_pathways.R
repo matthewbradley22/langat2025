@@ -261,6 +261,8 @@ final_plot_data %>%
   xlab('')+
   ggtitle('Single Nuclei WT Chemokine Expression')
 
+
+
 #Look at just astrocytes
 sn_astrocytes <- subset(sn_integrated_dat, manualAnnotation == 'Astrocytes' & new_genotype %in% c('wt', 'wt (same)'))
 
@@ -435,3 +437,21 @@ lgtv_dat %>%
   scale_size(limits = c(0, 32))
 #ggtitle('Only 2 infected wt pericytes')
 dev.off()
+
+#Cxcl12
+table(wt_sn$new_inf, wt_sn$infected)
+
+wt_sn$treatment_celltype = paste(wt_sn$infected, wt_sn$manualAnnotation, sep = '_')
+DotPlot(wt_sn, features = 'Cxcl12', group.by = 'treatment_celltype', scale = FALSE)$data %>% 
+  tidyr::separate(id, into = c('infected', 'celltype'), sep = '_') %>% 
+  dplyr::mutate(treatment = ifelse(infected == TRUE, 'lgtv', 'mock')) %>% 
+  dplyr::mutate(treatment = factor(treatment, levels = c('mock', 'lgtv'))) %>% 
+  ggplot(aes(x = treatment, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                       values = c(1.0,0.7,0.4,0))+
+  theme_classic()+
+  ylab('')+
+  xlab('')+
+  ggtitle('Single nuclei Cxcl12')
+
