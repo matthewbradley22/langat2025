@@ -9,6 +9,7 @@ library(rstatix)
 library(irGSEA)
 library(UCell)
 library(msigdbr)
+library(rstatix)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -33,6 +34,13 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
 #Wt cerebrum celltypes across times
 wt_cerebrum <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & Genotype == 'WT')
 table(wt_cerebrum$manualAnnotation, wt_cerebrum$Genotype, wt_cerebrum$Treatment, wt_cerebrum$Timepoint)
+
+#Make table of counts for all celltypes
+wt_cerebrum[[]] %>% dplyr::group_by(Genotype, Treatment, Timepoint, manualAnnotation) %>% 
+  dplyr::summarise(cell_count = n()) %>% 
+  dplyr::filter(manualAnnotation != 'unknown') %>% 
+  as.data.frame() %>% 
+  write.csv(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/cell_counts.csv', quote = FALSE)
 
 #Plot resident cell ratios
 wt_cerebrum_resident_mock <- subset(wt_cerebrum, manualAnnotation %in% c('Astrocytes', 'Oligodendrocytes', 'Microglia', 'Endothelial',
@@ -110,7 +118,12 @@ DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by
 dev.off()
 
 
-wt_cerebrum_microglia_markers <- FindAllMarkers(wt_cerebrum_microglia, group.by = 'Treatment', test.use = 'MAST')
+wt_cerebrum_microglia_markers <- FindMarkers(wt_cerebrum_microglia, group.by = 'Treatment', test.use = 'MAST',
+                                             ident.1 = 'rLGTV')
+
+sig_micro_markers <- wt_cerebrum_microglia_markers %>% dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01)
+write.csv(x = sig_micro_markers, file = '~/Documents/ÖverbyLab/data/gal3/deg_lists/micro_lgtv_markers.csv',
+          quote = FALSE)
 
 top_markers <- wt_cerebrum_microglia_markers %>% dplyr::filter(avg_log2FC > 1 & p_val_adj < 0.01) %>% 
   dplyr::group_by(cluster) %>% dplyr::slice_head(n = 6)
@@ -141,7 +154,7 @@ wt_cerebrum_microglia$custom_clusters <- dplyr::case_when(wt_cerebrum_microglia$
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/microglia_UMAP.pdf', width = 7, height = 5)
 DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by = 'custom_clusters', 
-        cols = c('#6B9973', '#A4CE05', '#E7A515', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
+        cols = c('#6B9973', '#A4CE05', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+ #used to have '#E7A515'
       ggtitle('Microglia')+
       theme(axis.text = element_blank(), axis.ticks = element_blank())+
       ylab('UMAP2')+
@@ -712,6 +725,94 @@ ggplot(top_sig_genes_dot, aes(x = features.plot, y = id, fill = avg.exp.scaled, 
                        values = c(1.0,0.7,0.4,0))+
   theme_classic()
 
+#Create violin plots of key pathways to show significant differences
+#Gene lists for each pathway taken from mgi mouse website from jax
+
+#Defense response
+path_vs_mock_list$`cluster 5`
+innate_GO <- read.delim("~/Documents/ÖverbyLab/data/geneOntologyData/innate_immune_go.txt", row.names=NULL)
+innate_GO_genes <- unique(innate_GO$MGI.Gene.Marker.ID)
+
+wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
+                                              features=list('innate_immune' = innate_GO_genes), maxRank = 1200, name = NULL)
+
+#Kind of weird cluster 3 is higher than 4 here? wt_cerebrum_microglia
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/innate_immune_violin.pdf', width = 5, height = 4)
+VlnPlot(wt_cerebrum_microglia, features = 'innate_immune', group.by = 'clusters_with_mock', pt.size = 0)$data %>% 
+  ggplot(aes(x = factor(ident, levels = c('mock', '3', '4', '5')), y = innate_immune, fill = ident))+
+  geom_violin()+
+  theme_classic()+
+  xlab('')+
+  ylab('')+
+  ggtitle('Innate immune response')+ 
+  annotate("segment", x = 4, xend = 3, y = 0.19, yend = 0.19)+ 
+  annotate("text", x = 3.5, y = 0.193, label = "***")+ 
+  annotate("segment", x = 4, xend = 2, y = 0.2, yend = 0.2)+ 
+  annotate("text", x = 3, y = 0.205, label = "***")
+
+dev.off()
+immune.kruskal <- wt_cerebrum_microglia[[]] %>% kruskal_test(innate_immune ~ clusters_with_mock)
+immune.dunn <- wt_cerebrum_microglia[[]] %>%
+  dunn_test(innate_immune ~ clusters_with_mock, p.adjust.method = "bonferroni")
+
+immune.dunn
+
+#Cytokine production
+cytokine_GO <- read.delim("~/Documents/ÖverbyLab/data/geneOntologyData/cytokine_production.txt", row.names=NULL)
+cytokine_GO_genes <- unique(cytokine_GO$MGI.Gene.Marker.ID)
+
+wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
+                                              features=list('cyto_production' = cytokine_GO_genes), maxRank = 1200, name = NULL)
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/cyto_production_violin.pdf', width = 5, height = 4)
+VlnPlot(wt_cerebrum_microglia, features = 'cyto_production', group.by = 'clusters_with_mock', pt.size = 0)$data %>% 
+  ggplot(aes(x = factor(ident, levels = c('mock', '3', '4', '5')), y = cyto_production, fill = ident))+
+  geom_violin()+
+  theme_classic()+
+  xlab('')+
+  ylab('')+
+  ggtitle('Cytokine production')+ 
+  annotate("segment", x = 4, xend = 3, y = 0.15, yend = 0.15)+ 
+  annotate("text", x = 3.5, y = 0.153, label = "***")+ 
+  annotate("segment", x = 4, xend = 2, y = 0.16, yend = 0.16)+ 
+  annotate("text", x = 3, y = 0.163, label = "***")
+dev.off()
+
+cyto.kruskal <- wt_cerebrum_microglia[[]] %>% kruskal_test(cyto_production ~ clusters_with_mock)
+cyto.dunn <- wt_cerebrum_microglia[[]] %>%
+  dunn_test(cyto_production ~ clusters_with_mock, p.adjust.method = "bonferroni")
+
+cyto.dunn
+
+#Cell cycle processes
+cellcycle_GO <- read.delim("~/Documents/ÖverbyLab/data/geneOntologyData/cell_cycle_process_go.txt", row.names=NULL)
+cellcycle_GO_genes <- unique(cellcycle_GO$MGI.Gene.Marker.ID)
+
+wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
+                                              features=list('cell_cycle' = cellcycle_GO_genes), 
+                                              maxRank = 1400, name = NULL)
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/cell_cycle_violin.pdf', width = 5, height = 4)
+VlnPlot(wt_cerebrum_microglia, features = 'cell_cycle', group.by = 'clusters_with_mock', pt.size = 0)$data %>% 
+  ggplot(aes(x = factor(ident, levels = c('mock', '3', '4', '5')), y = cell_cycle, fill = ident))+
+  geom_violin()+
+  theme_classic()+
+  xlab('')+
+  ylab('')+
+  ggtitle('Cell cycle')+ 
+  annotate("segment", x = 3, xend = 2, y = 0.17, yend = 0.17)+ 
+  annotate("text", x = 2.5, y = 0.173, label = "***") +
+  annotate("segment", x = 4, xend = 2, y = 0.18, yend = 0.18)+ 
+  annotate("text", x = 3.1, y = 0.183, label = "***")
+dev.off()
+
+cellcycle.kruskal <- wt_cerebrum_microglia[[]] %>% kruskal_test(cell_cycle ~ clusters_with_mock)
+cellcycle.dunn <- wt_cerebrum_microglia[[]] %>%
+  dunn_test(cell_cycle ~ clusters_with_mock, p.adjust.method = "bonferroni")
+
+cellcycle.dunn
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #### DEGs between each infected cluster and all cells including mock #####
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -819,12 +920,26 @@ proliferation <- c('Birc5', 'Brip1', 'Mcm5', 'Mki67', 'Rad51b', 'Top2a')
 plotList_surv <- lapply(surveilance, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 5.5)
 do.call(ggarrange, c(plotList_surv, common.legend = TRUE, legend = 'right'))
 
-
 wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
                                               features=list('surveilance' = surveilance), maxRank = 1200, name = NULL)
 
-pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/surveillance_violin_new.pdf', height = 5, width = 7)
+#pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/surveillance_violin_new.pdf', height = 5, width = 7)
 VlnPlot(object = wt_cerebrum_microglia, features = 'surveilance', group.by = 'custom_clusters', pt.size = 0)
+#dev.off()
+
+surv_vln_dat <- VlnPlot(object = wt_cerebrum_microglia, features = 'surveilance', group.by = 'custom_clusters', pt.size = 0)$data
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/surveillance_violin_new.pdf', height = 5, width = 7)
+ggplot(surv_vln_dat, aes(x = ident, y = surveilance))+
+  geom_violin(aes(fill = ident), scale = 'width')+
+  geom_boxplot(width=0.2, color="black", alpha = 0, outlier.shape = NA)+
+  theme_classic()+
+  ggtitle('surveillance')+ 
+  theme(plot.title = element_text(size = 15, face = "bold"))+
+  scale_fill_manual(values =  c('#6B9973', '#A4CE05', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
+  ylim(-0.01, 0.95)+
+  xlab('')+
+  ylab('')
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/surveillance_dotplot_new.pdf', height = 5, width = 7)
@@ -858,8 +973,31 @@ do.call(ggarrange, c(plotList_phago, common.legend = TRUE, legend = 'right'))
 wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
                                               features=list('phagocytosis' = phagocytosis), maxRank = 1200, name = NULL)
 
+#pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/phagocytosis_violin_new.pdf', height = 5, width = 7)
+phago_vln_dat <- VlnPlot(object = wt_cerebrum_microglia, features = 'phagocytosis', group.by = 'custom_clusters', pt.size = 0)$data
+#dev.off()
+
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/phagocytosis_violin_new.pdf', height = 5, width = 7)
-VlnPlot(object = wt_cerebrum_microglia, features = 'phagocytosis', group.by = 'custom_clusters', pt.size = 0)
+ggplot(phago_vln_dat, aes(x = ident, y = phagocytosis))+
+  geom_violin(aes(fill = ident), scale = 'width')+
+  geom_boxplot(width=0.2, color="black", alpha = 0, outlier.shape = NA)+
+  theme_classic()+
+  ggtitle('phagocytosis')+ 
+  theme(plot.title = element_text(size = 15, face = "bold"))+
+  scale_fill_manual(values =  c('#6B9973', '#A4CE05', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
+  ylim(-0.01, 0.95)+
+  xlab('')+
+  ylab('')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/phagocytosis_dotplot_new.pdf', height = 5, width = 7)
+DotPlot(wt_cerebrum_microglia, features = phagocytosis, group.by = 'custom_clusters', scale = FALSE)$data %>% 
+  ggplot(aes(x = id, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('phagocytosis genes')
 dev.off()
 
 #Inflammation
@@ -873,9 +1011,33 @@ do.call(ggarrange, c(plotList_cyto, common.legend = TRUE, legend = 'right'))
 wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
                                               features=list('cytokine_production' = cyto_production), maxRank = 1200, name = NULL)
 
+#pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/cytokine_production_violin_new.pdf', height = 5, width = 7)
+cyto_vln_dat <- VlnPlot(object = wt_cerebrum_microglia, features = 'cytokine_production', group.by = 'custom_clusters', pt.size = 0)$data
+#dev.off()
+
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/cytokine_production_violin_new.pdf', height = 5, width = 7)
-VlnPlot(object = wt_cerebrum_microglia, features = 'cytokine_production', group.by = 'custom_clusters', pt.size = 0)
+ggplot(cyto_vln_dat, aes(x = ident, y = cytokine_production))+
+  geom_violin(aes(fill = ident), scale = 'width')+
+  geom_boxplot(width=0.2, color="black", alpha = 0, outlier.shape = NA)+
+  theme_classic()+
+  ggtitle('cytokine production')+ 
+  theme(plot.title = element_text(size = 15, face = "bold"))+
+  scale_fill_manual(values =  c('#6B9973', '#A4CE05', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
+  ylim(-0.01, 0.95)+
+  xlab('')+
+  ylab('')
 dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/cytokine_production_dotplot_new.pdf', height = 5, width = 7)
+DotPlot(wt_cerebrum_microglia, features = cyto_production, group.by = 'custom_clusters', scale = FALSE)$data %>% 
+  ggplot(aes(x = id, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('cytokine production genes')
+dev.off()
+
 
 #antigen presentation
 plotList_antigen <- lapply(antigen_pres, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 5.3)
@@ -885,7 +1047,20 @@ wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia,
                                               features=list('antigen_presentation' = antigen_pres), maxRank = 1200, name = NULL)
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/antigen_presentation_violin_new.pdf', height = 5, width = 7)
-VlnPlot(object = wt_cerebrum_microglia, features = 'antigen_presentation', group.by = 'custom_clusters', pt.size = 0)
+antigen_pres_dat <- VlnPlot(object = wt_cerebrum_microglia, features = 'antigen_presentation', group.by = 'custom_clusters', pt.size = 0)$data
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/antigen_presentation_violin_new.pdf', height = 5, width = 7)
+ggplot(antigen_pres_dat, aes(x = ident, y = antigen_presentation))+
+  geom_violin(aes(fill = ident), scale = 'width')+
+  geom_boxplot(width=0.2, color="black", alpha = 0, outlier.shape = NA)+
+  theme_classic()+
+  ggtitle('antigen presentation')+ 
+  theme(plot.title = element_text(size = 15, face = "bold"))+
+  scale_fill_manual(values =  c('#6B9973', '#A4CE05', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
+  ylim(-0.01, 0.95)+
+  xlab('')+
+  ylab('')
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/antigen_presentation_dotplot.pdf', height = 5, width = 7)
@@ -903,7 +1078,7 @@ plotList_ifn <- lapply(ifn_sig, featurePlotLight, data = wt_cerebrum_microglia, 
 do.call(ggarrange, c(plotList_ifn, common.legend = TRUE, legend = 'right'))
 
 #proliferation
-plotList_prolif <- lapply(proliferation, featurePlotLight, data = microglia_infected, reduction_choice = 'micro.inf.umap', maxLim = 4.5)
+plotList_prolif <- lapply(proliferation, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 5.3)
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/proliferation_genes.pdf', width = 6, height = 5)
 do.call(ggarrange, c(plotList_prolif, common.legend = TRUE, legend = 'right'))
 dev.off()
@@ -911,11 +1086,32 @@ dev.off()
 wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
                                               features=list('proliferation' = proliferation), maxRank = 1200, name = NULL)
 
-pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/proliferation_production_violin_new.pdf', height = 5, width = 7)
-VlnPlot(object = wt_cerebrum_microglia, features = 'proliferation', group.by = 'custom_clusters', pt.size = 0)
+#pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/proliferation_production_violin_new.pdf', height = 5, width = 7)
+prolif_dat <- VlnPlot(object = wt_cerebrum_microglia, features = 'proliferation', group.by = 'custom_clusters', pt.size = 0)$data
+#dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/proliferation_violin_new.pdf', height = 5, width = 7)
+ggplot(prolif_dat, aes(x = ident, y = proliferation))+
+  geom_violin(aes(fill = ident), scale = 'width')+
+  geom_boxplot(width=0.2, color="black", alpha = 0, outlier.shape = NA)+
+  theme_classic()+
+  ggtitle('proliferation')+ 
+  theme(plot.title = element_text(size = 15, face = "bold"))+
+  scale_fill_manual(values =  c('#6B9973', '#A4CE05', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
+  ylim(-0.01, 0.95)+
+  xlab('')+
+  ylab('')
 dev.off()
 
-
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/proliferation_dotplot.pdf', height = 5, width = 7)
+DotPlot(wt_cerebrum_microglia, features = proliferation, group.by = 'custom_clusters', scale = FALSE)$data %>% 
+  ggplot(aes(x = id, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Proliferation genes')
+dev.off()
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 #### DAMs https://www.cell.com/cell/fulltext/S0092-8674(17)30578-0#mmc1 ####
@@ -1005,12 +1201,33 @@ featurePlotLight('Mef2c', data = wt_cerebrum_microglia, reduction_choice = 'micr
 
 homeo_markers <- DotPlot(wt_cerebrum_microglia, features = c('Olfml3', 'Fcrls', 'Tmem119', 'Gpr34', 'Mef2c'), group.by = 'seurat_clusters', scale = FALSE)$data
 
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/homeostasis_dotplot.pdf', height = 5, width = 7)
 ggplot(homeo_markers, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   theme_classic()+
   scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
                        values = c(0, 0.3, 0.6, 1))+
   ggtitle('Homeostatic genes')
+dev.off()
+
+wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
+                                              features=list('homeostasis' = c('Olfml3', 'Fcrls', 'Tmem119', 'Gpr34', 'Mef2c')), maxRank = 1200, 
+                                              name = NULL)
+
+homestasis_dat <- VlnPlot(object = wt_cerebrum_microglia, features = 'homeostasis', group.by = 'custom_clusters', pt.size = 0)$data
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/homeostasis_violin_new.pdf', height = 5, width = 7)
+ggplot(homestasis_dat, aes(x = ident, y = homeostasis))+
+  geom_violin(aes(fill = ident), scale = 'width')+
+  geom_boxplot(width=0.2, color="black", alpha = 0, outlier.shape = NA)+
+  theme_classic()+
+  ggtitle('homeostasis')+ 
+  theme(plot.title = element_text(size = 15, face = "bold"))+
+  scale_fill_manual(values =  c('#6B9973', '#A4CE05', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
+  ylim(-0.01, 0.95)+
+  xlab('')+
+  ylab('')
+dev.off()
 
 #Phagocytotic genes
 featurePlotLight('Tyrobp', data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = NA)

@@ -88,14 +88,14 @@ DimPlot(wt_cerebrum_day5, reduction = 'wt.cerebrum.umap', group.by = 'manualAnno
         axis.text.y=element_blank(),
         axis.ticks.x=element_blank(),
         axis.ticks.y=element_blank())
- dev.off()
+dev.off()
 
- #Check if microglia align to microglia in allen data
- clust16_17 <- subset(wt_cerebrum_day5, seurat_clusters %in% c(16,17))
- clust16_17[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/galectin_3_day5_clust16_17_cells.csv', row.names = TRUE)
- clust16_17_map <- read_csv("~/Documents/ÖverbyLab/gal3_clust1617_allen_map/galectin_3_day5_clust16_17_cellscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1764153371391.csv", 
+#Check if microglia align to microglia in allen data
+clust16_17 <- subset(wt_cerebrum_day5, seurat_clusters %in% c(16,17))
+clust16_17[['RNA']]$counts %>% t() %>% write.csv(file = '~/Documents/ÖverbyLab/galectin_3_day5_clust16_17_cells.csv', row.names = TRUE)
+clust16_17_map <- read_csv("~/Documents/ÖverbyLab/gal3_clust1617_allen_map/galectin_3_day5_clust16_17_cellscsv_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1764153371391.csv", 
                           skip = 4)
- table(clust16_17_map$cluster_name)
+table(clust16_17_map$cluster_name)
 
  #Most of the above align to microglia + show no markers of macrophages that I see.. But no Tmem119 so how to best show that they are microglia
  
@@ -115,7 +115,7 @@ barDat %>% ggplot(aes(x = Treatment, y = prop, fill = manualAnnotation))+
   theme(text = element_text(size = 23))+
   scale_fill_manual(values = umap_color_list)+
   guides(fill=guide_legend(title="Cell Type"))
-ssdev.off()
+dev.off()
 
 #Make barplot based on timepoint
 barDat_time <- wt_cerebrum_day5[[]] %>% dplyr::group_by(Treatment, Timepoint, manualAnnotation) %>% 
@@ -333,10 +333,24 @@ DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnn
   ggtitle('Day 5 + pbs immune mock')
 dev.off()
 
+#Make gray umap to go above feature plots in figure
+png(file ='~/Documents/ÖverbyLab/scPlots/galectin3_proj/gray_wt_immune_mock_cerebrum_day5.png', 
+    width = 1100, height = 1200, res = 300)
+DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnnotation',
+        cols = rep('grey', 10))+
+  ggtitle('PBS')+
+  ylab('')+
+  xlab('')+
+  theme(axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        legend.position = 'none')
+dev.off()
+
 gene_marker_list <- c('Tspo', 'Lgals3', 'Adgre1', 'Cd68', 'Cd86', 'Ptprc', 'Aif1',
                       'Ccr1', 'Ccr2', 'Ccr3', 'Ccr5', 'Tmem119', 'Csf1r')
 
-plotList <- lapply(gene_marker_list, featurePlotLight, data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap')
+plotList <- lapply(gene_marker_list, featurePlotLight, data = immune_wt_mock, reduction_choice = 'wt.immune.mock.umap',
+                   background_fill_col = 'white')
 
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_mock_features_updated.pdf',
     width = 9, height = 7)
@@ -345,12 +359,24 @@ dev.off()
 
 #Save all feature plots individually too
 names(plotList) = gene_marker_list
+png = FALSE
+pdf = TRUE
 for(i in 1:length(plotList)){
-  file_path = paste('~/Documents/ÖverbyLab/scPlots/galectin3_proj/feature_plots/mock_', names(plotList[i]),
-                    '.pdf', sep = '')
-  pdf(file = file_path, width = 5, height = 5)
-  print(plotList[i])
-  dev.off()
+  if(png){
+    file_path = paste('~/Documents/ÖverbyLab/scPlots/galectin3_proj/feature_plots/mock_', names(plotList[i]),
+                      '.png', sep = '')
+    png(file = file_path, width = 1000, height = 750, res = 300)
+    print(plotList[i])
+    dev.off()
+  }
+
+  if(pdf){
+    file_path = paste('~/Documents/ÖverbyLab/scPlots/galectin3_proj/feature_plots/mock_', names(plotList[i]),
+                      '.pdf', sep = '')
+    pdf(file = file_path, width = 6, height = 5)
+    print(plotList[i])
+    dev.off()
+  }
 }
 
 #Infected now
@@ -364,6 +390,7 @@ DimPlot(wt_cerebrum_day5_infected, reduction = 'wt.cerebrum.infected.umap', labe
 #Missing immature neurons so need to remove their color from umap, hence newCols[-7]
 DimPlot(wt_cerebrum_day5_infected, reduction = 'wt.cerebrum.infected.umap', group.by = 'manualAnnotation',
         cols = newCols[-7])
+
 #How many macrophages clustering with microglia?
 table(subset(wt_cerebrum_day5_infected, seurat_clusters %in% c(5,7,14,12))$manualAnnotation)
 table(wt_cerebrum_day5_infected$manualAnnotation)
@@ -388,9 +415,24 @@ DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'm
         axis.ticks.y=element_blank())
 dev.off()
 
+png(file ='~/Documents/ÖverbyLab/scPlots/galectin3_proj/gray_wt_immune_infected_cerebrum_day5.png', 
+    width = 1100, height = 1200, res = 300)
+DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
+        cols = rep('grey', 10))+
+  ggtitle('')+
+  ylab('')+
+  xlab('')+
+  theme(axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        legend.position = 'none')
+dev.off()
+
+
+
+
 #Want gray versions of umaps to put above featureplots where we will just label main cell types
-pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/gray_immune_wt_infected_day5_umap.pdf',
-    width = 6, height = 6)
+png(file ='~/Documents/ÖverbyLab/scPlots/galectin3_proj/gray_immune_wt_infected_day5_umap.png', 
+    width = 1000, height = 750, res = 300)
 DimPlot(immune_wt_infected, reduction = 'wt.immune.infected.umap', group.by = 'manualAnnotation',
         cols = rep('gray', 5))+
   ggtitle('Immune WT Infected UMAP')+
@@ -456,7 +498,7 @@ clust11_markers_vsMac['Tmem119',]
 
 #Plot important markers
 plotList_infected <- lapply(gene_marker_list, featurePlotLight, data = immune_wt_infected, 
-                   reduction_choice = 'wt.immune.infected.umap')
+                   reduction_choice = 'wt.immune.infected.umap', background_fill_col = 'white')
 
 lapply(plotList_infected, FUN = function(x){
   #Make sure 6 is high enough scale for all plots
@@ -467,19 +509,29 @@ lapply(plotList_infected, FUN = function(x){
 pdf(file = '~/Documents/ÖverbyLab/scPlots/galectin3_proj/wt_immune_infected_features_day5.pdf',
     width = 9, height = 7)
 do.call(ggarrange, c(plotList_infected, common.legend = TRUE, legend = 'right'))
-
 dev.off()
 
 names(plotList_infected) = gene_marker_list
 
+png = TRUE
+pdf = FALSE
 for(i in 1:length(plotList)){
-  file_path = paste('~/Documents/ÖverbyLab/scPlots/galectin3_proj/feature_plots/infected_', names(plotList[i]),
-                    '.pdf', sep = '')
-  pdf(file = file_path, width = 5, height = 5)
-  print(plotList_infected[i])
-  dev.off()
+  if(png){
+    file_path = paste('~/Documents/ÖverbyLab/scPlots/galectin3_proj/feature_plots/infected_', names(plotList[i]),
+                      '.png', sep = '')
+    png(file = file_path, width = 1000, height = 750, res = 300)
+    print(plotList_infected[i])
+    dev.off()
+  }
+  
+  if(pdf){
+    file_path = paste('~/Documents/ÖverbyLab/scPlots/galectin3_proj/feature_plots/infected_', names(plotList[i]),
+                      '.pdf', sep = '')
+    pdf(file = file_path, width = 6, height = 5)
+    print(plotList_infected[i])
+    dev.off()
+  }
 }
-
 
 #Nonclustering mac group seems to fit in inflammatory monocyte signature from here https://www.nature.com/articles/s41467-021-21407-w
 #Ly6c2high, Ccr2high, and Tgfbilow but also probably in some microglia groups they mention, check further
@@ -786,4 +838,8 @@ plotList_apoptosis <- list(featurePlotLight(data = macrophages_wt_infected, gene
                            featurePlotLight(data = macrophages_wt_infected, gene = 'cuproptosis_score1', reduction = 'wt.infected.mac.umap',
                                             minLim = -0.4, maxLim = 1.1))
 do.call(ggarrange, c(plotList_apoptosis, common.legend = TRUE, legend = 'right'))
+
+#Look at cd45 and lgals3 crossover
+
+
 

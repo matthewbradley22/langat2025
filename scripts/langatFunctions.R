@@ -155,7 +155,8 @@ create_dot_plot <- function(dat, gene, main_title, facet = NULL, celltypes_to_pl
 
 
 #Function for plotting multiple featureplots together on one scale
-featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim = 0, maxLim = 5){
+featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim = 0, maxLim = 5,
+                             background_fill_col = '#F2F2F2'){
   dat = FeaturePlot(data, gene, reduction = reduction_choice)$data
   colnames(dat) = c('umap1', 'umap2', 'ident', 'expression')
   ggplot(dat, aes(x = umap1, y = umap2, color = expression))+
@@ -167,7 +168,7 @@ featurePlotLight <- function(gene, data, reduction_choice, scale = FALSE, minLim
           axis.text.y=element_blank(),
           axis.ticks.x=element_blank(),
           axis.ticks.y=element_blank(),
-          panel.background = element_rect(fill = '#F2F2F2', color = '#F2F2F2'))+
+          panel.background = element_rect(fill = background_fill_col, color = background_fill_col))+
     scale_color_gradient(low = 'lightgrey', high = 'blue', limits = c(minLim,maxLim))+
     ggtitle(gene)
 }

@@ -61,6 +61,7 @@ ggplot(cell_props_to_plot, aes(x = Var1, y = prop))+
   xlab('')+
   ylab('')
 dev.off()
+
 #Count of cells per day, split by treatment - get numbers too can be on graph
 cell_counts_to_plot <- table(wt_cerebrum$Timepoint, wt_cerebrum$Treatment) %>% 
   as.data.frame() 
@@ -1036,6 +1037,7 @@ hsv_gene_list <- read_csv("~/Documents/ÖverbyLab/for_anna_plots/hsv_gene_list.c
 #Lgals3 and f480
 wt_cerebrum_macrophages$Lgals3 = FetchData(wt_cerebrum_macrophages, vars = 'rna_Lgals3', layer = 'counts')
 wt_cerebrum_macrophages$Adgre1 = FetchData(wt_cerebrum_macrophages, vars = 'rna_Adgre1', layer = 'counts')
+wt_cerebrum_macrophages$cd45 = FetchData(wt_cerebrum_macrophages, vars = 'rna_Ptprc', layer = 'counts')
 table(wt_cerebrum_macrophages$Lgals3>0, wt_cerebrum_macrophages$Adgre1>0 )
 wt_cerebrum_macrophages[[]] <- wt_cerebrum_macrophages[[]] %>% mutate(Lgals_Adgre_both = 
                                                                         case_when(Lgals3 > 0 & Adgre1> 0 ~ 'Both',
@@ -1043,14 +1045,27 @@ wt_cerebrum_macrophages[[]] <- wt_cerebrum_macrophages[[]] %>% mutate(Lgals_Adgr
                                                                                   Lgals3 == 0 & Adgre1 > 0 ~ 'Adgre1',
                                                                                   Lgals3 == 0 & Adgre1 == 0 ~ 'Neither'))
 
+
+wt_cerebrum_macrophages[[]] <- wt_cerebrum_macrophages[[]] %>% mutate(Lgals_cd45_both = 
+                                                                        case_when(Lgals3 > 0 & cd45> 0 ~ 'Both',
+                                                                                  Lgals3 > 0 & cd45 == 0 ~ 'Lgals3',
+                                                                                  Lgals3 == 0 & cd45 > 0 ~ 'Cd45',
+                                                                                  Lgals3 == 0 & cd45 == 0 ~ 'Neither'))
+
 table(wt_cerebrum_macrophages$Lgals_Adgre_both, wt_cerebrum_macrophages$time_treatment) %>% 
   as.data.frame() %>% 
   dplyr::group_by(Var2) %>% 
   dplyr::mutate(percent = Freq / sum(Freq)) 
 
+table(wt_cerebrum_macrophages$Lgals_cd45_both, wt_cerebrum_macrophages$time_treatment) %>% 
+  as.data.frame() %>% 
+  dplyr::group_by(Var2) %>% 
+  dplyr::mutate(percent = Freq / sum(Freq)) 
 
+#Now just infected macrophages
 macrophages_wt_infected$Lgals3 = FetchData(macrophages_wt_infected, vars = 'rna_Lgals3', layer = 'counts')
 macrophages_wt_infected$Adgre1 = FetchData(macrophages_wt_infected, vars = 'rna_Adgre1', layer = 'counts')
+macrophages_wt_infected$cd45 = FetchData(macrophages_wt_infected, vars = 'rna_Ptprc', layer = 'counts')
 table(macrophages_wt_infected$Lgals3>0, macrophages_wt_infected$Adgre1>0 )
 macrophages_wt_infected[[]] <- macrophages_wt_infected[[]] %>% mutate(Lgals_Adgre_both = 
                                                                         case_when(Lgals3 > 0 & Adgre1> 0 ~ 'Both',
@@ -1058,11 +1073,24 @@ macrophages_wt_infected[[]] <- macrophages_wt_infected[[]] %>% mutate(Lgals_Adgr
                                                                                   Lgals3 == 0 & Adgre1 > 0 ~ 'Adgre1',
                                                                                   Lgals3 == 0 & Adgre1 == 0 ~ 'Neither'))
 
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/lgals_f480_umap.pdf', width = 5, height = 5)
 DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Lgals_Adgre_both',
         label.size = 6, cols = c('#1CA9FB', '#FC5C5C', '#65BD40', '#BEBEBE'))+
   ggtitle('WT infected Macrophages')+
   xlab('')+
   ylab('')
+dev.off()
 
+macrophages_wt_infected[[]] <- macrophages_wt_infected[[]] %>% mutate(Lgals_cd45_both = 
+                                                                        case_when(Lgals3 > 0 & cd45 > 0 ~ 'Both',
+                                                                                  Lgals3 > 0 & cd45 == 0 ~ 'Lgals3',
+                                                                                  Lgals3 == 0 & cd45 > 0 ~ 'cd45',
+                                                                                  Lgals3 == 0 & cd45 == 0 ~ 'Neither'))
 
-
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/lgals_cd45_umap.pdf', width = 5, height = 5)
+DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FALSE, group.by = 'Lgals_cd45_both',
+        label.size = 6, cols = c('#1CA9FB', '#FC5C5C', '#65BD40', '#BEBEBE'))+
+  ggtitle('WT infected Macrophages')+
+  xlab('')+
+  ylab('')
+dev.off()
