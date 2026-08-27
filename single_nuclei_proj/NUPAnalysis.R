@@ -510,4 +510,27 @@ DotPlot(sn_integrated_dat_wt, features = c('Ccl2',  'Ccl3', 'Ccl5', 'Ccl7', 'Ccl
   xlab('')
 dev.off()
 
+#Possible to further separate excitatory neurons?
+ex_neurons <- subset(sn_integrated_dat, manualAnnotation == 'Ex Neurons')
+
+ex_neurons <- prepSeuratObj(ex_neurons)
+ElbowPlot(ex_neurons, ndims = 40)
+ex_neurons <- prepUmapSeuratObj(ex_neurons, nDims = 25, reductionName = 'ex.neuron.umap', resolution_value = 0.6)
+
+DimPlot(ex_neurons, reduction = 'ex.neuron.umap')
+
+#glutamate genes
+FeaturePlot(ex_neurons, reduction = 'ex.neuron.umap', features = c('Slc17a6', 'Slc17a7', 'Slc17a8'))
+
+#Acetylcholine genes
+FeaturePlot(ex_neurons, reduction = 'ex.neuron.umap', features = c('Slc18a3', 'Chat'))
+
+#Norepinephrine genes
+FeaturePlot(ex_neurons, reduction = 'ex.neuron.umap', features = c('Dbh', 'Th', 'Slc6a2'))
+
+FeaturePlot(ex_neurons, reduction = 'ex.neuron.umap', features = c('Pnmt'))
+
+#Serotonin genes
+FeaturePlot(ex_neurons, reduction = 'ex.neuron.umap', features = c('Tph1', 'Tph2', 'Slc6a4', 'Slc18a2'))
+
 

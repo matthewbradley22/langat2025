@@ -932,6 +932,29 @@ dunn_test(macrophages_wt_infected[[]], M1_signature_UCell ~ Timepoint, p.adjust.
 FeaturePlot(macrophages_wt_infected, features = 'M1_signature_UCell', reduction = 'wt.infected.mac.umap')
 FeaturePlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', reduction = 'wt.infected.mac.umap')
 
+#Dotplot for classical activation
+#Get gene order
+gene_order_plot <- DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$M1_signature, group.by = 'Timepoint', scale = FALSE)$data %>% 
+  dplyr::filter(id != 'Day 4') %>% 
+  mutate(time_change = avg.exp.scaled - avg.exp.scaled[id == 'Day 3']) %>% 
+  dplyr::arrange(desc(time_change)) %>% 
+  dplyr::filter(id == 'Day 5') %>% 
+  dplyr::pull(features.plot)
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M1_mac_dotplot.pdf", width = 6, height = 7)
+DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$M1_signature, group.by = 'Timepoint', scale = FALSE)$data %>% 
+  dplyr::mutate(features.plot = factor(features.plot, levels = rev(gene_order_plot))) %>% 
+  ggplot(aes(x = id, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Pro-inflammatory')+
+  ylab('')+
+  xlab('')
+dev.off()
+
+#M2 score
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M2_mac_score.pdf", width = 7, height = 6)
 VlnPlot(macrophages_wt_infected, features = 'Il4_alt_signature_UCell', group.by = 'Timepoint', pt.size = 0, cols = c("#292270","#166DF0", "#6DC3F8"))+
   theme(legend.position = 'none')+
@@ -944,6 +967,28 @@ dev.off()
 #Statistically compare
 kruskal.test(Il4_alt_signature_UCell ~ Timepoint, data = macrophages_wt_infected[[]])
 dunn_test(macrophages_wt_infected[[]], Il4_alt_signature_UCell ~ Timepoint, p.adjust.method = "holm", detailed = FALSE)
+
+#Dotplot for anti inflammatory genes
+#Get gene order
+gene_order_plot_anti <- DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$Il4_alt_signature, group.by = 'Timepoint', scale = FALSE)$data %>% 
+  dplyr::filter(id != 'Day 4') %>% 
+  mutate(time_change = avg.exp.scaled - avg.exp.scaled[id == 'Day 3']) %>% 
+  dplyr::arrange(desc(time_change)) %>% 
+  dplyr::filter(id == 'Day 5') %>% 
+  dplyr::pull(features.plot)
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/Anti_inflammatory_mac_dotplot.pdf", width = 6, height = 6)
+DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$Il4_alt_signature, group.by = 'Timepoint', scale = FALSE)$data %>% 
+  dplyr::mutate(features.plot = factor(features.plot, levels = rev(gene_order_plot_anti))) %>% 
+  ggplot(aes(x = id, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Anti-inflammatory')+
+  ylab('')+
+  xlab('')
+dev.off()
 
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/M2C_mac_score.pdf", width = 7, height = 6)
@@ -966,6 +1011,28 @@ VlnPlot(macrophages_wt_infected, features = 'mhc2_sig_UCell', group.by = 'Timepo
                fill = 'white')+
   ylim(c(-0.01, 0.8))+
   ggtitle('Mh2c Score')
+
+#Dotplot for m2c genes
+#Get gene order
+gene_order_plot_m2c <- DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$Il10_M2c_signature, group.by = 'Timepoint', scale = FALSE)$data %>% 
+  dplyr::filter(id != 'Day 4') %>% 
+  mutate(time_change = avg.exp.scaled - avg.exp.scaled[id == 'Day 3']) %>% 
+  dplyr::arrange(desc(time_change)) %>% 
+  dplyr::filter(id == 'Day 5') %>% 
+  dplyr::pull(features.plot)
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/m2c_mac_dotplot.pdf", width = 6, height = 6)
+DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$Il10_M2c_signature, group.by = 'Timepoint', scale = FALSE)$data %>% 
+  dplyr::mutate(features.plot = factor(features.plot, levels = rev(gene_order_plot_m2c))) %>% 
+  ggplot(aes(x = id, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('M2c tissue repair')+
+  ylab('')+
+  xlab('')
+dev.off()
 
 #check m(ic) sig from paper
 DotPlot(macrophages_wt_infected, features = c('Il10', 'Il6', 'Nos2', 'Ccl1', 'Ccl20', 'Cxcl3', 'Cxcl13'), group.by = 'Timepoint')

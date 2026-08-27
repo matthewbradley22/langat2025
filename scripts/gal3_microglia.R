@@ -10,6 +10,7 @@ library(irGSEA)
 library(UCell)
 library(msigdbr)
 library(rstatix)
+library(forcats)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -36,7 +37,7 @@ wt_cerebrum <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Or
 table(wt_cerebrum$manualAnnotation, wt_cerebrum$Genotype, wt_cerebrum$Treatment, wt_cerebrum$Timepoint)
 
 #Make table of counts for all celltypes
-wt_cerebrum[[]] %>% dplyr::group_by(Genotype, Treatment, Timepoint, manualAnnotation) %>% 
+wt_cerebrum[[]] %>% dplyr::group_by(Genotype, Timepoint, Treatment, manualAnnotation) %>% 
   dplyr::summarise(cell_count = n()) %>% 
   dplyr::filter(manualAnnotation != 'unknown') %>% 
   as.data.frame() %>% 
@@ -109,7 +110,7 @@ dev.off()
 wt_cerebrum_microglia$time_by_treatment <- paste(wt_cerebrum_microglia$Treatment, wt_cerebrum_microglia$Timepoint)
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/microglia_time_umap.pdf', width = 5, height = 5)
 DimPlot(wt_cerebrum_microglia, reduction = 'micro.umap', label = FALSE, group.by = 'time_by_treatment',
-        label.size = 6, cols = c("#D6644B", "#8a0000",  "#6DC3F8", "#166DF0","#292270"))+
+        label.size = 6, cols = c('#D6D6D6', '#808080', "#6DC3F8", "#166DF0","#292270"))+ #Old colors "#D6644B", "#8a0000",
   ggtitle('Microglia')+
   theme(axis.text = element_blank(),
         axis.ticks = element_blank())+
@@ -282,9 +283,9 @@ DimPlot(microglia_mock, reduction = 'micro.mock.umap', label = FALSE, group.by =
 dev.off()
 
 #Look at markers separating day 3 and day 5 mock microglia
-mock_markers <- FindAllMarkers(microglia_mock, group.by = 'Timepoint', test.use = 'MAST')
-mock_markers_3 <- dplyr::filter(mock_markers, p_val_adj < 0.01 & avg_log2FC > 1 & cluster == 'Day 3')
-mock_markers_5 <- dplyr::filter(mock_markers, p_val_adj < 0.01 & avg_log2FC > 1 & cluster == 'Day 5')
+mock_markers_time <- FindAllMarkers(microglia_mock, group.by = 'Timepoint', test.use = 'MAST')
+mock_markers_3 <- dplyr::filter(mock_markers_time, p_val_adj < 0.01 & avg_log2FC > 1 & cluster == 'Day 3')
+mock_markers_5 <- dplyr::filter(mock_markers_time, p_val_adj < 0.01 & avg_log2FC > 1 & cluster == 'Day 5')
 
 #No sig pathways for 3 dpi
 mock_comp_paths <- gprofiler2::gost(query = mock_markers_5$gene, organism = 'mmusculus', evcodes = TRUE,
@@ -481,6 +482,52 @@ ggplot(head(clust3_paths$result, n = 8), aes(x = -log10(p_value), y = reorder(te
   theme_classic()+
   theme(text = element_text(size = 15))+
   ylab('')
+
+#- - - - - - - - - - - - - - - - - - - -
+#### DEGs between mock clusters #####
+#- - - - - - - - - - - - - - - - - - - -
+microglia_mock <- subset(wt_cerebrum_microglia, Treatment == 'PBS')
+
+mock_markers <- FindAllMarkers(microglia_mock, group.by = 'custom_clusters', test.use = 'MAST')
+mock_markers_sig <- dplyr::filter(mock_markers, avg_log2FC > 1 & p_val_adj < 0.01 & cluster %in% c('0','1','2'))
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/mock_cluster_deg_counts.pdf', width = 6, height = 5)
+mock_markers_sig %>% dplyr::group_by(cluster) %>% 
+  dplyr::summarise(deg_count = n()) %>% 
+  dplyr::mutate(cluster = factor(cluster, levels = c('0', '1', '2'))) %>% 
+  ggplot(aes(x = cluster, y = deg_count))+
+  geom_bar(stat = 'identity')+
+  theme_classic()+
+  ggtitle('Mock cluster DEG counts')
+dev.off()
+
+mock_pathways <- lapply(c('0', '1', '2'), FUN = function(x){
+  
+  clust_dat <- dplyr::filter(mock_markers_sig, cluster == x)$gene
+  
+  gprofiler2::gost(clust_dat, organism = 'mmusculus', evcodes = TRUE,
+                   sources = c('GO:BP', 'KEGG', 'GO:CC', 'GO:MP'))
+})
+
+clust_0_paths <- mock_pathways[[1]]$result[c('p_value', 'term_name')] %>% dplyr::mutate(cluster = '0')
+clust_2_paths <- mock_pathways[[3]]$result[c('p_value', 'term_name')] %>% dplyr::mutate(cluster = '2')
+
+mock_clust_paths <- rbind(clust_0_paths, clust_2_paths)
+
+term_levels = rev(unique(mock_clust_paths$term_name))
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/mock_vs_mock_pathways.pdf', width = 6, height = 5)
+mock_clust_paths %>% dplyr::group_by(cluster) %>% 
+  dplyr::slice_head(n = 5) %>% 
+  dplyr::mutate(term_name = factor(term_name, levels = term_levels)) %>% 
+  ggplot(aes(x = -log10(p_value), y = term_name, fill = cluster))+
+  geom_bar(stat = 'identity',position = 'dodge')+
+  theme_classic()+
+  ylab('')+
+  xlab('')+
+  ggtitle('Mock cluster pathways')+
+  scale_fill_manual(values = c('#6B9973', '#EDCF53'))
+dev.off()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #### DEGs between each infected cluster and mock #####
@@ -850,12 +897,26 @@ for(i in 1:length(infected_vs_all_path_list)){
   print(path_bar)
 }
 
-infected_vs_all_path_list$cluster_1
-infected_vs_all_path_list$cluster_2
-infected_vs_all_path_list$cluster_0
-infected_vs_all_path_list$cluster_4
-infected_vs_all_path_list$cluster_3
-infected_vs_all_path_list$cluster_5
+#Look at mock clusters
+clust0_paths <- infected_vs_all_path_list$cluster_0[c('p_value', 'term_name')] %>% dplyr::mutate(cluster = '0')
+clust1_paths <- infected_vs_all_path_list$cluster_1[c('p_value', 'term_name')] %>% dplyr::mutate(cluster = '1')
+clust2_paths <- infected_vs_all_path_list$cluster_2[c('p_value', 'term_name')] %>% dplyr::mutate(cluster = '2')
+
+mock_cluster_paths <- rbind(clust0_paths, clust1_paths, clust2_paths)
+mock_cluster_paths$term_name = factor(mock_cluster_paths$term_name, levels = rev(unique(mock_cluster_paths$term_name)))
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/mock_cluster_pathways.pdf', height = 5, width = 6)
+mock_cluster_paths %>% dplyr::group_by(cluster) %>% 
+  dplyr::slice_head(n = 7) %>% 
+  mutate(reord = as.numeric(p_value) + as.numeric(cluster),
+         term_name = fct_reorder(term_name, reord, .desc = F)) %>% 
+  ggplot(aes(x = -log10(p_value), y = reorder(term_name, desc(reord)), fill = cluster))+
+  geom_col(position = 'dodge')+
+  theme_classic()+
+  scale_fill_manual(values =  c('#6B9973', '#A4CE05', '#EDCF53'))+
+  ylab('')+
+  geom_vline(xintercept = -log10(0.05), linetype = 'dashed')
+dev.off()
 
 # - - - - - - - - - - - - 
 #### Top deg heatmap #### 
@@ -954,6 +1015,16 @@ dev.off()
 
 #Neuro protection
 plotList_np <- lapply(neuro_protect, featurePlotLight, data = wt_cerebrum_microglia, reduction_choice = 'micro.umap', maxLim = 4.5)
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/neuro_protection_dotplot.pdf', height = 5, width = 7)
+DotPlot(wt_cerebrum_microglia, features = neuro_protect, group.by = 'custom_clusters', scale = FALSE)$data %>% 
+  ggplot(aes(x = id, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('Neuroprotection genes')
+dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/neuro_protection_genes.pdf', height = 5, width = 7)
 do.call(ggarrange, c(plotList_np, common.legend = TRUE, legend = 'right'))
@@ -1257,23 +1328,37 @@ DotPlot(wt_cerebrum_microglia, features =c('Il1b', 'Tnf', 'Ccl2'), group.by = 'i
 lps_markers <- c('Ms4a6c', 'Msr1', 'Igsf6', 'Ms4a6b', 'Ms4a6d','Srgn', 'Ccl12',
                  'Slfn2', 'D17H6S56E-5','Gpr84','Saa3', 'Ctsc','Pilra', 'Ifi204',
                  'Nfkbia', 'mt-Rnr1','Ifitm3', 'Rps2','AW112010', 'C3ar1', 'Cpd', 'Cd52')
-lps_dot <- DotPlot(wt_cerebrum_microglia, features = lps_markers, group.by = 'seurat_clusters', scale = FALSE)$data
+lps_dot <- DotPlot(wt_cerebrum_microglia, features = lps_markers, group.by = 'custom_clusters', scale = FALSE)$data
 #lps_dot$id = factor(lps_dot$id, levels = c())
 
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inflammatory_dotplot_new.pdf', height = 5, width = 7)
 ggplot(lps_dot, aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   theme_classic()+
   scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
                        values = c(0, 0.3, 0.6, 1))+
   ggtitle('IAM (inflammatory markers)')
+dev.off()
 
 wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
                                               features=list('inflammatory_score' = lps_markers), maxRank = 1200, name = NULL)
 
-pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inflammatory_score_violin_new.pdf', height = 5, width = 7)
-VlnPlot(object = wt_cerebrum_microglia, features = 'inflammatory_score', group.by = 'custom_clusters', pt.size = 0)
-dev.off()
+#pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inflammatory_score_violin_new.pdf', height = 5, width = 7)
+iam_vln_dot <- VlnPlot(object = wt_cerebrum_microglia, features = 'inflammatory_score', group.by = 'custom_clusters', pt.size = 0)$data
+#dev.off()
 
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/inflammatory_score_violin_new.pdf', height = 5, width = 7)
+ggplot(iam_vln_dot, aes(x = ident, y = inflammatory_score))+
+  geom_violin(aes(fill = ident), scale = 'width')+
+  geom_boxplot(width=0.2, color="black", alpha = 0, outlier.shape = NA)+
+  theme_classic()+
+  ggtitle('inflammatory score')+ 
+  theme(plot.title = element_text(size = 15, face = "bold"))+
+  scale_fill_manual(values =  c('#6B9973', '#A4CE05', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
+  ylim(-0.01, 0.95)+
+  xlab('')+
+  ylab('')
+dev.off()
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 #### Microglia groups from https://www.nature.com/articles/s41586-019-0924-x ####
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1371,8 +1456,8 @@ FeaturePlot(wt_cerebrum_microglia, features = 'Adgre1', reduction = 'micro.umap'
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/f480_dotplot.pdf', width = 6, height = 5)
-DotPlot(wt_cerebrum_microglia, features = 'Adgre1', group.by = 'clusters_with_mock', scale = FALSE)$data %>% 
-  dplyr::mutate(id = factor(id, levels = c('mock', '3', '4', '5', '6'))) %>% 
+DotPlot(wt_cerebrum_microglia, features = 'Adgre1', group.by = 'custom_clusters', scale = FALSE)$data %>% 
+  dplyr::mutate(id = factor(id, levels = c('0', '1', '2','3', '4', '5'))) %>% 
   ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   theme_classic()+
@@ -1465,8 +1550,21 @@ dev.off()
 wt_cerebrum_microglia <- AddModuleScore_UCell(wt_cerebrum_microglia, 
                                               features=list('vam' = vam_genes), maxRank = 1200, name = NULL)
 
+#pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/vam_score_violin_new.pdf', height = 5, width = 7)
+vam_vln_dat <- VlnPlot(object = wt_cerebrum_microglia, features = 'vam', group.by = 'custom_clusters', pt.size = 0)$data
+#dev.off()
+
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/vam_score_violin_new.pdf', height = 5, width = 7)
-VlnPlot(object = wt_cerebrum_microglia, features = 'vam', group.by = 'custom_clusters', pt.size = 0)
+ggplot(vam_vln_dat, aes(x = ident, y = vam))+
+  geom_violin(aes(fill = ident), scale = 'width')+
+  geom_boxplot(width=0.2, color="black", alpha = 0, outlier.shape = NA)+
+  theme_classic()+
+  ggtitle('VAM')+ 
+  theme(plot.title = element_text(size = 15, face = "bold"))+
+  scale_fill_manual(values =  c('#6B9973', '#A4CE05', '#EDCF53', '#F78E93', '#CE3B42', '#8A0100'))+
+  ylim(-0.01, 0.95)+
+  xlab('')+
+  ylab('')
 dev.off()
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
