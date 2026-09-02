@@ -279,16 +279,19 @@ day3_ips_dot_dat <- cbind(day3_ips_gsea@result, data.frame('group' = 'ips_3'))
 day5_ips_dot_dat <- cbind(day5_ips_gsea@result, data.frame('group' = 'ips_5'))
 
 combined_dot_dat <- rbind(day3_wt_dot_dat, day5_wt_dot_dat, day3_ips_dot_dat, day5_ips_dot_dat)
-combined_dot_dat$group = factor(combined_dot_dat$group, levels = c('wt_3', 'wt_5', 'ips_3', 'ips_5'))
+combined_dot_dat$group = factor(combined_dot_dat$group, levels = rev(c('wt_3', 'wt_5', 'ips_3', 'ips_5')))
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/combined_gsea_dotplot.pdf', width = 8, height = 5)
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/combined_gsea_dotplot.pdf', width = 8, height = 7)
 combined_dot_dat[combined_dot_dat$Description %in% pathways_to_plot,] %>% 
   ggplot(aes(x = group, y = Description, fill = NES, size = -log10(p.adjust)))+
   geom_point(pch = 21)+
   theme_classic()+
   scale_fill_gradientn(colours = c("#D9530B","#F57456","#FFD1A6","white"), 
                        values = c(1.0,0.6,0.4,0))+
-  theme(text = element_text(size = 14))
+  coord_flip()+
+  theme(text = element_text(size = 14),
+        axis.text.x = element_text(angle = 75, hjust = 1))+
+  scale_size(range = c(0, 8))
 dev.off()
 
 #GSEA line plot
