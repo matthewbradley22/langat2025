@@ -299,4 +299,64 @@ DimPlot(infected_astrocytes, reduction = 'inf_astro_umap', group.by = 'Organ') +
   xlab('')+
   ylab('')
 
+#Look at some alternative pathways genes
+all_astros <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV')
 
+all_astros <- prepSeuratObj(all_astros, use_all_genes = FALSE)
+ElbowPlot(all_astros, ndims = 40)
+all_astros <- prepUmapSeuratObj(all_astros, nDims = 20, reductionName = 'astrocytes_umap', resolution_value = 0.8)
+
+DimPlot(all_astros, reduction = 'astrocytes_umap')
+
+all_astros_inf <- subset(all_astros, Treatment == 'rChLGTV')
+all_astros_inf$time_geno <- paste(all_astros_inf$Timepoint, all_astros_inf$Genotype, sep = '_')
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/Myd88_dotplot.pdf', width = 6, height = 3)
+DotPlot(all_astros_inf, features = c('Myd88'), scale = FALSE, group.by = 'time_geno')$data %>% 
+  tidyr::separate(id, into = c('time', 'geno'), sep = '_') %>% 
+  dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
+  ggplot(aes(x = time, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  facet_wrap(~geno)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                        values = c(1.0,0.7,0.4,0))+
+  theme_classic()+
+  ylab('')+
+  xlab('')+
+  theme(text = element_text(size = 15))
+dev.off()
+
+all_astros_inf_ips <- subset(all_astros_inf, Genotype == 'IPS1')
+all_astros_inf_wt <- subset(all_astros_inf, Genotype == 'WT')
+day5_ips_markers <- FindMarkers(all_astros_inf_ips, group.by = 'Timepoint', ident.1 = 'Day 5',  ident.2 = 'Day 3', test.use = 'MAST')
+day5_wt_markers <- FindMarkers(all_astros_inf_wt, group.by = 'Timepoint', ident.1 = 'Day 5',  ident.2 = 'Day 3', test.use = 'MAST')
+
+day5_ips_markers[c('Myd88', 'Ticam1'),]
+day5_wt_markers[c('Myd88', 'Ticam1'),]
+
+#Pseudobulk comparison
+all_astros$time_treatment_geno <- paste(all_astros$Timepoint, all_astros$Treatment, all_astros$Genotype, sep = '_')
+
+pb <- AggregateExpression(all_astros, assays = "RNA",
+                          group.by = c("orig.ident", 'time_treatment_geno'),
+                          return.seurat = TRUE)
+
+pb_counts <- pb[["RNA"]]$counts 
+pb_meta <- pb@meta.data
+
+#Create deseq2 object
+dds_astro <- DESeqDataSetFromMatrix(countData = pb_counts,
+                              colData = pb_meta,
+                              design = ~ time_treatment_geno)
+
+dds_astro$time_treatment_geno<-relevel(dds_astro$time_treatment_geno, ref="Day 3-rChLGTV-IPS1")
+
+dds_astro <- DESeq(dds_astro)
+
+resultsNames(dds_astro)
+
+day_5_3 <- results(dds_astro, name = 'time_treatment_geno_Day.5.rChLGTV.IPS1_vs_Day.3.rChLGTV.IPS1') %>% as.data.frame()
+day_5_3_wt <- results(dds_astro, contrast=c("time_treatment_geno", "Day 3-rChLGTV-WT", "Day 5-rChLGTV-WT")) %>% as.data.frame()
+
+day_5_3[c('Myd88', 'Trif'),]
+day_5_3_wt[c('Myd88', 'Trif'),]

@@ -73,6 +73,7 @@ wt_cerebrum <- subset(
   Treatment %in% c("PBS", "rLGTV") &
     Organ == "Cerebrum" & Genotype == "WT"
 )
+
 table(
   wt_cerebrum$manualAnnotation,
   wt_cerebrum$Genotype,
@@ -2454,7 +2455,6 @@ infected_up_degs <- lapply(
     cluster_degs_vs_0 <- FindMarkers(
       wt_cerebrum_microglia,
       group.by = "custom_clusters",
-      only.pos = TRUE,
       test.use = "MAST",
       ident.1 = x,
       ident.2 = 0
@@ -2462,7 +2462,6 @@ infected_up_degs <- lapply(
     cluster_degs_vs_1 <- FindMarkers(
       wt_cerebrum_microglia,
       group.by = "custom_clusters",
-      only.pos = TRUE,
       test.use = "MAST",
       ident.1 = x,
       ident.2 = 1
@@ -2470,7 +2469,6 @@ infected_up_degs <- lapply(
     cluster_degs_vs_2 <- FindMarkers(
       wt_cerebrum_microglia,
       group.by = "custom_clusters",
-      only.pos = TRUE,
       test.use = "MAST",
       ident.1 = x,
       ident.2 = 2
@@ -2481,7 +2479,20 @@ infected_up_degs <- lapply(
   }
 )
 
-infected_up_degs
+names(infected_up_degs[[1]]) = c('3_0', '3_1', '3_2')
+names(infected_up_degs[[2]])= c('4_0', '4_1', '4_2')
+names(infected_up_degs[[3]])= c('5_0', '5_1', '5_2')
+
+infected_up_degs_list <- unlist(infected_up_degs, recursive = FALSE)
+
+#Keep all genes from pathways
+gene_lists_combined <- c(surveilance, phagocytosis, inflammation, cyto_production,
+                         antigen_pres, ifn_sig, proliferation)
+
+relevant_gene_list <- lapply(infected_up_degs_list, FUN = function(x){
+  x[unique(gene_lists_combined),] %>% dplyr::filter(!is.na(p_val)) %>% 
+    dplyr::arrange(p_val_adj)
+})
 
 # Either need to combine mock into one group or compare all infected to all mock?
 sig_degs <- dplyr::filter(cluster_degs, p_val_adj < 0.01 &

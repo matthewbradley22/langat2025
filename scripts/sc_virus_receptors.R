@@ -146,6 +146,39 @@ DotPlot(ips_mock_cp, features = receptors, group.by = 'seurat_clusters', scale =
   ylab('')+
   scale_size(range = c(0,8))
 
+#IPS astro subcluster
+ips_mock_astro <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Genotype == 'IPS1')
+
+ips_mock_astro <- prepSeuratObj(ips_mock_astro)
+ElbowPlot(ips_mock_astro, ndims = 40)
+ips_mock_astro <- prepUmapSeuratObj(ips_mock_astro, nDims = 15, reductionName = 'astro.umap', resolution_value = 0.6)
+
+DimPlot(ips_mock_astro, reduction = 'astro.umap', label = FALSE, label.size = 6)
+
+DotPlot(ips_mock_astro, features = receptors, group.by = 'seurat_clusters', scale = FALSE)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                        values = c(1.0,0.7,0.4,0))+
+  xlab('')+
+  ylab('')+
+  scale_size(range = c(0,8))
+
+#Immature neurons
+im_neurons <- subset(ParseSeuratObj_int, manualAnnotation == 'Immature Neurons')
+
+im_neurons <- prepSeuratObj(im_neurons)
+ElbowPlot(im_neurons, ndims = 40)
+im_neurons <- prepUmapSeuratObj(im_neurons, nDims = 15, reductionName = 'im_neu.umap', resolution_value = 0.6)
+
+DotPlot(im_neurons, features = receptors, group.by = 'seurat_clusters', scale = FALSE)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                        values = c(1.0,0.7,0.4,0))+
+  xlab('')+
+  ylab('')+
+  scale_size(range = c(0,8))
+
+
 
 
 

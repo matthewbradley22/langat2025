@@ -146,7 +146,7 @@ ips_p4 <- custom_net_signal_scatter(ips_cells_four_cc, main = 'IPS chLGTV Day 4'
 dev.off()
 
 ips_cells_five_cc <- prep_cellchat_obj(ips_cells_five)
-ips_p5 <- custom_net_signal_scatter(wt_cells_five_cc, main = 'IPS chLGTV Day 5', xlimit = 33, ylimit = 38)
+ips_p5 <- custom_net_signal_scatter(ips_cells_five_cc, main = 'IPS chLGTV Day 5', xlimit = 33, ylimit = 38)
 
 ggpubr::ggarrange(ips_p3, ips_p4, ips_p5, nrow = 1, ncol = 3)
 ggpubr::ggarrange(wt_p3, ips_p3, nrow = 1, ncol = 2)
@@ -345,22 +345,25 @@ path_heatmap_comp <- function(cc_dat1, cc_dat2, pathway, plot_path){
   wrap_plots(list(p1, p2), ncol = 2)
 }
 
-#Cannot get legends to stay seperate if plot two together (looks like an issue in cellchat docs to me as well)
-#So just plotting seperate for now
-pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/comp_heatmap_test.pdf', width = 10, height = 6)
-path_heatmap_comp(wt_cells_three_cc, ips_cells_three_cc, pathway = 'CCL')
-dev.off()
-#Break pathway into specific lr pairs
-netAnalysis_contribution(cellchat, signaling = pathways.show)
-
-# show all the interactions sending from astrocytes to neurons
-pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_to_neuron.pdf", width = 20, height =16)
-netVisual_chord_gene(mock_wt_cells_cc, sources.use = 1, targets.use = c(11), lab.cex = 1,legend.pos.y = 30)
-dev.off()
-
-pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_astro_to_neuron.pdf", width = 20, height =16)
-netVisual_chord_gene(wt_cells_three_cc, sources.use = 1, targets.use = c(11), lab.cex = 1,legend.pos.y = 30)
-dev.off()
+if(FALSE){
+  #Cannot get legends to stay seperate if plot two together (looks like an issue in cellchat docs to me as well)
+  #So just plotting seperate for now
+  pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/comp_heatmap_test.pdf', width = 10, height = 6)
+  path_heatmap_comp(wt_cells_three_cc, ips_cells_three_cc, pathway = 'CCL')
+  dev.off()
+  #Break pathway into specific lr pairs
+  netAnalysis_contribution(cellchat, signaling = pathways.show)
+  
+  # show all the interactions sending from astrocytes to neurons
+  pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/mock_astro_to_neuron.pdf", width = 20, height =16)
+  netVisual_chord_gene(mock_wt_cells_cc, sources.use = 1, targets.use = c(11), lab.cex = 1,legend.pos.y = 30)
+  dev.off()
+  
+  pdf(file ="~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_astro_to_neuron.pdf", width = 20, height =16)
+  netVisual_chord_gene(wt_cells_three_cc, sources.use = 1, targets.use = c(11), lab.cex = 1,legend.pos.y = 30)
+  dev.off()
+  
+}
 
 #Look at pathway centrality
 netAnalysis_signalingRole_network(wt_cells_three_cc, signaling = 'Glutamate', width = 8, height = 2.5, font.size = 10)
@@ -439,6 +442,8 @@ netVisual_diffInteraction(cellchat_five_merged, weight.scale = T)
 netVisual_heatmap(cellchat_five_merged)
 
 #Identifying signalling changes of specific celltypes between datasets
+netAnalysis_signalingChanges_scatter(cellchat_three_merged, idents.use = "Astrocytes")
+netAnalysis_signalingChanges_scatter(cellchat_four_merged, idents.use = "Astrocytes")
 netAnalysis_signalingChanges_scatter(cellchat_five_merged, idents.use = "Astrocytes")
 
 ###### Differential look at signalling networks ###### 
@@ -532,9 +537,11 @@ netVisual_diffInteraction(cellchat_ips_3_merged, weight.scale = T, measure = 'co
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_astro_source.pdf', width = 5, height = 5)
-netVisual_diffInteraction(cellchat_ips_4_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
+netVisual_diffInteraction(cellchat_ips_4_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
 dev.off()
 
+netVisual_diffInteraction(cellchat_ips_5_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
+                          
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_3_vs_mock_signal_changes.pdf', width = 10, height = 8)
 netAnalysis_signalingChanges_scatter(cellchat_ips_3_merged, idents.use = "Astrocytes", label.size = 9)+
   theme(text = element_text(size = 24))+
