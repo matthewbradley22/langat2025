@@ -498,17 +498,21 @@ netVisual_diffInteraction(cellchat_wt_3_merged, weight.scale = T, measure = 'cou
 dev.off()
 
 pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_4_vs_mock_astro_source.pdf', width = 5, height = 5)
-netVisual_diffInteraction(cellchat_wt_4_merged, weight.scale = T, measure = 'count', sources.use = 'Astrocytes')
+netVisual_diffInteraction(cellchat_wt_4_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_3_vs_mock_signal_changes.pdf', width = 10, height = 8)
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_5_vs_mock_astro_source.pdf', width = 5, height = 5)
+netVisual_diffInteraction(cellchat_wt_5_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_3_vs_mock_signal_changes.pdf', width = 9, height = 8)
 netAnalysis_signalingChanges_scatter(cellchat_wt_3_merged, idents.use = "Astrocytes", label.size = 9)+
   theme(text = element_text(size = 24))+
   xlim(c(-0.4, 3.5))+
   ylim(c(-0.4, 3))
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_5_vs_mock_signal_changes.pdf', width = 10, height = 8)
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/wt_5_vs_mock_signal_changes.pdf', width = 9, height = 8)
 netAnalysis_signalingChanges_scatter(cellchat_wt_5_merged, idents.use = "Astrocytes", label.size = 9)+
   theme(text = element_text(size = 24))+
   xlim(c(-0.4, 3.5))+
@@ -540,10 +544,21 @@ pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_4_vs_mock_astro_source.pd
 netVisual_diffInteraction(cellchat_ips_4_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
 dev.off()
 
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_5_vs_mock_astro_source.pdf', width = 5, height = 5)
+netVisual_diffInteraction(cellchat_ips_5_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
+dev.off()
+
 netVisual_diffInteraction(cellchat_ips_5_merged, weight.scale = T, measure = 'count', targets.use = 'Astrocytes')
                           
-pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_3_vs_mock_signal_changes.pdf', width = 10, height = 8)
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_3_vs_mock_signal_changes.pdf', width = 8, height = 8)
 netAnalysis_signalingChanges_scatter(cellchat_ips_3_merged, idents.use = "Astrocytes", label.size = 9)+
+  theme(text = element_text(size = 24))+
+  xlim(c(-0.4, 3.5))+
+  ylim(c(-0.4, 3))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/scPlots/cellchat_plots/ips_5_vs_mock_signal_changes.pdf', width = 9, height = 8)
+netAnalysis_signalingChanges_scatter(cellchat_ips_5_merged, idents.use = "Astrocytes", label.size = 9)+
   theme(text = element_text(size = 24))+
   xlim(c(-0.4, 3.5))+
   ylim(c(-0.4, 3))
@@ -552,7 +567,6 @@ dev.off()
 #Look at lr pairs in top pathways
 netVisual_bubble(cellchat_wt_3_merged, sources.use = 1:14, targets.use = c('Astrocytes'), 
                  signaling = 'NCAM', comparison = c(1, 2), angle.x = 45)
-
 
 #Compare mocks
 cellchat_mock_merged <- mergeCellChat(list(mock = mock_wt_cells_cc, wt_inf = mock_ips_cells_cc), add.names = c('wt_mock', 'ips_mock'))

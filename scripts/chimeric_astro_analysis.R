@@ -360,3 +360,4 @@ day_5_3_wt <- results(dds_astro, contrast=c("time_treatment_geno", "Day 3-rChLGT
 
 day_5_3[c('Myd88', 'Trif'),]
 day_5_3_wt[c('Myd88', 'Trif'),]
+

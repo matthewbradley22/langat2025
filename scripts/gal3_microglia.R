@@ -200,6 +200,7 @@ wt_cerebrum_microglia <- prepUmapSeuratObj(
   reductionName = "micro.umap",
   resolution_value = 0.5
 )
+
 wt_cerebrum_microglia <- prepUmapSeuratObj(
   wt_cerebrum_microglia,
   nDims = 15,
@@ -537,6 +538,7 @@ microglia_mock <- subset(wt_cerebrum_microglia, Treatment == "PBS")
 # Mock microglia UMAP
 microglia_mock <- prepSeuratObj(microglia_mock)
 ElbowPlot(microglia_mock, ndims = 40)
+
 # Resolution was 0.5 before, changing now
 microglia_mock <- prepUmapSeuratObj(
   microglia_mock,
@@ -566,6 +568,7 @@ dev.off()
 
 # Look at markers separating day 3 and day 5 mock microglia
 mock_markers_time <- FindAllMarkers(microglia_mock, group.by = "Timepoint", test.use = "MAST")
+
 mock_markers_3 <- dplyr::filter(
   mock_markers_time,
   p_val_adj < 0.01 & avg_log2FC > 1 & cluster == "Day 3"
@@ -574,6 +577,21 @@ mock_markers_5 <- dplyr::filter(
   mock_markers_time,
   p_val_adj < 0.01 & avg_log2FC > 1 & cluster == "Day 5"
 )
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/mock_micro_time_degs.pdf",
+  width = 6,
+  height = 5)
+
+data.frame(labels = c('day 3', 'day 5'), num_up_genes = c(nrow(mock_markers_3), nrow(mock_markers_5))) %>% 
+  ggplot(aes(x = labels, y = num_up_genes))+
+  geom_col(width = 0.5)+
+  xlab('')+
+  ylab('upregulated deg count')+
+  theme_classic()+
+  theme(text = element_text(size = 20))+
+  ggtitle('Mock microglia time comparison')
+
+dev.off()
 
 # No sig pathways for 3 dpi
 mock_comp_paths <- gprofiler2::gost(
@@ -584,6 +602,10 @@ mock_comp_paths <- gprofiler2::gost(
 )
 
 mock_comp_paths$result
+
+pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/mock_micro_time_pathways.pdf",
+    width = 8,
+    height = 5)
 
 ggplot(head(mock_comp_paths$result, n = 8), aes(
   x = -log10(p_value),
@@ -596,7 +618,10 @@ ggplot(head(mock_comp_paths$result, n = 8), aes(
   ) +
   theme_classic() +
   ylab("") +
-  theme(text = element_text(size = 18))
+  theme(text = element_text(size = 18))+
+  ggtitle('Day 5 up pathways mock')
+
+dev.off()
 
 FeaturePlot(wt_cerebrum_microglia,
   features = "mt-Cytb",
@@ -3286,7 +3311,7 @@ DotPlot(
   theme_classic() +
   scale_fill_gradientn(
     colours = c("white", "#FFD991", "#FF7530", "#FF4024"),
-    values = c(0, 0.3, 0.6, 1)
+    values = c(0, 0.3, 0.6, 1), limits = c(0,1.3)
   ) +
   ggtitle("F4/80")
 dev.off()
