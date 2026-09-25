@@ -112,6 +112,7 @@ table(mock_ips$Timepoint, mock_ips$manualAnnotation) %>%
   ggtitle('Mock IPS1')+
   ylab('Proportion of cells')
 dev.off()
+
 #Mock WT
 pdf("~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mock_wt_cellPopBars.pdf", width = 5, height = 8)
 table(mock_wt$Timepoint, mock_wt$manualAnnotation) %>% 
@@ -206,25 +207,6 @@ mavs_dat_meta <- str_split_fixed(mavs_dat$id, "_", 4)
 colnames(mavs_dat_meta) <- c('genotype', 'treatment', 'time', 'celltype')
 mavs_dat <- cbind(mavs_dat, mavs_dat_meta)
 
-#Could split by time
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/mavs_expression.pdf', height = 9, width = 7)
-ggplot(mavs_dat, aes(x = time, y = genotype, color = avg.exp.scaled, size = pct.exp))+
-  facet_wrap(~treatment)+
-  geom_point()+
-  scale_color_gradient2(low = 'white', mid = 'orange', high = 'red', midpoint = 0.06)+
-  theme_classic()+
-  theme(axis.text = element_text(size = 24),
-        legend.text = element_text(size = 24),
-        legend.title = element_text(size = 24),
-        plot.title = element_text(size =30),
-        axis.text.x = element_text(angle = 90),
-        strip.text = element_text(size = 24))+
-  xlab('')+
-  ylab('')+
-  ggtitle('Mavs Expression')+
-  scale_size_continuous(range = c(3,9))
-dev.off()
-
 #Split by celltype as well, not splitting by time for the sake of plotting
 chimeric_mock$geno_treatment_celltype <- paste(chimeric_mock$Genotype, chimeric_mock$Treatment, 
                                                     chimeric_mock$manualAnnotation, sep = '_')
@@ -283,6 +265,7 @@ ParseSeuratObj_int[[]] %>% dplyr::filter(Treatment %in% c('rChLGTV', 'PBS')) %>%
   dplyr::group_by(Treatment, Genotype, manualAnnotation) %>% 
   dplyr::summarise(pct.exp = sum(neo_count_normalized > 0)*100/length(neo_count_normalized),
                    corrected.neo.expression = mean(neo_count_normalized)) %>% 
+  dplyr::mutate(Genotype = factor(Genotype, levels = c('WT', 'IPS1'))) %>% 
   ggplot(aes(x = Genotype, y = manualAnnotation))+
   facet_wrap(~Treatment)+
   geom_point(aes(size = pct.exp, fill = corrected.neo.expression), pch = 21)+
@@ -319,6 +302,7 @@ wt_chimeric_infiltrating <- subset(chimeric_mock, manualAnnotation %in% c("T cel
 levels_infil <- (c('B Cells', 'Granulocytes', 
                   'Nk cells',
                   'T cells'))
+
 wt_chimeric_macs <- subset(chimeric_mock, manualAnnotation %in% c("Macrophage/Monocytes"))
 
 #Function to plot celltype proportions over time
@@ -577,3 +561,25 @@ table(mock_wt_res$Timepoint, mock_wt_res$manualAnnotation) %>%
   ggtitle('Mock WT')+
   ylab('Proportion of cells')
 
+#Plot interferons
+draw_ifn_plot <- function(gene){
+  ifn_plot = DotPlot(chimeric_mock, features = gene, group.by = 'geno_treatment_time_celltype', scale = FALSE)$data %>% 
+    tidyr::separate(id, into = c('geno', 'treatment', 'time', 'celltype'), sep = '_') %>% 
+    dplyr::mutate(geno_treatment = paste(geno, treatment, sep = '_')) %>% 
+    ggplot(aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+    geom_point(pch = 21)+
+    facet_wrap(~geno_treatment)+
+    theme_classic()+
+    scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                         values = c(1.0,0.7,0.4,0))
+  
+  plot(ifn_plot)
+}
+
+draw_ifn_plot('Ifnb1')
+draw_ifn_plot('Ifna2')
+draw_ifn_plot('Ifna4')
+draw_ifn_plot('Ifnb1')
+
+rownames(chimeric_mock[['RNA']]$counts)[grep('Ifn', rownames(chimeric_mock[['RNA']]$counts))]
+         

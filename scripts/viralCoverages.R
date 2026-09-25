@@ -4,8 +4,7 @@ library(dplyr)
 library(ggplot2)
 
 #Check that viral reads cover whole virus genome
- 
-coverageList <- list()
+ coverageList <- list()
 
 #List all files with genome locus coverages
 covFiles <- list.files("~/Documents/ÖverbyLab/bamLGTVCoverages/viralLocusDepths/")

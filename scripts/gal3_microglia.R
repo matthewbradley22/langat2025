@@ -459,6 +459,14 @@ DotPlot(
   ggtitle("Infected Microglia")
 dev.off()
 
+#Write markers to csv to save
+infected_time_markers %>% 
+  dplyr::filter(avg_log2FC > 1 &p_val_adj < 0.01) %>% 
+  write.csv(
+    file = "~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/infected_microglia_timepoint_markers.csv",
+    row.names = FALSE,
+    quote = FALSE
+  )
 
 # Pathway analysis
 early_infect_markers <- infected_time_markers %>%
@@ -1254,8 +1262,11 @@ table(
   xlab("") +
   ylab("Number of cells")
 
-# Find infected markers vs mock
+# - - - - - - - - - - - - - - - - - - 
+#### Find infected markers vs mock ####
+# - - - - - - - - - - - - - - - - - - 
 
+#Create barplot of pathways used in figure
 # Use this if resolution was set to 0.4 for clustering so infected only has 3 clusters
 fewer_clusters <- TRUE
 
@@ -1314,6 +1325,23 @@ if (!fewer_clusters) {
   )
 }
 
+sig_genes <- lapply(names(deg_vs_mock_list),  FUN = function(x){
+  cur_dat = deg_vs_mock_list[[x]]
+  cur_dat <- cur_dat %>% 
+    dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1) %>% 
+    dplyr::mutate(cluster = x) %>% 
+    rownames_to_column()
+  cur_dat
+})
+
+do.call(rbind, sig_genes) %>% 
+  dplyr::arrange(cluster) %>% 
+  write.csv(
+    file = "~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/infected_cluster_degs.csv",
+    row.names = FALSE,
+    quote = FALSE
+  )
+                    
 
 num_sig_genes <- lapply(
   deg_vs_mock_list,
@@ -1358,6 +1386,7 @@ pdf(
   width = 10,
   height = 8
 )
+
 ggplot(
   head(path_vs_mock_list$`cluster 3`, n = 10),
   aes(x = -log10(p_value), y = reorder(term_name, -(p_value)))
@@ -1368,6 +1397,7 @@ ggplot(
   xlab("-Log10 p-val") +
   theme(text = element_text(size = 18)) +
   ggtitle("Cluster 0")
+
 dev.off()
 
 for (i in 1:length(path_vs_mock_list)) {

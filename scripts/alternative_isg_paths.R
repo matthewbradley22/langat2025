@@ -30,7 +30,7 @@ chimeric_mock <- subset(ParseSeuratObj_int, Treatment != 'rLGTV')
 chimeric_mock$time_geno_treatment <- paste(chimeric_mock$Timepoint, chimeric_mock$Genotype, chimeric_mock$Treatment, sep = '_')
 
 #Alternative pathway genes
-alternative_path_genes <- c('Tlr3', 'Tlr7', 'Tlr8', 'Tlr9', 'Ticam1', 'Traf3', 'Myd88', 'Traf6', 'Tram1')
+alternative_path_genes <- c('Tlr3', 'Tlr7', 'Tlr8', 'Tlr9', 'Ticam1', 'Traf3', 'Myd88', 'Traf6', 'Tram1', 'Ifih1')
 alternative_path_celltype_levels <- list()
 for(i in 1:length(unique(chimeric_mock$manualAnnotation))){
   cur_celltype <- unique(chimeric_mock$manualAnnotation)[i]
@@ -45,11 +45,11 @@ for(i in 1:length(unique(chimeric_mock$manualAnnotation))){
 }
 
 pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/alternative_path_astro_genes.pdf', width = 9, height = 7)
-ggplot(alternative_path_celltype_levels$Astrocytes, aes(x = time, y = features.plot, size = pct.exp, color = avg.exp.scaled))+
+ggplot(alternative_path_celltype_levels$Astrocytes, aes(x = time, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
   facet_wrap(~geno_treatment, scales = 'free_x')+
-  geom_point()+
-  scale_color_gradientn(colours = c("#F03C0C","#F0A451","white"), 
-                        values = c(1.0,0.6,0))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F0A451","white"), 
+                        values = c(1.0,0.5,0))+
   theme_classic()+
   theme(text = element_text(size = 24))+
   scale_size_continuous(range = c(1,9))
@@ -59,10 +59,10 @@ names(alternative_path_celltype_levels)[names(alternative_path_celltype_levels) 
 for(i in 1:length(alternative_path_celltype_levels)){
   file_name <- paste0('~/Documents/ÖverbyLab/single_cell_ISG_figures/alternative_paths_all_celltypes/', names(alternative_path_celltype_levels)[i], '.pdf')
   pdf(file_name, width = 10, height = 8)
-  alt_plot <- ggplot(alternative_path_celltype_levels[[i]], aes(x = time, y = features.plot, size = pct.exp, color = avg.exp.scaled))+
+  alt_plot <- ggplot(alternative_path_celltype_levels[[i]], aes(x = time, y = features.plot, size = pct.exp, fill = avg.exp.scaled))+
     facet_wrap(~geno_treatment, scales = 'free_x')+
-    geom_point()+
-    scale_color_gradientn(colours = c("#F03C0C","#F0A451","white"), 
+    geom_point(pch = 21)+
+    scale_fill_gradientn(colours = c("#F03C0C","#F0A451","white"), 
                           values = c(1.0,0.6,0))+
     theme_classic()+
     theme(text = element_text(size = 24))+
@@ -267,3 +267,61 @@ ggplot(head(wt_3_paths$result), aes(x = term_name, y = -log10(p_value)))+
   theme(text = element_text(size = 18))+
   ylab('')
 dev.off()
+
+#Myd88 all cell types, infected samples only
+chimeric <- subset(chimeric_mock, Treatment == 'rChLGTV')
+chimeric$time_geno_celltype <- paste(chimeric$Timepoint, chimeric$Genotype, chimeric$manualAnnotation, sep = '_')
+
+cell_levels <- levels(factor(chimeric$manualAnnotation))
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/myd88_by_celltype.pdf', width = 6, height = 5)
+DotPlot(chimeric, features = 'Myd88', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
+  tidyr::separate(col = id, into = c('time', 'geno', 'celltype'), sep = '_') %>% 
+  dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
+  dplyr::filter(celltype != 'unknown') %>% 
+  dplyr::mutate(celltype = factor(celltype, levels = rev(cell_levels))) %>% 
+  ggplot(aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  facet_wrap(~geno)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0)) + 
+  ggtitle('Myd88')+
+  ylab('')+
+  xlab('')+
+  theme(text = element_text(size = 14))
+dev.off()
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/tlr3_by_celltype.pdf', width = 6, height = 5)
+DotPlot(chimeric, features = 'Tlr3', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
+  tidyr::separate(col = id, into = c('time', 'geno', 'celltype'), sep = '_') %>% 
+  dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
+  dplyr::filter(celltype != 'unknown') %>% 
+  dplyr::mutate(celltype = factor(celltype, levels = rev(cell_levels))) %>% 
+  ggplot(aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  facet_wrap(~geno)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0)) + 
+  ggtitle('Tlr3')+
+  ylab('')+
+  xlab('')+
+  theme(text = element_text(size = 14))
+dev.off()
+
+DotPlot(chimeric, features = 'Traf3', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
+  tidyr::separate(col = id, into = c('time', 'geno', 'celltype'), sep = '_') %>% 
+  dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
+  dplyr::filter(celltype != 'unknown') %>% 
+  dplyr::mutate(celltype = factor(celltype, levels = rev(cell_levels))) %>% 
+  ggplot(aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  facet_wrap(~geno)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0)) + 
+  ggtitle('Traf3')+
+  ylab('')+
+  xlab('')+
+  theme(text = element_text(size = 14))

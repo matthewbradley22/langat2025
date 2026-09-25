@@ -60,8 +60,8 @@ ParseSeuratObj_int$virusCountFinalAdj_corrected = ParseSeuratObj_int$virus_count
 
 #Look at various flavivirus receptors, and compare to infection levels + lgtv to compare infection level with receptor
 receptors <- c('Axl', 'Havcr1', 'Havcr2', 'Timd4', 'Tyro3', 'Lrp8', 'Lrp1',
-               'Lrp4', 'Cd209a', 'Cd209b', 'Cd209c', 'Itgb4', 'Hspa5', 'Ncam1', 'Hspa1a', 'Vim', 'Itgav',
-               'Itgb3', 'Cldn1', 'Clec5a', 'Mrc1', 'Mer', 'Scarb1')
+               'Lrp4',  'Itgb4',  'Ncam1', 'Hspa1a', 'Vim', 'Itgav',
+               'Itgb3', 'Cldn1', 'Clec5a', 'Mrc1', 'Mer', 'Scarb1', 'Dag1') #'Cd209a', 'Cd209b', 'Cd209c','Hspa5',
 
 #First look at wt immature neurons
 wt_im_neurons <- subset(ParseSeuratObj_int, manualAnnotation == 'Immature Neurons' & Genotype == 'WT')
@@ -94,7 +94,9 @@ DotPlot(ParseSeuratObj_int, features = receptors, group.by = 'treatment_celltype
 
 #Look at receptors in all wt celltypes
 wt_mock <- subset(ParseSeuratObj_int, Genotype == 'WT' & Treatment == 'PBS')
+wt_mock_sub <- subset(wt_mock, manualAnnotation != 'unknown')
 
+pdf('~/Documents/ÖverbyLab/scPlots/sc_virus_recptors_wt_mock.pdf', height = 7, width = 10)
 DotPlot(wt_mock, features = receptors, group.by = 'manualAnnotation', scale = FALSE)$data %>% 
   dplyr::filter(id != 'unknown') %>% 
   ggplot(aes(x = features.plot, y = id, fill = avg.exp.scaled, size = pct.exp))+
@@ -106,7 +108,7 @@ DotPlot(wt_mock, features = receptors, group.by = 'manualAnnotation', scale = FA
         axis.text = element_text(size = 13))+
   ylab('')+
   xlab('')
-
+dev.off()
 #Microglia subcluster receptors
 wt_mock_micro <- subset(wt_mock, manualAnnotation == 'Microglia')
 

@@ -1161,3 +1161,12 @@ DimPlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', label = FAL
   xlab('')+
   ylab('')
 dev.off()
+
+#Percent of day 5 infiltrating cells that are macrophages
+wt_cerebrum_day5_inf = subset(wt_cerebrum_day5, Treatment == 'rLGTV' & manualAnnotation %in% 
+                                c('B Cells', 'Granulocytes', 'Macrophage/Monocytes', 
+                                  'Nk cells', 'T cells'))
+
+table(wt_cerebrum_day5_inf$manualAnnotation) / sum(table(wt_cerebrum_day5_inf$manualAnnotation))
+
+
