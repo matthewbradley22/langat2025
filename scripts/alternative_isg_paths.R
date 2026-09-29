@@ -85,7 +85,7 @@ dplyr::filter(day5_infected_markers[alternative_path_genes,], p_val_adj < 0.01 &
 
 #Are Myd88 or Ticam1 upregulated in infection vs mock?
 day5_ips_pbs_astros <- subset(chimeric_mock, ((Timepoint == 'Day 5' & Genotype == 'IPS1') | Treatment == 'PBS') & manualAnnotation == 'Astrocytes')
-table(day5_ips_pbs_astros$Timepoint, day5_wt_pbs_astros$Treatment, day5_wt_pbs_astros$Genotype)
+table(day5_ips_pbs_astros$Timepoint, day5_ips_pbs_astros$Treatment, day5_ips_pbs_astros$Genotype)
 day5_wt_pbs_astros <- subset(chimeric_mock, ((Timepoint == 'Day 5' & Genotype == 'WT') | Treatment == 'PBS') & manualAnnotation == 'Astrocytes')
 table(day5_wt_pbs_astros$Timepoint, day5_wt_pbs_astros$Treatment, day5_wt_pbs_astros$Genotype)
 
@@ -269,17 +269,19 @@ ggplot(head(wt_3_paths$result), aes(x = term_name, y = -log10(p_value)))+
 dev.off()
 
 #Myd88 all cell types, infected samples only
-chimeric <- subset(chimeric_mock, Treatment == 'rChLGTV')
-chimeric$time_geno_celltype <- paste(chimeric$Timepoint, chimeric$Genotype, chimeric$manualAnnotation, sep = '_')
+chimeric_mock$time_geno_celltype <- paste(chimeric_mock$time_mock_comb, 
+                                          chimeric_mock$Genotype, 
+                                          chimeric_mock$manualAnnotation, sep = '_')
 
-cell_levels <- levels(factor(chimeric$manualAnnotation))
+cell_levels <- levels(factor(chimeric_mock$manualAnnotation))
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/myd88_by_celltype.pdf', width = 6, height = 5)
-DotPlot(chimeric, features = 'Myd88', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/myd88_by_celltype.pdf', width = 7, height = 5)
+DotPlot(chimeric_mock, features = 'Myd88', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
   tidyr::separate(col = id, into = c('time', 'geno', 'celltype'), sep = '_') %>% 
   dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
   dplyr::filter(celltype != 'unknown') %>% 
   dplyr::mutate(celltype = factor(celltype, levels = rev(cell_levels))) %>% 
+  dplyr::mutate(time = factor(time, levels = c('mock', 'Day 3', 'Day 4', 'Day 5'))) %>% 
   ggplot(aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   facet_wrap(~geno)+
@@ -292,12 +294,13 @@ DotPlot(chimeric, features = 'Myd88', group.by = 'time_geno_celltype', scale = F
   theme(text = element_text(size = 14))
 dev.off()
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/tlr3_by_celltype.pdf', width = 6, height = 5)
-DotPlot(chimeric, features = 'Tlr3', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/tlr3_by_celltype.pdf', width = 7, height = 5)
+DotPlot(chimeric_mock, features = 'Tlr3', group.by = 'time_geno_celltype', scale = FALSE)$data %>% 
   tidyr::separate(col = id, into = c('time', 'geno', 'celltype'), sep = '_') %>% 
   dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
   dplyr::filter(celltype != 'unknown') %>% 
   dplyr::mutate(celltype = factor(celltype, levels = rev(cell_levels))) %>% 
+  dplyr::mutate(time = factor(time, levels = c('mock', 'Day 3', 'Day 4', 'Day 5'))) %>% 
   ggplot(aes(x = time, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   facet_wrap(~geno)+

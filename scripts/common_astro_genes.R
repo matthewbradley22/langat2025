@@ -33,11 +33,18 @@ sc_astros_day3 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & 
 sc_astros_day4 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
                             ((Timepoint == 'Day 4') & Genotype == 'WT'| Treatment == 'PBS'))
 
+sc_astros_day5 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
+                           ((Timepoint == 'Day 5') & Genotype == 'WT'| Treatment == 'PBS'))
+
+
 sc_astros_ips <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Genotype == 'IPS1' & Treatment != 'rLGTV')
 sc_astros_ips_day3 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
                            (Timepoint == 'Day 3' & Genotype == 'IPS1'| Treatment == 'PBS'))
 sc_astros_ips_day4 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
                             ((Timepoint == 'Day 4') & Genotype == 'IPS1'| Treatment == 'PBS'))
+
+sc_astros_ips_day5 <- subset(ParseSeuratObj_int, manualAnnotation == 'Astrocytes' & Treatment != 'rLGTV' &
+                               ((Timepoint == 'Day 5') & Genotype == 'IPS1'| Treatment == 'PBS'))
 
 VlnPlot(sc_astros, features = 'Socs1', group.by = 'Treatment')
 VlnPlot(sc_astros_ips, features = 'Stat1', group.by = 'Treatment')
@@ -72,6 +79,13 @@ sc_astro_wt_4_markers_sig <- subset(sc_astro_wt_4_markers, cluster == 'rChLGTV' 
 
 sc_astro_ips_4_markers <- FindAllMarkers(sc_astros_ips_day4, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
 sc_astro_ips_4_markers_sig <- subset(sc_astro_ips_4_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
+
+#Day 5 markers
+sc_astro_wt_5_markers <- FindAllMarkers(sc_astros_day5, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
+sc_astro_wt_5_markers_sig <- subset(sc_astro_wt_5_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
+
+sc_astro_ips_5_markers <- FindAllMarkers(sc_astros_ips_day5, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE)
+sc_astro_ips_5_markers_sig <- subset(sc_astro_ips_5_markers, cluster == 'rChLGTV' & p_val_adj < 0.01 & avg_log2FC > 1)
 
 #Bulk markers
 
@@ -131,12 +145,12 @@ bulk_sig_genes_mavs_symbols <- geneConversion_mavs$SYMBOL
 dds_mavs_res_sig <- left_join(dds_mavs_res_sig, geneConversion_mavs, by = c("GENEID"))
 
 #Proportion of overlap between sc and bulk
-total_gene_overlap <- sum(sc_astro_wt_3_markers_sig$gene %in% bulk_sig_gene_symbols)
-total_gene_overlap/nrow(sc_astro_wt_3_markers_sig) #45% sc genes in bulk
-total_gene_overlap/length(bulk_sig_gene_symbols) #14% bulk genes in sc
+total_gene_overlap <- sum(sc_astro_markers_chlgtv$gene %in% bulk_sig_gene_symbols)
+total_gene_overlap/nrow(sc_astro_markers_chlgtv) #45% sc genes in bulk
+total_gene_overlap/length(sc_astro_markers_chlgtv) #14% bulk genes in sc
 
 
-sc_day_3_vs_bulk_wt <- VennDiagram::venn.diagram(list(single_cell = sc_astro_wt_3_markers_sig$gene, bulk = bulk_sig_gene_symbols), filename = NULL,
+sc_vs_bulk_wt <- VennDiagram::venn.diagram(list(single_cell = sc_astro_markers_chlgtv$gene, bulk = bulk_sig_gene_symbols), filename = NULL,
                                             fill = brewer.pal(3, "Pastel2")[1:2], cex = 1.5, cat.cex = 1.5)
 grid::grid.draw(sc_day_3_vs_bulk_wt)
 
@@ -268,44 +282,43 @@ ggplot(wt_mavs_overlap_paths$result[c(1,3,5,6,9,11,12),], aes(x = -log10(p_value
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
 
 #Look at comparisons of just isgs
-#Load in ISGs
-#Molecular signatures database
-#Should compare using db_species vs not using it
-all_gene_sets <- msigdbr(species = "Mus musculus", db_species = "MM")
-
-mouse_gene_sets <- all_gene_sets %>%
-  split(x = .$gene_symbol, f = .$gs_name)
 
 #Get total number of positive DEGs as above, but subset to ISGs
-#ifnA_response <- mouse_gene_sets$HALLMARK_INTERFERON_ALPHA_RESPONSE
-#ifnA_GOBP_response <- mouse_gene_sets$GOBP_RESPONSE_TO_INTERFERON_ALPHA
-#type1_response <- mouse_gene_sets$GOBP_RESPONSE_TO_TYPE_I_INTERFERON
-#all_ISGs_type1 = unique(c(ifnA_response, ifnA_GOBP_response, type1_response))
+#Load isg data from ifnTreatedAnalysis.R where upset plots are made
+
+#common_genes_named created on line 237 of ifnTreatedAnalysis.R
 
 #single cell ISG degs
-sc_wt_3_isgs <- sc_astro_wt_3_markers_sig[rownames(sc_astro_wt_3_markers_sig) %in% all_ISGs_type1,]
-sc_ips_3_isgs <- sc_astro_ips_3_markers_sig[rownames(sc_astro_ips_3_markers_sig) %in% all_ISGs_type1,]
-sc_wt_4_isgs <- sc_astro_wt_4_markers_sig[rownames(sc_astro_wt_4_markers_sig) %in% all_ISGs_type1,]
-sc_ips_4_isgs <- sc_astro_ips_4_markers_sig[rownames(sc_astro_ips_4_markers_sig) %in% all_ISGs_type1,]
+sc_wt_3_isgs <- sc_astro_wt_3_markers_sig[rownames(sc_astro_wt_3_markers_sig) %in% common_genes_named,]
+sc_ips_3_isgs <- sc_astro_ips_3_markers_sig[rownames(sc_astro_ips_3_markers_sig) %in% common_genes_named,]
+sc_wt_4_isgs <- sc_astro_wt_4_markers_sig[rownames(sc_astro_wt_4_markers_sig) %in% common_genes_named,]
+sc_ips_4_isgs <- sc_astro_ips_4_markers_sig[rownames(sc_astro_ips_4_markers_sig) %in% common_genes_named,]
+
+all_wt_markers <- unique(c(sc_astro_wt_3_markers_sig$gene, sc_astro_wt_4_markers_sig$gene, sc_astro_wt_5_markers_sig$gene))
+all_wt_markers_isgs <- all_wt_markers[all_wt_markers %in% common_genes_named]
+
+all_ips_markers <- unique(c(sc_astro_ips_3_markers_sig$gene, sc_astro_ips_4_markers_sig$gene, sc_astro_ips_5_markers_sig$gene))
+all_ips_markers_isgs <- all_ips_markers[all_ips_markers %in% common_genes_named]
+
+sc_astro_markers_chlgtv_isgs <- sc_astro_markers_chlgtv[sc_astro_markers_chlgtv$gene %in% common_genes_named,]
+sc_astro_markers_chlgtv_isgs <- sc_astro_markers_chlgtv_isgs$gene
 
 #Bulk ISG degs
-wt_bulk_isgs <- bulk_sig_gene_symbols[bulk_sig_gene_symbols %in% all_ISGs_type1]
-ips_bulk_isgs <- bulk_sig_genes_mavs_symbols[bulk_sig_genes_mavs_symbols %in% all_ISGs_type1]
+wt_bulk_isgs <- bulk_sig_gene_symbols[bulk_sig_gene_symbols %in% common_genes_named]
+ips_bulk_isgs <- bulk_sig_genes_mavs_symbols[bulk_sig_genes_mavs_symbols %in% common_genes_named]
 
 #sc vs bulk isg expression. bulk combined by time
-sc_wt_genes <- sc_wt_4_isgs$gene
-bulk_wt_genes <- dds_wt_res_sig$SYMBOL[dds_wt_res_sig$SYMBOL %in% all_ISGs_type1]
-wt_euler <- euler(list('sc' = sc_wt_genes, 'bulk' = bulk_wt_genes))
+bulk_wt_genes <- dds_wt_res_sig$SYMBOL[dds_wt_res_sig$SYMBOL %in% common_genes_named]
+wt_euler <- euler(list('sc' = all_wt_markers_isgs, 'bulk' = bulk_wt_genes))
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/day4_vs_bulk_combined_wt.pdf')
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/sc_vs_bulk_combined_wt.pdf')
 plot(wt_euler, quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
 dev.off()
 
-sc_ips_genes <- sc_ips_4_isgs$gene
-bulk_ips_genes <- dds_mavs_res_sig$SYMBOL[dds_mavs_res_sig$SYMBOL %in% all_ISGs_type1]
-mavs_euler <- euler(list('sc' = sc_ips_genes, 'bulk' = bulk_ips_genes))
+bulk_ips_genes <- dds_mavs_res_sig$SYMBOL[dds_mavs_res_sig$SYMBOL %in% common_genes_named]
+mavs_euler <- euler(list('sc' = all_ips_markers_isgs, 'bulk' = bulk_ips_genes))
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/day4_vs_bulk_combined_ips.pdf')
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/sc_vs_bulk_combined_ips.pdf')
 plot(mavs_euler, quantities = TRUE, fills = c(brewer.pal(3, "Pastel2")[1:2]))
 dev.off()
 
@@ -419,4 +432,5 @@ pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/sc_vs_bulk/day4_vs_bulk_time
 ggpubr::ggarrange(ips_sc4_bulk_1, ips_sc4_bulk_2, ips_sc4_bulk_3, 
                   ncol = 3)
 dev.off()
+
 

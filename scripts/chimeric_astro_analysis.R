@@ -308,13 +308,16 @@ all_astros <- prepUmapSeuratObj(all_astros, nDims = 20, reductionName = 'astrocy
 
 DimPlot(all_astros, reduction = 'astrocytes_umap')
 
-all_astros_inf <- subset(all_astros, Treatment == 'rChLGTV')
-all_astros_inf$time_geno <- paste(all_astros_inf$Timepoint, all_astros_inf$Genotype, sep = '_')
+all_astros$time_with_mock <- ifelse(all_astros$Treatment == 'PBS', yes = 'mock', no = all_astros$Timepoint)
+all_astros$time_geno <- paste(all_astros$time_with_mock, all_astros$Genotype, sep = '_')
 
-pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/Myd88_dotplot.pdf', width = 6, height = 3)
-DotPlot(all_astros_inf, features = c('Myd88'), scale = FALSE, group.by = 'time_geno')$data %>% 
+
+
+pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/astrocytes_fig/Myd88_dotplot.pdf', width = 7, height = 4)
+DotPlot(all_astros, features = c('Myd88'), scale = FALSE, group.by = 'time_geno')$data %>% 
   tidyr::separate(id, into = c('time', 'geno'), sep = '_') %>% 
   dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 
+  dplyr::mutate(time = factor(time, levels = c('mock', 'Day 3', 'Day 4', 'Day 5'))) %>% 
   ggplot(aes(x = time, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
   geom_point(pch = 21)+
   facet_wrap(~geno)+
@@ -322,7 +325,7 @@ DotPlot(all_astros_inf, features = c('Myd88'), scale = FALSE, group.by = 'time_g
                         values = c(1.0,0.7,0.4,0))+
   theme_classic()+
   ylab('')+
-  xlab('')+
+  xlab('Day')+
   theme(text = element_text(size = 15))
 dev.off()
 
