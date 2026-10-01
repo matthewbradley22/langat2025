@@ -1,3 +1,4 @@
+library(RColorBrewer)
 
 #Source functions
 source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
@@ -26,8 +27,8 @@ sn_integrated_dat$geno_simplified <- case_when(sn_integrated_dat$new_genotype %i
 
 #Look at various flavivirus receptors, and compare to infection levels + lgtv to compare infection level with receptor
 receptors <- c('Axl', 'Havcr1', 'Havcr2', 'Timd4', 'Tyro3', 'Lrp8', 'Lrp1',
-               'Lrp4', 'Cd209a', 'Cd209b', 'Cd209c', 'Itgb4', 'Hspa5', 'Ncam1', 'Hspa1a', 'Vim', 'Itgav',
-               'Itgb3', 'Cldn1', 'Clec5a', 'Mrc1', 'Mer', 'Scarb1')
+               'Lrp4', 'Itgb4',  'Ncam1', 'Hspa1a', 'Vim', 'Itgav',
+               'Itgb3', 'Cldn1', 'Clec5a', 'Mrc1', 'Mer', 'Scarb1', 'Dag1') #'Hspa5', 'Cd209a', 'Cd209b', 'Cd209c',
 
 #Variables of interest
 table(sn_integrated_dat$manualAnnotation, sn_integrated_dat$geno_simplified, sn_integrated_dat$infected)
@@ -40,7 +41,7 @@ sn_integrated_dat$treatment_celltype <- paste(sn_integrated_dat$infected, sn_int
 #### Infection and receptors by celltype ####
 # - - - - - - - - - - - - - - - - - - - - - -
 
-pdf('~/Documents/ÖverbyLab/single_nuclei_proj/langat_receptors/receptor_dotplot.pdf', width = 10, height = 5)
+pdf('~/Documents/ÖverbyLab/single_nuclei_proj/langat_receptors/receptor_dotplot.pdf', width = 11, height = 5)
 DotPlot(sn_integrated_dat, features = receptors, group.by = 'treatment_celltype', scale = FALSE)$data %>% 
   tidyr::separate(col = 'id', into = c('treatment', 'celltype'), sep = '_') %>% 
   #create 0 data for havcr1 since we don't have it
@@ -55,7 +56,8 @@ DotPlot(sn_integrated_dat, features = receptors, group.by = 'treatment_celltype'
   xlab('')+
   ylab('')+
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        panel.border = element_rect(fill = NA, color = "black", linetype = "dashed"))
+        panel.border = element_rect(fill = NA, color = "black", linetype = "dashed"),
+        axis.text = element_text(size = 12))
 dev.off()
 
 #Split by infection for plots
@@ -123,7 +125,7 @@ DimPlot(neurons, reduction = 'neuron.umap', label = TRUE,
 #Infected neurons only
 infected_neurons <- prepSeuratObj(infected_neurons)
 ElbowPlot(infected_neurons, ndims = 40)
-infected_neurons <- prepUmapSeuratObj(infected_neurons, nDims = 20, reductionName = 'inf_neuron.umap', resolution_value = 0.8)
+infected_neurons <- prepUmapSeuratObj(infected_neurons, nDims = 20, reductionName = 'inf_neuron.umap', resolution_value = 0.6)
 
 DimPlot(infected_neurons, reduction = 'inf_neuron.umap', label = FALSE, group.by = 'manualAnnotation',
         label.size = 6)
@@ -202,6 +204,81 @@ DotPlot(infected_neurons, features = receptors, group.by = 'lgtv_present', scale
   scale_size(range = c(0, 8))
 dev.off()
 
+#Markers upregulated in infected neurons
+#Most infected clusters = 19, 7, 3, 23, 18
+DotPlot(infected_neurons, features = 'rna_LGTV', group.by = 'seurat_clusters', scale = FALSE)$data %>% 
+  dplyr::arrange(desc(pct.exp))
+
+#Redo above with only wt infected
+infected_neurons_wt <- subset(infected_neurons, geno_simplified == 'wt')
+
+infected_neurons_wt <- prepSeuratObj(infected_neurons_wt)
+ElbowPlot(infected_neurons_wt, ndims = 40)
+infected_neurons_wt <- prepUmapSeuratObj(infected_neurons_wt, nDims = 20, reductionName = 'wt_inf_neuron_umap', resolution_value = 0.8)
+
+DimPlot(infected_neurons_wt, reduction = 'wt_inf_neuron_umap', label = TRUE,
+        label.size = 6)+
+  ylab('')+
+  xlab('')
+
+DotPlot(infected_neurons_wt, features = 'rna_LGTV', group.by = 'seurat_clusters', scale = FALSE)$data %>% 
+  ggplot(aes(x = features.plot, y = id, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                       values = c(1.0,0.7,0.4,0))+
+  ggtitle('Infected neuron lgtv by cluster')+
+  xlab('')+
+  ylab('')+
+  scale_size(range = c(0, 8))
+
+DotPlot(infected_neurons_wt, features = 'rna_LGTV', group.by = 'seurat_clusters', scale = FALSE)$data %>% 
+  dplyr::arrange(desc(pct.exp))
+
+#Combine clusters that have high infection and plot vs rest of clusters
+infected_neurons_wt$cluster_type <- ifelse(infected_neurons_wt$seurat_clusters %in% c('8', '14', '11', '0'), yes = 'infected', no = 'uninfected')
+
+DotPlot(infected_neurons_wt, features = receptors, group.by = 'cluster_type', scale = FALSE)$data %>% 
+  dplyr::mutate(id = factor(id, levels = c('uninfected', 'infected'))) %>% 
+  #add_row(avg.exp = 0, pct.exp = NA, features.plot = 'Havcr1', geno_simplified = 'wt', seurat_clusters = factor(0), avg.exp.scaled = NA) %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                       values = c(1.0,0.7,0.4,0))+
+  xlab('')+
+  ylab('')+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text = element_text(size = 13))+
+  ggtitle('Infected neuron clusters')
+
+#type of neuron in cluster type
+infected_neurons_wt[[]] %>% dplyr::group_by(cluster_type, manualAnnotation) %>% 
+  dplyr::summarise(n_cells = n())
+
+#Clust markers
+clust_8_markers <- FindMarkers(infected_neurons_wt, ident.1 = '8', group.by = 'seurat_clusters', test.use = 'MAST')
+clust_8_receptors <- clust_8_markers[rownames(clust_8_markers) %in% receptors,] %>% dplyr::arrange(desc(avg_log2FC)) %>% 
+  dplyr::mutate(cluster = '8') %>% rownames_to_column(var = 'gene')
+
+clust_14_markers <- FindMarkers(infected_neurons, ident.1 = '14', group.by = 'seurat_clusters', test.use = 'MAST')
+clust_14_receptors <- clust_14_markers[rownames(clust_14_markers) %in% receptors,] %>% dplyr::arrange(desc(avg_log2FC)) %>% 
+  dplyr::mutate(cluster = '7')%>% rownames_to_column(var = 'gene')
+
+clust_11_markers <- FindMarkers(infected_neurons, ident.1 = '11', group.by = 'seurat_clusters', test.use = 'MAST')
+clust_11_receptors <- clust_11_markers[rownames(clust_11_markers) %in% receptors,] %>% dplyr::arrange(desc(avg_log2FC)) %>% 
+  dplyr::mutate(cluster = '3')%>% rownames_to_column(var = 'gene')
+
+pdf('~/Documents/ÖverbyLab/single_nuclei_proj/langat_receptors/infected_cluster_receptor_dot.pdf', height = 7, width = 7)
+rbind(clust_19_receptors, clust_7_receptors, clust_3_receptors) %>% 
+  ggplot(aes(x = avg_log2FC, y = -log10(p_val_adj), color = cluster, label = gene))+
+  geom_point()+
+  geom_text_repel()+
+  geom_hline(yintercept = -log10(0.05), linetype = 'dotted')+
+  geom_vline(xintercept = 0, linetype = 'dotted')+
+  ggtitle('Infected clusters vs bystander clusters')+
+  theme_classic()
+dev.off()
 # - - - - - - - - - - - - - - - - 
 #### Macropahge infection ####
 # - - - - - - - - - - - - - - - - 
@@ -220,3 +297,35 @@ DotPlot(infected_macro, features = receptors, group.by = 'lgtv_present', scale =
   ylab('')+
   scale_size(range = c(0, 8))
 dev.off()
+
+
+# - - - - - - - - - - - - - - - - - - - - 
+#### Zoom in on specific celltypes ####
+# - - - - - - - - - - - - - - - - - - - - 
+
+#Look at lrp8 in neurons, a known receptor, to see pattern
+DotPlot(neurons, features = receptors, group.by = 'geno_simplified', scale = FALSE)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                       values = c(1.0,0.7,0.3,0))+
+  xlab('')+
+  ylab('')+
+  scale_size(range = c(0, 7))
+
+
+#Microglia genes
+microglia <- subset(sn_integrated_dat, manualAnnotation %in% c('Microglia'))
+
+microglia <- prepSeuratObj(microglia)
+ElbowPlot(microglia, ndims = 40)
+microglia <- prepUmapSeuratObj(microglia, nDims = 20, reductionName = 'micro.umap', resolution_value = 0.6)
+
+DimPlot(microglia, reduction = 'micro.umap', label = FALSE, label.size = 6)
+
+DotPlot(microglia, features = receptors, group.by = 'seurat_clusters', scale = FALSE)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                        values = c(1.0,0.7,0.3,0))+
+  xlab('')+
+  ylab('')+
+  scale_size(range = c(0, 7))

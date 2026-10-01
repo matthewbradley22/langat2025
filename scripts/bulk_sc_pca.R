@@ -2,6 +2,7 @@
 
 library(AnnotationDbi)
 library(org.Hs.eg.db)
+library(UCell)
 
 #Load bulk data in ifnTreatedAnalysis.R
 resultsNames(dds)
@@ -180,5 +181,51 @@ DotPlot(astrocytes, features = c('Acod1', 'Cd69', 'Cxcl10', 'Gm12185', 'Ifit1bl1
                                  'Tnfsf10'), group.by = 'Treatment', scale = FALSE)+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.7))
 
+#### load in data from isg_comparison.R ####
+#Load data from ifna11 + ifnb genes, and list from genes up in all other groups
+#then compare which list is better represented in single cell
+ifna11_ifnb <- dplyr::filter(ifn_upset_dat, celltypes == 'Treatment_IFNa11_vs_Mock|Treatment_IFNB_vs_Mock') %>% dplyr::pull(gene)
+other_ifna <- dplyr::filter(ifn_upset_dat, celltypes == 'Treatment_IFNa1_vs_Mock|Treatment_IFNa4_vs_Mock|Treatment_IFNa5_vs_Mock|Treatment_IFNa6_vs_Mock|Treatment_IFNa9_vs_Mock') %>% 
+  dplyr::pull(gene)
 
+#Convert gene ids to symbols to compare to single cell
+ifna11_ifnb_sym <- gene_symbols[gene_symbols$ensembl %in% ifna11_ifnb,] %>% 
+  dplyr::filter(!is.na(symbol)) %>% 
+  dplyr::pull(symbol)
 
+other_ifna_sym <- gene_symbols[gene_symbols$ensembl %in% other_ifna,] %>% 
+  dplyr::filter(!is.na(symbol)) %>% 
+  dplyr::pull(symbol)
+
+#Create scores from lists of genes
+ifn_gene_sets <- list(ifnb = ifna11_ifnb_sym,
+                  other_fin = other_ifna_sym)
+
+astrocytes <- AddModuleScore_UCell(astrocytes, features = ifn_gene_sets)
+astrocytes$treatment_time <- paste(astrocytes$Treatment, astrocytes$Timepoint, sep = '_')
+astrocytes$treatment_time <- ifelse(astrocytes$Treatment == 'PBS', 'PBS', astrocytes$treatment_time)
+astrocytes$Genotype <- factor(astrocytes$Genotype, levels = c('WT', 'IPS1'))
+
+ggplot(astrocytes[[]], aes(x = treatment_time, y = ifnb_UCell))+
+  geom_violin(aes(fill = treatment_time))+
+  facet_wrap(~Genotype)+
+  theme_classic()+
+  ylim(c(0, 0.15))+ 
+  scale_x_discrete(labels= c('Mock', 'Day 3', 'Day 4', 'Day 5'))
+
+ggplot(astrocytes[[]], aes(x = treatment_time, y = other_fin_UCell))+
+  geom_violin(aes(fill = treatment_time))+
+  facet_wrap(~Genotype)+
+  theme_classic()+
+  ylim(c(0, 0.15))+ 
+  scale_x_discrete(labels= c('Mock', 'Day 3', 'Day 4', 'Day 5'))
+
+#Look at which genes may be driving these scores
+astro_infected_genes <- FindMarkers(astrocytes, group.by = 'Treatment', test.use = 'MAST', only.pos = TRUE, ident.1 = 'rChLGTV')
+astro_infected_genes[ifna11_ifnb_sym,] %>% 
+  dplyr::filter(!is.na(pct.1) & avg_log2FC > 1 & p_val_adj < 0.01) %>% 
+  dplyr::arrange(p_val_adj)
+
+astro_infected_genes[other_ifna_sym,] %>% 
+  dplyr::filter(!is.na(pct.1) & avg_log2FC > 1 & p_val_adj < 0.01) %>% 
+  dplyr::arrange(p_val_adj)

@@ -7,7 +7,6 @@ library(celldex)
 library(scran)
 library(RColorBrewer)
 
-### SUBSET TO JUST WILDTYPE ###
 #Source function
 source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
 
@@ -454,4 +453,27 @@ DotPlot(wt_sn, features = 'Cxcl12', group.by = 'treatment_celltype', scale = FAL
   ylab('')+
   xlab('')+
   ggtitle('Single nuclei Cxcl12')
+
+#Neuron to microglia signalling genes (from Anna email)
+micro_protect_genes <- c('Il10', 'Tgfb1', 'Il4', 'Il13', 'Il34', 'Csf1', 'Il6', 
+                         'Il15', 'Cx3cl1', 'Cd200', 'Trem2')
+
+table(sn_integrated_dat_wt$new_genotype, sn_integrated_dat_wt$new_inf)
+
+sn_integrated_dat_wt$treatment_celltype <-  paste(sn_integrated_dat_wt$infected, sn_integrated_dat_wt$manualAnnotation, sep = '_')
+DotPlot(sn_integrated_dat_wt, features = micro_protect_genes, group.by = 'treatment_celltype', scale = FALSE)$data %>% 
+  tidyr::separate(id, into = c('infected', 'celltype'), sep = '_') %>% 
+  dplyr::mutate(infection = ifelse(infected, yes = 'LGTV', no = 'Mock')) %>% 
+  dplyr::mutate(infection = factor(infection, levels = c('Mock', 'LGTV'))) %>% 
+  ggplot(aes(x = features.plot, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  facet_wrap(~infection)+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                       values = c(1.0,0.7,0.4,0))+
+  theme_classic()+
+  ylab('')+
+  xlab('')+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text = element_text(size = 14))
+
 

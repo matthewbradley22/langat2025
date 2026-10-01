@@ -5,40 +5,48 @@ library(ggplot2)
 library(dplyr)
 library(ComplexHeatmap)
 library(limma)
+library(ggrepel)
+library(MsCoreUtils)
 
 # Load data --------------------------------------------------------------------
 
 #Check true or false depending on which data you want to be read in 
-third_vent = T
-fourth_vent = F
+third_vent = F
+fourth_vent = T
 
 #Read in 3rd ventricle data if third_vent is true (change to whatever path data is in on your computer)
 if(third_vent){
-  prot_dat <- read_csv("Proteomics_plvap/S21-S40_Proteins.csv")
+  prot_dat <- read_csv("~/Documents/ÖverbyLab/Proteomics_plvap/S21-S40_Proteins.csv")
 }
 
 #read in 4th ventricle data if fourth_vent is true (change to whatever path data is in on your computer)
 if(fourth_vent){
-  prot_dat <- read_csv("Proteomics_plvap/proteomics_csv.csv") 
+  prot_dat <- read_csv("~/Documents/ÖverbyLab/Proteomics_plvap/proteomics_csv.csv") 
 }
 
 #Change column name "Gene Symbol" to just "symbol" for easier access
 gene_symbol_col <- grep('Sym', colnames(prot_dat))
 colnames(prot_dat)[gene_symbol_col] = 'symbol'
 
-# Construct QFeatures object for analyis ---------------------------------------
+# Construct QFeatures object for analysis ---------------------------------------
 
 #Using normalized abundance columns for analysis
 quant_cols <-  grep('Normalized', names(prot_dat))
 prot_dat[quant_cols]
 
+#Appears normalized by sample, think this is normal
+lapply(prot_dat[quant_cols], summary)
+
 #Read data in as a QFeatures object for analysis
 prot_q <- readQFeatures(prot_dat, quantCols = quant_cols, name = 'symbol')
+
+assay(prot_q[['symbol']])
+rowData(prot_q[['symbol']])
 
 #The metadata in written in the abundances column names (names(prot_dat)[quant_cols])
 #Pull out relevant metadata for labelling
 sexes = unlist(lapply(names(prot_dat)[quant_cols], FUN = function(x){
-  factor(stringr::str_extract(string = x, pattern = '(M$)|(F$)'))
+  factor(stringr::str_extract(string = x, pattern = '(M,)|(F,)')) %>% substring(1,1)
 }))
 
 treatments = unlist(lapply(names(prot_dat)[quant_cols], FUN = function(x){
@@ -72,6 +80,7 @@ rowData(prot_q)[["symbol"]]
 #Quality control steps --------------------------------------------------------
 #Not filtering out contaminants or reverse hits, do we need to?
 #Following this guide somewhat https://www.bioconductor.org/packages//release/bioc/vignettes/QFeatures/inst/doc/Processing.html
+#And this https://rformassspectrometry.github.io/book/sec-quant.html
 
 #Check missing values in data
 prot_q <- zeroIsNA(prot_q, i = seq_along(prot_q))
@@ -84,31 +93,52 @@ na_vals$nNA
 #Most peptides have 0 missing value, some have 18/20 ie all samples are missing?
 table(na_vals$nNArows$nNA)
 
+#Which have all missing?
+na_vals$nNArows[na_vals$nNArows$pNA == 1,]
+
 #Filter out any peptides that have over 30% values missing. 
-#A somewhat high threshold because Bst2 seems to missing values and I do not want to filter it out for now at least
+#A somewhat high/lenient threshold because Bst2 seems to have missing values and I do not want to filter it out for now at least
 prot_q <- filterNA(prot_q, i = seq_along(prot_q), pNA = 0.3)
+
+#Check patterns of missing features and try imputation
+
+#Average intensity of each protein
+mean_intensity = rowMeans(assay(prot_q), na.rm = TRUE) 
+na_proportion <- rowMeans(is.na(assay(prot_q)))
+
+#Missingness does not look random at all here. Missing values all in low intensity rows, meaning 
+#probably just near intensity cutoff
+data.frame(mean_intensity, na_proportion) %>% 
+  ggplot(aes(x = mean_intensity, y = na_proportion))+
+  geom_point()
 
 #Count unique features across samples to see if it is similar
 prot_q <- countUniqueFeatures(prot_q,
-                             i = "symbol",
-                             colDataName = "prot_counts")
+                              i = "symbol",
+                              colDataName = "prot_counts")
+dev.off()
 hist(colData(prot_q)$prot_counts, main = 'unique protein count')
 
 #Create a new assay of log transformed protein counts so that data is closer to normal
 prot_q <- logTransform(prot_q,
-                      i = "symbol",
-                      name = "prot_log")
+                       i = "symbol",
+                       name = "prot_log")
+
+#MiProb since data appears to be missing not at random. Perform on log values
+prot_q <- impute(prot_q, method = "MinProb", i = 'prot_log')
+
+
 
 #Plot raw data and log transformed data to see change
 par(mfrow = c(1, 2))
 limma::plotDensities(assay(prot_q[[1]]), legend = FALSE)
-limma::plotDensities(assay(prot_q[[2]]), legend = FALSE)
+limma::plotDensities(assay(prot_q[[3]]), legend = FALSE)
 
 #Check fpr outliers. pca cannot handle missing values so creating a new object with no missing values
 prot_q_for_pca <- filterNA(prot_q, i = seq_along(prot_q), pNA = 0)
 
 #Run PCA
-pc <- prcomp(assay(prot_q_for_pca[['prot_log']]),
+pc <- prcomp(assay(prot_q_for_pca[['imputedAssay']]),
              center = TRUE,
              scale. = TRUE)
 
@@ -149,6 +179,7 @@ if(third_vent){
   prot_q <- prot_q[,!prot_q$sample == 40]
 }
 
+#Sample 9 is big outlier for 4th ventricle
 if(fourth_vent){
   prot_q$sample = seq(1, 18)
   prot_q <- prot_q[,!prot_q$sample == 9]
@@ -158,7 +189,7 @@ if(fourth_vent){
 #5 appears a possible outlier
 if(fourth_vent){
   prot_q_for_pca <- filterNA(prot_q, i = seq_along(prot_q), pNA = 0)
-  pc <- prcomp(assay(prot_q_for_pca[['prot_log']]),
+  pc <- prcomp(assay(prot_q_for_pca[['imputedAssay']]),
                center = TRUE,
                scale. = TRUE)
   samp_names <- stringr::str_sub(rownames(pc$rotation), start = 26, end = -1)
@@ -178,7 +209,7 @@ pc$rotation %>% as.data.frame() %>%
   theme_classic()
 
 #Sample to sample heatmap with normalized values
-cormat <- round(cor(assay(prot_q_for_pca, "prot_log")), 2) 
+cormat <- round(cor(assay(prot_q_for_pca, "imputedAssay")), 2) 
 cormat %>% as.data.frame() %>% rownames_to_column(var = 'sample_1') %>% 
   tidyr::pivot_longer(cols = starts_with('Abundances'), names_to = 'sample_2', values_to = 'cor') %>% 
   dplyr::mutate(sample_1 = stringr::str_replace(sample_1, pattern = 'Abundances \\(.+\\)\\:', replacement = ''),
@@ -189,8 +220,8 @@ cormat %>% as.data.frame() %>% rownames_to_column(var = 'sample_1') %>%
 
 #Use limma model to test for degs ----------------------------------------------
 
-#Prepare matrix with log2 normalized values so highly expressed proteins don't dominate model
-norm_prot <- prot_q[['prot_log']]
+#Prepare matrix with log2 imputed values so highly expressed proteins don't dominate model
+norm_prot <- prot_q[['imputedAssay']]
 
 #Should we be imputing missing values? Only about 4% missing after filtering for third vent, 2% for fourth vent
 #Imputation increases power for finding degs
@@ -199,7 +230,7 @@ norm_prot_imp <- impute(norm_prot, method = "min")
 
 abundance_matrix <- assay(norm_prot_imp) #Can use non imputed data here too
 sample_meta <- colData(prot_q)
-protein_names <- rowData(prot_q[['prot_log']])
+protein_names <- rowData(prot_q[['imputedAssay']])
 rownames(abundance_matrix) <- protein_names$symbol
 
 #We know data is normalized, but also check that distributions are similar across samples
@@ -219,11 +250,20 @@ mean(is.na(abundance_matrix))*100 #Only 4% for third ventricle data
 treatments <- factor(prot_q$treatment)
 timepoints <- factor(prot_q$timepoints)
 
+#Combne sex with treatment to see interaction
+prot_q$treatment_sex <- paste(prot_q$treatment, prot_q$sex, sep = '_')
+treat_sex <- factor(prot_q$treatment_sex)
+
 #Can either compare treatments or timepoints
 treatment_comp = FALSE
 timepoint_comp = TRUE
+sex_comp = FALSE
 
 #Treatment comparison does not account for time
+
+#For the design - functionally equivilant to do ~0 + treatment or just ~treatment
+#(you just skip using contrasts.fit if not including 0 intercept). Using 0+ is recommended for clarity
+
 if(treatment_comp){
   design <- model.matrix(~ 0 + treatments)
   colnames(design) <- levels(treatments)
@@ -231,6 +271,7 @@ if(treatment_comp){
   contrast_matrix <- makeContrasts(
     lgtv_vs_pbs =  LGTV - PBS,
     levels = design)
+  
 }
 
 #Time comparison can compare infected timepoints vs eachother or vs mock
@@ -243,9 +284,21 @@ if(timepoint_comp){
     d3_vs_mo =  D3 - Mo, 
     d4_vs_mo =  D4 - Mo, 
     d5_vs_mo =  D5 - Mo, 
-    d4_vs_d2 =  D4 - D2, 
+    d3_vs_d2 =  D3 - D2, 
     levels = design
   )
+}
+
+if(sex_comp){
+  design <- model.matrix(~ 0 + treat_sex)
+  colnames(design) = c('Lgtv_f', 'Lgtv_m', 'Pbs_f', 'Pbs_m')
+  
+  contrast_matrix <- makeContrasts(
+    trt_effect_F =  Lgtv_f - Pbs_f,
+    trt_effect_M =  Lgtv_m - Pbs_m,
+    trt_sex_interaction = (Lgtv_f - Pbs_f) - (Lgtv_m - Pbs_m),
+    mock_sex_diff = Pbs_f - Pbs_m,
+    levels = design)
 }
 
 #Fit a linear model for each protein
@@ -257,25 +310,58 @@ fit <- eBayes(fit, trend = TRUE)
 
 #Now get results, can change the "coef" to any comparison from the contrast_matrix
 #Doing default p value correction and choosing number = inf to return all genes
-results_limma <- topTable(fit, coef = "d2_vs_mo", 
+results_limma_treatment <- topTable(fit, coef = "lgtv_vs_pbs", 
                           number = Inf,
                           adjust.method = 'BH')
 
+results_limma_time <- topTable(fit, coef = "d5_vs_mo", 
+                          number = Inf,
+                          adjust.method = 'BH')
+
+results_limma_sex <- topTable(fit, coef = "trt_sex_interaction", 
+                               number = Inf,
+                               adjust.method = 'BH')
+
 #Prep data for plotting
-results_limma = dplyr::mutate(results_limma, 
+results_limma = dplyr::mutate(results_limma_time, 
                               sig = ifelse(adj.P.Val < 0.05 & abs(logFC) >1,  yes = 'sig', no ='not_sig'))%>% 
   mutate(my_label = ifelse(sig == 'sig', ID, ''))
 
 ggplot(results_limma, aes(x = logFC, y = -log10(adj.P.Val), color = sig))+
   geom_point()+
   scale_color_manual(values = c('black', 'red'))+
-  geom_text_repel(aes(label = my_label))+
+  geom_text_repel(aes(label = my_label), max.overlaps = 10)+
   theme_classic()+
-  theme(legend.position = 'none')
+  theme(legend.position = 'none')+
+  ggtitle('Day 5 vs Mock')
 
 dplyr::filter(results_limma, ID == 'Plvap')
 
 results_limma %>% dplyr::arrange(desc(logFC))
+
+
+#Plot specific gene
+plot_gene <- function(gene){
+  dplyr::filter(prot_dat, symbol == gene) %>%
+    dplyr::select(starts_with('Abundances')) %>% 
+    tidyr::pivot_longer(everything(),names_to = 'sample', values_to = 'exp_levels') %>% 
+    dplyr::arrange(sample) %>% 
+    dplyr::mutate(treatment = factor(stringr::str_extract(string = sample, pattern = '(PBS)|(LGTV)|(ChLGTV)'), levels = c('PBS', 'LGTV'))) %>% 
+    dplyr::mutate(timepoint = stringr::str_extract(string = sample, pattern = 'D.')) %>% 
+    dplyr::mutate(sex = stringr::str_extract(string = sample, pattern = '(M|F),')) %>% 
+    ggplot(aes(x = treatment, y = exp_levels, fill = timepoint))+
+    geom_boxplot()+
+    geom_point(aes(group = timepoint, color = timepoint), position = position_dodge(width = .75))+
+    theme_classic()+
+    ggtitle(gene)
+}
+
+plot_gene('Gbp7')
+plot_gene('Lrp8')
+
+#Look directly at gene in data
+dplyr::filter(prot_dat, symbol == 'Stat1') %>%
+  dplyr::select(starts_with('Abundances')) %>% t()
 
 
 #Quick look at plvap
