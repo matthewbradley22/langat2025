@@ -3,6 +3,8 @@
 library(AnnotationDbi)
 library(org.Hs.eg.db)
 library(UCell)
+library(DESeq2)
+library(Seurat)
 
 #Load bulk data in ifnTreatedAnalysis.R
 resultsNames(dds)
@@ -28,7 +30,7 @@ pb_dds <- DESeqDataSetFromMatrix(countData = pb_counts,
 pb_dds <- DESeq(pb_dds)
 pb_vsd <- vst(pb_dds)
 
-plotPCA(pb_vsd, intgroup=c("Timepoint"))+
+plotPCA(pb_vsd, intgroup=c("Organ"))+
   theme_classic()+
   theme(text = element_text(size = 20))
 
@@ -229,3 +231,27 @@ astro_infected_genes[ifna11_ifnb_sym,] %>%
 astro_infected_genes[other_ifna_sym,] %>% 
   dplyr::filter(!is.na(pct.1) & avg_log2FC > 1 & p_val_adj < 0.01) %>% 
   dplyr::arrange(p_val_adj)
+
+#Look at genes across various comparisons
+
+#Load in genes from each timepoint (created in ips_vs_wt.R)
+deg_counts_time_m_vs_i_celltype <- readRDS("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/deg_counts_time_celltype.rds")
+astro_degs <- deg_counts_time_m_vs_i_celltype[grep('Astrocyte', names(deg_counts_time_m_vs_i_celltype))]
+
+#Compare number of upregulated degs that match ifnb list or other ifn list in each astro group
+deg_counts_astro_groups <- lapply(names(astro_degs), FUN = function(x){
+  cur_dat <- astro_degs[[x]]
+  ifnb_up <- sum(rownames(cur_dat) %in% ifn_gene_sets$ifnb)
+  ifn_other_up <- sum(rownames(cur_dat) %in% ifn_gene_sets$other_fin)
+  data.frame(name = x, 'ifnb_up' = ifnb_up, 'ifn_other_up' = ifn_other_up)
+})
+
+do.call(rbind, deg_counts_astro_groups) %>% 
+  tidyr::pivot_longer(cols = starts_with('ifn'), names_to = 'comp', values_to = 'deg_count') %>% 
+  dplyr::mutate(name = factor(name, levels = rev(names(astro_degs)))) %>% 
+  ggplot(aes(x = comp, y = name, fill = deg_count))+
+  geom_tile()+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0))
+
+

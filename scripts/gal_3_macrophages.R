@@ -8,6 +8,10 @@ library(RColorBrewer)
 library(rstatix)
 library(irGSEA)
 library(dplyr)
+library(decoupleR)
+library(msigdbr)
+library(tidyr)
+library(ggrepel)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -80,7 +84,7 @@ dev.off()
 
 #Create all subsets that will be used
 #Subset to same cells as in gal3 project
-wt_cerebrum <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
+wt_cerebrum <- subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
                               Genotype == 'WT')
 wt_cerebrum <- prepSeuratObj(wt_cerebrum)
 ElbowPlot(wt_cerebrum, ndims = 40)
@@ -447,7 +451,7 @@ ggplot(deg_dotplot_dat, aes(x = features.plot, y = id))+
 dev.off()
 
 #GSEA attempt
-#Takes a while to run
+#Takes a couple minutes to run
 macrophages_wt_infected <- irGSEA.score(object = macrophages_wt_infected, assay = "RNA", 
                              slot = "data", seeds = 123, ncores = 1,
                              min.cells = 3, min.feature = 0,
@@ -744,7 +748,7 @@ DotPlot(wt_cerebrum_macrophages, features = monocyte_markers_feb4, group.by = 'T
 
 #Plot gal3 only
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_over_time.pdf", width = 7, height = 6)
-DotPlot(wt_cerebrum_macrophages, features = 'Lgals3', group.by = 'time_treatment', scale = FALSE)$data
+DotPlot(wt_cerebrum_macrophages, features = 'Lgals3', group.by = 'time_treatment', scale = FALSE) +
   theme(axis.text.x = element_text(angle = 0))+
   ggtitle('Gal3 over time')+
   scale_color_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
@@ -1170,3 +1174,184 @@ wt_cerebrum_day5_inf = subset(wt_cerebrum_day5, Treatment == 'rLGTV' & manualAnn
 table(wt_cerebrum_day5_inf$manualAnnotation) / sum(table(wt_cerebrum_day5_inf$manualAnnotation))
 
 
+# - - - - - - - - - - - - 
+#### Hypoxia scores ####
+# - - - - - - - - - - - - 
+
+
+#We assume almost all macrophages are gal3, even if not detected in single-cell
+#Compare macropahges to all other celltypes
+
+#Get hypoxia gene lists
+all_gene_sets <- msigdbr(species = "Mus musculus", db_species = "MM")
+
+mouse_gene_sets <- all_gene_sets %>%
+  split(x = .$gene_symbol, f = .$gs_name)
+
+hypoxia_markers <- mouse_gene_sets$HALLMARK_HYPOXIA
+type1_int <- mouse_gene_sets$HALLMARK_INTERFERON_ALPHA_RESPONSE
+type2_int <- mouse_gene_sets$HALLMARK_INTERFERON_GAMMA_RESPONSE
+
+#Buffa genes from https://pmc.ncbi.nlm.nih.gov/articles/PMC2816644/#sec12
+#Common genes from https://www.cell.com/cell-genomics/fulltext/S2666-979X(25)00020-5
+sigs <- list(hallmark = hypoxia_markers,
+             buffa = c("Vegfa","Slc2a1","Pgam1","Eno1","Ldha","Tpi1","P4ha1","Mrps17",
+                       "Cdkn3","Adm","Ndrg1","Tubb6","Aldoa","Mif","Acot7"),
+             common = c('Ndrg1', 'Vegfa', 'Pgk1', 'P4ha1', 'Bnip3l', 'Ddit4', 
+                        'Adm', 'Slc2a1', 'Pdk1', 'Bnip3', 'Aldoc'),
+             type1_ifn = type1_int,
+             type2_ifn = type2_int)
+
+#Will just look at macro/micro cells from infected samples for now
+wt_cerebrum_infected_mm = subset(wt_cerebrum, Treatment == 'rLGTV' &
+                                   manualAnnotation %in% c('Macrophage/Monocytes', 'Microglia'))
+
+#Find appropriate max rank for ucell
+VlnPlot(wt_cerebrum_infected_mm, features="nFeature_RNA", group.by = 'manualAnnotation', pt.size = 0, log = TRUE)
+
+wt_cerebrum_infected_mm <- AddModuleScore_UCell(wt_cerebrum_infected_mm, features = sigs, assay = "RNA", 
+                                                maxRank = 1000, ncores = 4)
+
+vp1_wt <- VlnPlot(wt_cerebrum_infected_mm, features = c("hallmark_UCell"),
+               group.by = "manualAnnotation", pt.size = 0)+
+  geom_boxplot(fill = 'white', width = 0.3)+
+  ggtitle('Hallmark hypoxia score')
+
+vp2_wt <- VlnPlot(wt_cerebrum_infected_mm, features = c("buffa_UCell"),
+               group.by = "manualAnnotation", pt.size = 0)+
+  geom_boxplot(fill = 'white', width = 0.3)+
+  ggtitle('Buffa hypoxia score')
+
+vp3_wt <- VlnPlot(wt_cerebrum_infected_mm, features = c("common_UCell"),
+               group.by = "manualAnnotation", pt.size = 0)+
+  geom_boxplot(fill = 'white', width = 0.3)+
+  ggtitle('Harris common hypoxia score')
+
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/macro_hypoxia/infected_hypoxia_score_violins_mac_mic.pdf', height = 7, width = 10)
+grid.arrange(vp1_wt, vp2_wt, vp3_wt,  ncol=2)
+dev.off()
+
+#CHeck ifn related markers too
+VlnPlot(wt_cerebrum_infected_mm, features = c("type1_ifn_UCell"),
+        group.by = "manualAnnotation", pt.size = 0)+
+  geom_boxplot(fill = 'white', width = 0.3)+
+  ggtitle('type 1 ifn isgs')
+
+VlnPlot(wt_cerebrum_infected_mm, features = c("type2_ifn_UCell"),
+        group.by = "manualAnnotation", pt.size = 0)+
+  geom_boxplot(fill = 'white', width = 0.3)+
+  ggtitle('type 2 ifn isgs')
+
+#Markers between micro and macro
+mm_markers <- FindMarkers(wt_cerebrum_infected_mm, group.by = 'manualAnnotation', ident.1 = 'Macrophage/Monocytes', test.use = 'MAST')
+
+mm_no_na <- mm_markers[hypoxia_markers,] %>% 
+  dplyr::filter(!is.na(pct.1)) %>% 
+  dplyr::arrange(p_val_adj) %>% 
+  dplyr::mutate(color = ifelse(p_val_adj < 0.05 & abs(avg_log2FC) > 1, yes = 'red', no = 'black')) %>% 
+  dplyr::mutate(p_val_adj = ifelse(p_val_adj == 0, yes = 1e-323, no = p_val_adj)) %>% #Replace 0 with smallest value it will allow
+  rownames_to_column(var = 'gene')
+
+ggplot(mm_no_na, aes(x = avg_log2FC, y = -log10(p_val_adj), color = color))+
+  geom_point()+
+  geom_vline(xintercept = -1, linetype = 'dotted')+
+  geom_vline(xintercept = 1, linetype = 'dotted')+
+  geom_hline(yintercept = -log10(0.05), linetype = 'dotted')+
+  scale_color_manual(values = c('black', 'red'))+
+  theme_classic()+
+  theme(legend.position = 'none')+
+  ggtitle('')+
+  geom_text_repel(aes(label=ifelse(color == 'red', yes = gene, no = '')), max.overlaps = 20)
+
+#Will do sae analysis with infected macrophages, since they are most macs anyways and will make things more comprable
+macrophages_wt_infected$gal3_exp <- macrophages_wt_infected[['RNA']]$data['Lgals3',] > 0
+
+
+macrophages_wt_infected <- AddModuleScore_UCell(macrophages_wt_infected, features = sigs, assay = "RNA", 
+                            maxRank = 1000, ncores = 4)
+
+vp1 <- VlnPlot(macrophages_wt_infected, features = c("hallmark_UCell"),
+        group.by = "gal3_exp", pt.size = 0)+
+  geom_boxplot(fill = 'white', width = 0.3)+
+  ggtitle('Infected macrophage hypoxia by gal3')+
+  scale_x_discrete(labels = c('Gal3-', 'Gal3+'))+
+  ggtitle('Hallmark hypoxia score')
+
+vp2 <- VlnPlot(macrophages_wt_infected, features = c("buffa_UCell"),
+        group.by = "gal3_exp", pt.size = 0)+
+  geom_boxplot(fill = 'white', width = 0.3)+
+  scale_x_discrete(labels = c('Gal3-', 'Gal3+'))+
+  ggtitle('Buffa hypoxia score')
+
+vp3 <- VlnPlot(macrophages_wt_infected, features = c("common_UCell"),
+               group.by = "gal3_exp", pt.size = 0)+
+  geom_boxplot(fill = 'white', width = 0.3)+
+  scale_x_discrete(labels = c('Gal3-', 'Gal3+'))+
+  ggtitle('Harris common hypoxia score')
+
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/macro_hypoxia/infected_hypoxia_score_violins.pdf', height = 7, width = 10)
+grid.arrange(vp1, vp2, vp3,  ncol=2)
+dev.off()
+
+VlnPlot(macrophages_wt_infected, features = c("type1_ifn_UCell"),
+        group.by = "gal3_exp", pt.size = 0)+
+  geom_boxplot(fill = 'white', width = 0.3)
+
+VlnPlot(macrophages_wt_infected, features = c("type2_ifn_UCell"),
+        group.by = "gal3_exp", pt.size = 0)+
+  geom_boxplot(fill = 'white', width = 0.3)
+
+summary(lm(hallmark_UCell ~ gal3_exp + type1_ifn_UCell + type2_ifn_UCell +
+             Timepoint, data = macrophages_wt_infected[[]]))
+
+#Check hypoxia results using gsea run earlier in script
+result.gsea.gal3 <- irGSEA.integrate(object = macrophages_wt_infected, 
+                                group.by = "gal3_exp", 
+                                metadata = NULL, col.name = NULL,
+                                method = c("AUCell","UCell","singscore",
+                                           "ssgsea", "JASMINE", "viper"))
+
+result.gsea.gal3$RRA %>% dplyr::arrange(pvalue)
+
+result.gsea.gal3$RRA[grep('hypoxia', result.gsea.gal3$RRA$Name, ignore.case = TRUE),]
+
+#Which genes are driving hypoxia signal
+hypoxia_markers
+gal3_markers <- FindMarkers(macrophages_wt_infected, group.by = 'gal3_exp', ident.1 = 'TRUE', test.use = 'MAST')
+gal3_no_na <- gal3_markers[hypoxia_markers,] %>% 
+  dplyr::filter(!is.na(pct.1)) %>% 
+  dplyr::arrange(p_val_adj) %>% 
+  dplyr::mutate(color = ifelse(p_val_adj < 0.05 & abs(avg_log2FC) > 1, yes = 'red', no = 'black')) %>% 
+  rownames_to_column(var = 'gene')
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/macro_hypoxia/infected_hallmark_hypoxia_genes.pdf', height = 6, width = 8)
+ggplot(gal3_no_na, aes(x = avg_log2FC, y = -log10(p_val_adj), color = color))+
+  geom_point()+
+  geom_vline(xintercept = -1, linetype = 'dotted')+
+  geom_vline(xintercept = 1, linetype = 'dotted')+
+  geom_hline(yintercept = -log10(0.05), linetype = 'dotted')+
+  scale_color_manual(values = c('black', 'red'))+
+  theme_classic()+
+  theme(legend.position = 'none')+
+  ggtitle('Hallmark hypoxia genes. Gal3+ vs Gal3- inefcted Macs')+
+  geom_text(aes(label=ifelse(color == 'red', yes = gene, no = '')),hjust=0,vjust=0)
+dev.off()
+
+gal3_markers[hypoxia_markers,] %>% 
+  dplyr::filter(abs(avg_log2FC) > 1 & p_val_adj < 0.01) %>% 
+  dplyr::arrange(p_val_adj)
+
+#Dotplot of gal3 edxpression level vs hallmark hypoxia score
+gal3_levels <-  macrophages_wt_infected[['RNA']]$data['Lgals3',]
+hallmark_hypoxia <- macrophages_wt_infected$hallmark_UCell
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/macro_hypoxia/gal3_vs_hypoxia_dot.pdf', height = 6, width = 8)
+data.frame(gal3 = gal3_levels, hypoxia = hallmark_hypoxia) %>% 
+  ggplot(aes(x = gal3, y = hypoxia))+
+  geom_point()+
+  geom_smooth(method = 'lm', se = FALSE, color = '#D14545')+
+  ylab('Hallmark hypoxia score')+
+  theme_classic()
+dev.off()
