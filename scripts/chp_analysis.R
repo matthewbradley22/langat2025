@@ -87,6 +87,36 @@ DotPlot(chp, features = c(epi_markers, endo_markers), scale = FALSE)$data %>%
   scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
                        values = c(0, 0.3, 0.6, 1))
 
+#Tight junction and adherens junction proteins
+tj <- c('Cldn1', 'Cldn2', 'Cldn3', 'Cldn11', 'Tjp1', 'Ocln')
+
+chp$genotype_treatment <- paste(chp$Genotype, chp$Treatment, sep = '_')
+DotPlot(chp, features = tj, scale = FALSE, group.by = 'genotype_treatment')$data %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1))+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))
+
+aj <- c('Cdh1', 'Cdh2', 'Cdh3')
+
+DotPlot(chp, features = aj, scale = FALSE, group.by = 'genotype_treatment')$data %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1))+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))
+
+DotPlot(chp, features = 'Jup', scale = FALSE, group.by = 'genotype_treatment')$data %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1))+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))
+
 
 # - - - - - - - - - - - - - - - -
 #### Single nuclei ChP genes ####
@@ -117,7 +147,10 @@ DotPlot(chp_sn, features = 'rna_LGTV', scale = FALSE)$data %>%
 #### Try integrating the datasets ####
 # - - - - - - - - - - - - - - - - - -
 
-merged_chp <- merge(chp, y = chp_sn, add.cell.ids = c("sc", "sn"))
+#only use wt for sc data
+chp_wt <- subset(chp, Genotype == 'WT')
+
+merged_chp <- merge(chp_wt, y = chp_sn, add.cell.ids = c("sc", "sn"))
 
 merged_chp <- prepSeuratObj(merged_chp)
 ElbowPlot(merged_chp, ndims = 40)
@@ -134,7 +167,8 @@ sc_sn_int$project <- stringr::str_sub(colnames(sc_sn_int), start = 1, end = 2)
 DimPlot(sc_sn_int, reduction = "umap.cca", group.by = 'project', label.size = 2)+
   xlab('')+
   ylab('')+
-  scale_color_manual(values = c('#F09D46', '#3992F7'))
+  scale_color_manual(values = c('#F09D46', '#3992F7'))+
+  ggtitle('Single cell vs single nuclei ChP')
 
 
 # - - - - - - - - - - - - - - - -
@@ -244,7 +278,6 @@ VlnPlot(ParseSeuratObj_int, features = 'Plvap', group.by = 'manualAnnotation', p
 #### Check endothelial cells ####
 # - - - - - - - - - - - - - - - - 
 
-
 #Do any labelled endothlial cells have chp markers single-cell data
 endothelial <- subset(ParseSeuratObj_int, manualAnnotation == 'Endothelial')
 
@@ -283,3 +316,6 @@ DotPlot(endothelial, features = c('Slc2a1', 'Mfsd2a', 'Ly6a', 'Cldn5'), scale = 
                        values = c(0, 0.3, 0.6, 1))+
   xlab('ChP Cluster')+
   ylab('')
+
+#Plvap featureplot
+FeaturePlot(endothelial, features = 'Plvap',reduction = 'endo.umap')

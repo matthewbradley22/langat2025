@@ -12,6 +12,8 @@ library(decoupleR)
 library(msigdbr)
 library(tidyr)
 library(ggrepel)
+library(monocle3)
+library(SeuratWrappers)
 source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 
 #Load data
@@ -519,6 +521,7 @@ plotList <- list(featurePlotLight('Ccl3', data = wt_cerebrum_macrophages, reduct
                  featurePlotLight('Tnf', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 6))
 
 do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
+
 #Marker paper: https://pmc.ncbi.nlm.nih.gov/articles/PMC12362712/
 #Gene lists from supplementary table 1: Gene set scores
 FeaturePlot(wt_cerebrum_macrophages, features = 'Nos2', reduction = 'wt.cerebrum.mac.umap')
@@ -548,9 +551,19 @@ FeaturePlot(wt_cerebrum_macrophages, features = 'Socs3', reduction = 'wt.cerebru
 monocyte_score_genes <- c('S100a4', 'Itgb7', 'Napsa', 'Cd300lg', 'Adora2b', 'Emb', 'Ly6c2', 'Ms4a4c', 'Fn1', 'Sell', 'Padi2', 'Lilra6', 
                           'Ccnb2', 'Galnt9', 'Upb1', 'Lmo1', 'F13a1', 'Ccr2', 'Gm15987', 'AI839979')
 select_monocyte_genes <- c('S100a4', 'Itgb7', 'Ly6c2', 'Sell', 'Ccr2')
-wt_cerebrum_macrophages <- AddModuleScore(wt_cerebrum_macrophages, features = list(monocyte_score_genes), name = 'monocyte_score')
-FeaturePlot(wt_cerebrum_macrophages, features = 'monocyte_score1', reduction = 'wt.cerebrum.mac.umap')
-FeaturePlot(wt_cerebrum_macrophages, features = select_monocyte_genes, reduction = 'wt.cerebrum.mac.umap')
+macrophages_wt_infected <- AddModuleScore_UCell(macrophages_wt_infected, 
+                                                features = list(monocyte_score_genes), 
+                                                name = 'monocyte_score')
+
+#Plot smoothed score
+macrophages_wt_infected <- SmoothKNN(macrophages_wt_infected,
+                           signature.names = 'signature_1monocyte_score',
+                           reduction="wt.infected.mac.umap")
+
+FeaturePlot(macrophages_wt_infected, features = 'signature_1monocyte_score', reduction = 'wt.infected.mac.umap')
+FeaturePlot(macrophages_wt_infected, features = 'signature_1monocyte_score_kNN', reduction = 'wt.infected.mac.umap')+
+  ggtitle('Knn smoothed monocyte score')
+FeaturePlot(wt_cerebrum_macrophages, features = select_monocyte_genes, reduction = 'wt.infected.mac.umap')
 
 plotList <- list(featurePlotLight('S100a4', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
                  featurePlotLight('Itgb7', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
@@ -560,11 +573,29 @@ plotList <- list(featurePlotLight('S100a4', data = wt_cerebrum_macrophages, redu
 
 do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 
+DotPlot(macrophages_wt_infected, features = 'signature_1monocyte_score', scale = FALSE)+
+  coord_flip()+
+  xlab('')+
+  ylab('Cluster')+
+  scale_color_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  scale_x_discrete(labels = NULL, breaks = NULL)+
+  ggtitle('Monocyte score')
 
 #Macrophage score
 macrophage_score_genes <- c('Adgre1', 'Csf1r', 'H2-Ab1', 'Cd68', 'Lyz2', 'Itgam', 'Mertk')
-wt_cerebrum_macrophages <- AddModuleScore(wt_cerebrum_macrophages, features = list(macrophage_score_genes), name = 'macrophage_score')
-FeaturePlot(wt_cerebrum_macrophages, features = 'macrophage_score1', reduction = 'wt.cerebrum.mac.umap')
+macrophages_wt_infected <- AddModuleScore_UCell(macrophages_wt_infected, 
+                                                features = list(macrophage_score_genes), 
+                                                name = 'macrophage_score')
+
+#Plot smoothed score
+macrophages_wt_infected <- SmoothKNN(macrophages_wt_infected,
+                                     signature.names = 'signature_1macrophage_score',
+                                     reduction="wt.infected.mac.umap")
+
+FeaturePlot(macrophages_wt_infected, features = 'signature_1macrophage_score', reduction = 'wt.infected.mac.umap')
+FeaturePlot(macrophages_wt_infected, features = 'signature_1macrophage_score_kNN', reduction = 'wt.infected.mac.umap')+
+  ggtitle('Knn smoothed macrophage score')
 FeaturePlot(wt_cerebrum_macrophages, features = macrophage_score_genes, reduction = 'wt.cerebrum.mac.umap')
 
 plotList <- list(featurePlotLight('Adgre1', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5),
@@ -576,6 +607,15 @@ plotList <- list(featurePlotLight('Adgre1', data = wt_cerebrum_macrophages, redu
                  featurePlotLight('Mertk', data = wt_cerebrum_macrophages, reduction_choice = 'wt.cerebrum.mac.umap', maxLim = 5.5))
 do.call(ggarrange, c(plotList, common.legend = TRUE, legend = 'right'))
 
+
+DotPlot(macrophages_wt_infected, features = 'signature_1macrophage_score', scale = FALSE)+
+  coord_flip()+
+  xlab('')+
+  ylab('Cluster')+
+  scale_color_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                        values = c(0, 0.3, 0.6, 1))+
+  scale_x_discrete(labels = NULL, breaks = NULL)+
+  ggtitle('Macrophage score')
 #Other macrophage scores
 #Phagocytosis
 phagocytosis_score <- c('Aif1', 'Cd36', 'Coro1a', 'Ccr2', 'Cnn2', 'Cyba', 'Fcer1g', 'Fcgr1', 'Fcgr3', 'Gas6', 'Irf8', 'Il2rg', 'Itgb1', 
@@ -643,6 +683,26 @@ DimPlot(wt_cerebrum_macrophages_day5, reduction = 'day5_macs_wt', group.by = 'Tr
 
 DimPlot(wt_cerebrum_macrophages_day4, reduction = 'day4_macs_wt', group.by = 'Treatment' )
 DimPlot(wt_cerebrum_macrophages_day3, reduction = 'day3_macs_wt', group.by = 'Treatment')
+
+
+#Classical monocytes
+DotPlot(macrophages_wt_infected, features = c('Ccr2', 'Ly6c2', 'S100a8', 'S100a9'), group.by = 'Timepoint',
+        scale = FALSE) +
+  scale_color_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1),
+                       name = 'Average Expression')+
+  ggtitle('Classical monocyte markers')+
+  coord_flip()
+
+DotPlot(macrophages_wt_infected, features = c( 'Adgre1', 'Cd68', 'Mertk'), group.by = 'Timepoint',
+        scale = FALSE) +
+  scale_color_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                        values = c(0, 0.3, 0.6, 1),
+                        name = 'Average Expression')+
+  ggtitle('Macrophage markers')+
+  coord_flip()
+
+FeaturePlot(macrophages_wt_infected, features = c( 'Adgre1'), reduction = 'wt.infected.mac.umap')
 
 # - - - - - - - - - - - - - - - - 
 #### Macrophage marker plots ####
@@ -894,8 +954,7 @@ do.call(ggarrange, c(plotList_ic, common.legend = TRUE, legend = 'right'))
 
 #Look at functional differences between seurat clusters
 #Examine what separates day 5 from other timepoints
-macro_markers <- FindAllMarkers(macrophages_wt_infected, group.by = 'seurat_clusters',
-                                  test.use = 'MAST')
+macro_markers <- FindAllMarkers(macrophages_wt_infected, group.by = 'seurat_clusters')
 macro_markers_up <- dplyr::filter(macro_markers, (avg_log2FC) > 1 & p_val_adj < 0.01)
 
 cluster0_paths <- gprofiler2::gost(query = macro_markers_up[macro_markers_up$cluster == 3,]$gene, organism = 'mmusculus', evcodes = TRUE)
@@ -1060,6 +1119,9 @@ DotPlot(macrophages_wt_infected, features = macrophage_subset_markers$M1_signatu
 #Smoothed featureplot
 mac_m1_knn <- SmoothKNN(macrophages_wt_infected, signature.names = 'M1_signature_UCell', reduction = "pca")
 FeaturePlot(mac_m1_knn, features = 'M1_signature_UCell_kNN', reduction = 'wt.infected.mac.umap')
+
+
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #### Try to distinguish macrophage origin based on https://www.nature.com/articles/s41590-026-02457-y#Sec7 ####
@@ -1355,3 +1417,81 @@ data.frame(gal3 = gal3_levels, hypoxia = hallmark_hypoxia) %>%
   ylab('Hallmark hypoxia score')+
   theme_classic()
 dev.off()
+
+
+#Gal3 and monocyte identity plots
+DotPlot(macrophages_wt_infected, features = c('Lgals3', 'Ptprc', 'Lyz2', 'S100a8', 'Sell', 'Adgre1'), scale = FALSE)+
+  scale_color_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.2, 0.5, 1))+
+  coord_flip()
+
+DotPlot(macrophages_wt_infected, features = c('Lgals3', 'Ptprc', 'Lyz2', 'S100a8', 'Sell', 'Adgre1'), scale = FALSE,
+        group.by = 'Timepoint')+
+  scale_color_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                        values = c(0, 0.2, 0.5, 1))+
+  coord_flip()
+# - - - - - - - - - - - - - - 
+#### Trajectory analysis ####
+# - - - - - - - - - - - - - - 
+
+#plot clusters for reference
+DimPlot(macrophages_wt_infected, cols = newCols, reduction = 'wt.infected.mac.umap')
+macrophages_wt_infected[[]] %>% dplyr::group_by(Timepoint, seurat_clusters) %>% 
+  dplyr::summarise(total = n()) 
+
+macro_markers %>% as.data.frame() %>% dplyr::group_by(cluster) %>% dplyr::slice_head(n = 20)
+FeaturePlot(macrophages_wt_infected, reduction = 'wt.infected.mac.umap', features = 'Arhgap24')
+
+#Trajectory analysis
+macrophages_wt_infected_m <- as.cell_data_set(macrophages_wt_infected)
+macrophages_wt_infected_m <- reduce_dimension(macrophages_wt_infected_m)
+macrophages_wt_infected_m <- cluster_cells(macrophages_wt_infected_m)
+macrophages_wt_infected_m <- learn_graph(macrophages_wt_infected_m)
+
+plot_cells(macrophages_wt_infected_m, label_cell_groups = FALSE,  
+           color_cells_by = "Timepoint")
+
+#Plot pseudotime
+
+# a helper function to identify the root principal points:
+get_earliest_principal_node <- function(cds, Timepoint = 'Day 3'){
+  cell_ids <- which(colData(cds)[, "Timepoint"] == Timepoint)
+  
+  closest_vertex <-
+    cds@principal_graph_aux[["UMAP"]]$pr_graph_cell_proj_closest_vertex
+  closest_vertex <- as.matrix(closest_vertex[colnames(cds), ])
+  root_pr_nodes <-
+    igraph::V(principal_graph(cds)[["UMAP"]])$name[as.numeric(names
+                                                              (which.max(table(closest_vertex[cell_ids,]))))]
+  
+  root_pr_nodes
+}
+macrophages_wt_infected_m <- order_cells(macrophages_wt_infected_m, 
+                                         root_pr_nodes=get_earliest_principal_node(macrophages_wt_infected_m))
+
+plot_cells(macrophages_wt_infected_m,
+           color_cells_by = "pseudotime",
+           label_cell_groups=FALSE,
+           label_leaves=TRUE,
+           label_branch_points=TRUE,
+           graph_label_size=3)
+
+#Plot genes on same umap
+rowData(macrophages_wt_infected_m)$gene_short_name <- rownames(macrophages_wt_infected_m)
+plot_cells(macrophages_wt_infected_m,
+           genes='Mrc1',
+           label_cell_groups=FALSE,
+           show_trajectory_graph=FALSE)
+
+plot_cells(macrophages_wt_infected_m,
+           genes='Cd74',
+           label_cell_groups=FALSE,
+           show_trajectory_graph=FALSE)
+
+#DEGs that vary with pseudotime
+pr_graph_test_res <- graph_test(macrophages_wt_infected_m, neighbor_graph="knn", cores=8)
+pr_graph_test_res %>% dplyr::arrange(q_value, desc(morans_test_statistic))
+
+pr_graph_test_res[macrophage_score_genes,]
+pr_graph_test_res[select_monocyte_genes,]
+
