@@ -125,7 +125,6 @@ FeaturePlot(ParseSeuratObj_int, 'Cd209a', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Ptprc', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Lyz2', reduction = 'umap.integrated')
-FeaturePlot(ParseSeuratObj_int, 'Ccr2', reduction = 'umap.integrated')
 
 #Oligo
 FeaturePlot(ParseSeuratObj_int, 'Mag',reduction = 'umap.integrated')
@@ -230,6 +229,9 @@ FeaturePlot(ParseSeuratObj_int, 'Cd19', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Ms4a1', reduction = 'umap.integrated')
 FeaturePlot(ParseSeuratObj_int, 'Cd79a', reduction = 'umap.integrated')
 
+#Dendritic Cells
+FeaturePlot(ParseSeuratObj_int, 'Flt3', reduction = 'umap.integrated')
+FeaturePlot(ParseSeuratObj_int, 'Cacnb3', reduction = 'umap.integrated')
 
 #Dimplots for convenience
 DimPlot(ParseSeuratObj_int, label = TRUE, reduction = 'umap.integrated')
@@ -364,9 +366,13 @@ ParseSeuratObj_int$manualAnnotation <-
            # ParseSeuratObj_int$scDblFinderLabel == '',
             .default = 'unknown') 
 
+#Label dendritic cells based on markers
+ParseSeuratObj_int$dc_gene_exp = (colSums(ParseSeuratObj_int[['RNA']]$data[c('Flt3', 'Cacnb3'),]) > 0)
+ParseSeuratObj_int[[]] <- ParseSeuratObj_int[[]] %>% 
+  dplyr::mutate(manualAnnotation = ifelse(seurat_clusters == 12 & dc_gene_exp == TRUE, yes = 'DC', no = manualAnnotation))
+
 #ParseSeuratObj_int[[]][cells.located,]$manualAnnotation = 'Macrophage/Monocytes'
 
-newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E',  '#FF8AEF','#737272')
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
 
