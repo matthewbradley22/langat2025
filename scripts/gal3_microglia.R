@@ -16,7 +16,8 @@ source("~/Documents/ÖverbyLab//scripts/langatFunctions.R")
 # Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds")
 ParseSeuratObj_int$hasVirus <- ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
-
+ParseSeuratObj_int$manualAnnotation = ifelse(ParseSeuratObj_int$manualAnnotation == 'DC', yes = 'Macrophage/Monocytes',
+                                             no = ParseSeuratObj_int$manualAnnotation)
 # Check data
 umap_color_list <- c(
   "#7047A1",

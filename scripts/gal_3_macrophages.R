@@ -55,7 +55,7 @@ cell_props_to_plot$Var2 <- factor(cell_props_to_plot$Var2, levels = c('Astrocyte
                                                                       'T cells', 'unknown'))
 
 #Define new colors for umap and bars
-umap_color_list <- c(   "#7047A1", "#6D92F8", "#FF96A2","#F76363", "#D6644B",
+umap_color_list <- c( "#7047A1", "#6D92F8", "#FF96A2","#F76363", "#D6644B",
                         "#8a0000", "#074F00", "#208d1f","#7bcd79", "#fdc087","#F08C3A", '#F06E3A', "#B370AE","#6DC3F8", "#166DF0", "#292270",
                         "gray")
 
@@ -1513,6 +1513,88 @@ DotPlot(macrophages_wt_infected, macro_gene_list, scale = FALSE)$data  %>%
   xlab('')
 dev.off()
 
+#Plot custom gene list for perivascular macrophages
+#pf4 marker https://www.jci.org/articles/view/180904
+#markers https://www.nature.com/articles/s41467-022-35166-9
+#markers https://www.nature.com/articles/s41419-025-07592-2
+#Table 1 here has good list for markers https://academic.oup.com/brain/article/147/1/39/7267457
+
+perivascular_gene_list <- c('Lyve1', 'Mrc1', 'Pf4', 'Cd163')
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_vs_f480_supp/perivascular_markers.pdf', width = 5, height = 5)
+DotPlot(macrophages_wt_infected, perivascular_gene_list, scale = FALSE)$data  %>% 
+  dplyr::mutate(cluster = factor(id, levels = seq(10,0))) %>% 
+  ggplot(aes(x = features.plot, y = cluster, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        text = element_text(size = 18))+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  scale_size(range = c(0, 7))+
+  ylab('Cluster')+
+  xlab('')
+dev.off()
+
+custom_clusters_inf <- macrophages_wt_infected[[]][c('seurat_clusters')] %>% rownames_to_column(var = 'cell_label')
+colnames(custom_clusters_inf)[[2]] = 'custom_clusters'
+
+wt_cerebrum_macrophages_meta <- wt_cerebrum_macrophages[[]] %>% rownames_to_column(var = 'cell_label') %>% 
+  dplyr::left_join(custom_clusters_inf, by = 'cell_label') %>% 
+  dplyr::mutate(custom_clusters = as.character(custom_clusters)) %>% 
+  dplyr::mutate(custom_clusters = ifelse(Treatment == 'PBS', yes = 'mock', no = custom_clusters)) %>% 
+  dplyr::mutate(custom_clusters = factor(custom_clusters, levels = c('0', '1', '2', '3', '4', '5', '6', '7', '8',
+                                                                     '9', '10', 'mock')))
+wt_cerebrum_macrophages[[]] <- wt_cerebrum_macrophages_meta
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_vs_f480_supp/perivascular_markers_with_mock.pdf', height = 6, width = 5)
+DotPlot(wt_cerebrum_macrophages, c(perivascular_gene_list, 'Adgre1', 'Lgals3'), scale = FALSE, group.by = 'custom_clusters')$data  %>% 
+  dplyr::mutate(cluster = c(factor(id, levels = rev(c('0', '1', '2', '3', '4', '5', '6', '7', '8',
+                                                  '9', '10', 'mock'))))) %>% 
+  ggplot(aes(x = features.plot, y = cluster, size = pct.exp, fill = avg.exp.scaled))+
+  geom_point(pch = 21)+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        text = element_text(size = 18))+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  scale_size(range = c(0, 7))+
+  ylab('Cluster')+
+  xlab('')
+dev.off()
+
+wt_cerebrum_macrophages[[]] <- wt_cerebrum_macrophages[[]] %>% 
+  dplyr::mutate(custom_clusters_collapsed = case_when(custom_clusters %in% c('0', '1', '2', '3',
+                                                                             '4', '5', '6', '7', 
+                                                                             '8', '9')~ 'non_pvm',
+                                                      custom_clusters == '10' ~ 'PVM',
+                                                      custom_clusters == 'mock' ~ 'mock'))
+
+mock_pvm_markers <- FindMarkers(wt_cerebrum_macrophages, group.by = 'custom_clusters_collapsed', ident.1 = 'mock',
+                                   ident.2 = 'non_pvm',
+                                   test.use = 'MAST')
+
+pvm_markers <- FindMarkers(wt_cerebrum_macrophages, group.by = 'custom_clusters_collapsed', ident.1 = 'PVM',
+                                ident.2 = 'non_pvm',
+                                test.use = 'MAST')
+
+mock_pvm_markers[perivascular_gene_list,]
+pvm_markers[perivascular_gene_list,]
+
+#Check pseudobulk
+pseudo_macro <- AggregateExpression(wt_cerebrum_macrophages, assays = "RNA", return.seurat = T, 
+                                   group.by = c("custom_clusters_collapsed", "orig.ident"))
+
+pseudo_macro$custom_clusters_collapsed <- factor(pseudo_macro$custom_clusters_collapsed, levels = c('non-pvm', 'mock', 'PVM'))
+
+dds <- DESeqDataSetFromMatrix(countData = pseudo_macro[['RNA']]$counts,
+                              colData = pseudo_macro[[]],
+                              design = ~ custom_clusters_collapsed)
+dds <- DESeq(dds)
+resultsNames(dds)
+results(dds, name = 'custom_clusters_collapsed_mock_vs_non.pvm')[perivascular_gene_list,]
+results(dds, name = 'custom_clusters_collapsed_PVM_vs_non.pvm')[perivascular_gene_list,]
+
 # - - - - - - - - - - - - - - 
 #### Trajectory analysis ####
 # - - - - - - - - - - - - - - 
@@ -1520,7 +1602,8 @@ dev.off()
 macrophages_wt_infected_m <- as.cell_data_set(macrophages_wt_infected)
 macrophages_wt_infected_m <- reduce_dimension(macrophages_wt_infected_m)
 macrophages_wt_infected_m <- cluster_cells(macrophages_wt_infected_m)
-macrophages_wt_infected_m <- learn_graph(macrophages_wt_infected_m)
+macrophages_wt_infected_m <- learn_graph(macrophages_wt_infected_m, 
+                                         learn_graph_control = list(minimal_branch_len=5))
 
 plot_cells(macrophages_wt_infected_m, label_cell_groups = FALSE,  
            color_cells_by = "Timepoint")
@@ -1551,12 +1634,25 @@ plot_cells(macrophages_wt_infected_m,
            label_branch_points=FALSE,
            graph_label_size=3)
 
-plot_cells(macrophages_wt_infected_m,
+macrophages_wt_infected_m@int_colData@listData$reducedDims$UMAP <- macrophages_wt_infected@reductions$wt.infected.mac.umap@cell.embeddings
+
+trajectory_plot <- plot_cells(macrophages_wt_infected_m,
            color_cells_by = "seurat_clusters",
            label_cell_groups=FALSE,
            label_leaves=TRUE,
            label_branch_points=FALSE,
-           graph_label_size=3)
+           graph_label_size=5,
+           cell_size = 0.6)+
+  scale_color_manual(values = newCols)+
+  theme(axis.ticks = element_blank(),
+        axis.text = element_blank())+
+  guides(color=guide_legend(override.aes=list(size=8)))
+
+trajectory_plot$layers[[1]]$aes_params$colour <- 'transparent'
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_vs_f480_supp/trajectory_clusters.pdf', height = 5, width = 6)
+trajectory_plot
+dev.off()
 
 #Plot genes on same umap
 rowData(macrophages_wt_infected_m)$gene_short_name <- rownames(macrophages_wt_infected_m)
@@ -1589,7 +1685,6 @@ lapply(head(pr_graph_test_res_sorted, n = 10)$gene_short_name, FUN = function(x)
 #### Infected macrophage singleR ####
 # - - - - - - - - - - - - - - - - - - -
 
-
 mouse_immune_celldex <- fetchReference("immgen", "2024-02-26")
 
 macrophages_wt_infected_sce <- as.SingleCellExperiment(macrophages_wt_infected)
@@ -1599,7 +1694,18 @@ pred.macro <- SingleR(test = macrophages_wt_infected_sce, ref = mouse_immune_cel
 
 table(pred.macro$pruned.labels)
 
-plotScoreHeatmap(pred.macro)
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_vs_f480_supp/cell_label_confidence.pdf', height = 4, width = 5)
+plotScoreHeatmap(pred.macro, 
+                 clusters = macrophages_wt_infected$seurat_clusters,
+                 order.by = 'clusters',
+                 show.labels = FALSE,
+                 cluster_rows = FALSE,
+                 annotation_col = data.frame(Clusters = macrophages_wt_infected$seurat_clusters),
+                 annotation_colors = list(Clusters = c('0' = newCols[[1]], '1' = newCols[[2]], '2' = newCols[[3]], 
+                                                       '3' = newCols[[4]], '4' = newCols[[5]], '5' = newCols[[6]],
+                                                       '6' = newCols[[7]], '7' = newCols[[8]], '8' = newCols[[9]],
+                                                       '9' = newCols[[10]], '10' = newCols[[11]])))
+dev.off()
 
 macrophages_wt_infected$singleR_labels = pred.macro$pruned.labels
 

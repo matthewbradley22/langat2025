@@ -8,7 +8,8 @@ library(readr)
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
-
+ParseSeuratObj_int$manualAnnotation = ifelse(ParseSeuratObj_int$manualAnnotation == 'DC', yes = 'Macrophage/Monocytes',
+                                             no = ParseSeuratObj_int$manualAnnotation)
 #Check data
 umap_color_list <- c( "#7047A1", "#B370AE","#292270",  "#166DF0","#6D92F8",  "#6DC3F8", "#8a0000","#F76363", "#FF96A2", "#D6644B", 
                       "#F08C3A", "#fdc087","#074F00", "#208d1f","#7bcd79", 

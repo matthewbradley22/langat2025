@@ -13,6 +13,9 @@ source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
 
+ParseSeuratObj_int$manualAnnotation = ifelse(ParseSeuratObj_int$manualAnnotation == 'DC', yes = 'Macrophage/Monocytes',
+                                             no = ParseSeuratObj_int$manualAnnotation)
+
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
 newCols[11] =  '#FF8AEF'
@@ -274,7 +277,6 @@ dev.off()
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 
 
-
 #Split by celltype instead
 wt_cerebrum$treatment_time <- paste(wt_cerebrum$Treatment, wt_cerebrum$Timepoint)
 #Group all pbs together
@@ -382,4 +384,12 @@ ependymal <- subset(wt_cerebrum, manualAnnotation == 'Ependymal' & Treatment == 
 ependymal_markers <- FindMarkers(ependymal, ident.1 = 'Day 5', ident.2 = 'Day 3', group.by = 'Timepoint', test.use = 'MAST')
 
 create_dot_plot(dat = wt_cerebrum, gene = 'Cxcl12', main_title = 'Cxcl12', facet = 'treatment')
+
+
+#Can check degs with df made in ips_vs_wt.R script
+deg_counts_time_m_vs_i_celltype <- readRDS("~/Documents/ÖverbyLab/single_cell_ISG_figures/isg_fig_plots/deg_counts_time_celltype.rds")
+
+deg_counts_time_m_vs_i_celltype$`Macrophage/Monocytes_Day 3_wt_up`[c('Ccr2', 'Ccr5'),]
+deg_counts_time_m_vs_i_celltype$`Macrophage/Monocytes_Day 4_wt_up`[c('Ccr2', 'Ccr5'),]
+deg_counts_time_m_vs_i_celltype$`Macrophage/Monocytes_Day 5_wt_up`[c('Ccr2', 'Ccr5'),]
 

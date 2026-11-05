@@ -12,6 +12,9 @@ source('~/Documents/ÖverbyLab//scripts/langatFunctions.R')
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
 ParseSeuratObj_int$hasVirus = ifelse(ParseSeuratObj_int$virusCountPAdj >= 10, 1, 0)
 
+ParseSeuratObj_int$manualAnnotation = ifelse(ParseSeuratObj_int$manualAnnotation == 'DC', yes = 'Macrophage/Monocytes',
+                                             no = ParseSeuratObj_int$manualAnnotation)
+
 #Check data
 newCols <-  c(brewer.pal(12, 'Paired'), '#99FFE6', '#CE99FF', '#18662E','#737272',  '#FF8AEF')
 newCols[11] =  '#FF8AEF'
@@ -97,9 +100,9 @@ clust16_17_map <- read_csv("~/Documents/ÖverbyLab/gal3_clust1617_allen_map/gale
                           skip = 4)
 table(clust16_17_map$cluster_name)
 
- #Most of the above align to microglia + show no markers of macrophages that I see.. But no Tmem119 so how to best show that they are microglia
+#Most of the above align to microglia + show no markers of macrophages that I see.. But no Tmem119 so how to best show that they are microglia
  
- #Barplot of proportions
+#Barplot of proportions
 barDat <- wt_cerebrum_day5[[]] %>% dplyr::group_by(Treatment, manualAnnotation) %>% 
   dplyr::summarise(total = n()) %>% dplyr::mutate(prop = total/sum(total)) %>% 
   arrange(desc(total)) 
@@ -345,6 +348,37 @@ DimPlot(immune_wt_mock, reduction = 'wt.immune.mock.umap', group.by = 'manualAnn
         axis.text = element_blank(),
         legend.position = 'none')
 dev.off()
+
+
+# - - - - - - - - - - - - - - - - - - - - 
+#### Identify macro mono subset here ####
+# - - - - - - - - - - - - - - - - - - - - 
+
+macro_wt_mock <- subset(immune_wt_mock, manualAnnotation == 'Macrophage/Monocytes')
+mouse_immune_celldex <- fetchReference("immgen", "2024-02-26")
+
+immune_wt_mock_sce <- as.SingleCellExperiment(immune_wt_mock)
+
+pred.immune <- SingleR(test = immune_wt_mock_sce, ref = mouse_immune_celldex,
+                      labels = mouse_immune_celldex$label.main)
+
+immune_wt_mock$singleR_labels = pred.immune$pruned.labels
+
+#PVM gene expression
+immune_wt_mock <- subset(immune_wt_mock, !is.na(singleR_labels))
+table(immune_wt_mock$singleR_labels, immune_wt_mock$manualAnnotation)
+DotPlot(immune_wt_mock, features = c('Lyve1', 'Mrc1', 'Pf4', 'Cd163'),
+        group.by = 'singleR_labels', scale = FALSE)$data %>% 
+  ggplot(aes(x = id, y = features.plot))+
+  geom_point(aes(size = pct.exp, fill = avg.exp.scaled), pch = 21)+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        text = element_text(size = 18))+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"), 
+                       values = c(1.0,0.7,0.4,0))+
+  xlab('')+
+  ylab('')
+
 
 gene_marker_list <- c('Tspo', 'Lgals3', 'Adgre1', 'Cd68', 'Cd86', 'Ptprc', 'Aif1',
                       'Ccr1', 'Ccr2', 'Ccr3', 'Ccr5', 'Tmem119', 'Csf1r')
