@@ -163,10 +163,10 @@ DimPlot(wt_cerebrum_macrophages, reduction = 'wt.cerebrum.mac.umap', label = FAL
   ggtitle('WT Macrophages')
 
 #Infected vs uninfected markers, though there's barely any uninfected
-treatment_mac_markers <- FindMarkers(wt_cerebrum_macrophages, group.by = 'Treatment', test.use = 'MAST', 
-                                     ident.1 = 'rLGTV') 
+treatment_mac_markers <- FindAllMarkers(wt_cerebrum_macrophages, group.by = 'Treatment', test.use = 'MAST', 
+                                     only.pos = TRUE) 
 
-sig_treatment_markers <- dplyr::filter(treatment_mac_markers, p_val_adj < 0.01 & abs(avg_log2FC) > 1)
+sig_treatment_markers <- dplyr::filter(treatment_mac_markers, p_val_adj < 0.01 & avg_log2FC > 1)
 
 write.csv(x = sig_treatment_markers, file = '~/Documents/ÖverbyLab/data/gal3/deg_lists/macrophage_lgtv_markers.csv',
             quote = FALSE)
@@ -214,11 +214,15 @@ table(macrophages_wt_infected$Timepoint) %>% as.data.frame() %>%
 dev.off()
 
 #Examine what separates day 5 from other timepoints
-day5_macro_markers <- FindMarkers(macrophages_wt_infected, group.by = 'Timepoint', ident.1 = 'Day 5',
-                                  test.use = 'MAST')
+macrophages_wt_infected$time_collapsed <- ifelse(macrophages_wt_infected$Timepoint == 'Day 5', yes = 'Day 5',no = 'Day 3/4')
+
+day5_macro_markers <- FindMarkers(macrophages_wt_infected, group.by = 'time_collapsed', test.use = 'MAST',
+                                  ident.1 = 'Day 5')
 
 #Save timepoint markers to csv
 macro_timepoint_markers <- dplyr::filter(day5_macro_markers, abs(avg_log2FC) > 1 & p_val_adj < 0.01)
+macro_timepoint_markers <- macro_timepoint_markers %>% dplyr::mutate(cluster = ifelse(avg_log2FC > 1, 'day 5 up', 'day 5 down'))
+macro_timepoint_markers <- macro_timepoint_markers %>% dplyr::arrange(cluster, p_val_adj)
 write.csv(x = macro_timepoint_markers,
           file ='~/Documents/ÖverbyLab/data/gal3/deg_lists/infected_macro_timepoint_markers.csv', quote = FALSE)
 
@@ -307,12 +311,25 @@ alluv_dat <- data.frame(genes = c(rownames(day5_up_markers), rownames(day5_down_
                         direction = c(rep('up', nrow(day5_up_markers)), rep('down', nrow(day5_down_markers))))
 
 #Gene ontology 
-day5_paths <- gprofiler2::gost(query = rownames(day5_up_markers), organism = 'mmusculus', evcodes = TRUE, sources = c())
+gprofiler2::set_base_url('https://biit.cs.ut.ee/gprofiler_archive3/e113_eg59_p19/')
 
-day_5_down_paths <- gprofiler2::gost(query = rownames(day5_down_markers), organism = 'mmusculus', evcodes = TRUE, sources = c())
+day5_paths <- gprofiler2::gost(query = rownames(day5_up_markers), organism = 'mmusculus', evcodes = TRUE, 
+                               sources = c('GO:BP', 'GO:CC', 'GO:MF', 'KEGG'))
+day5_up_paths <- day5_paths$result[c('p_value', 'term_size', 'intersection_size', 'source', 'term_name')]
+day5_up_paths$cluster = 'Day 5'
+
+day_5_down_paths <- gprofiler2::gost(query = rownames(day5_down_markers), organism = 'mmusculus', 
+                                     evcodes = TRUE, sources = c('GO:BP', 'GO:CC', 'GO:MF', 'KEGG'))
+day_5_down_paths <- day_5_down_paths$result[c('p_value', 'term_size', 'intersection_size', 'source', 'term_name')]
+day_5_down_paths$cluster = 'Day 3/4'
+
+day_paths_all <- rbind(day_5_down_paths, day5_up_paths)
+day_paths_all %>% write.csv2(file ='~/Documents/ÖverbyLab/data/gal3/deg_lists/macro_timepoint_pathways.csv', 
+                            quote = FALSE)
 
 #Pathway barplots
-day_5_down_paths_head <- day_5_down_paths$result %>% dplyr::arrange(p_value) %>% dplyr::filter(source %in% c('GO:BP')) %>% head(n = 10)
+day_5_down_paths_head <- day_5_down_paths %>% 
+  dplyr::arrange(p_value) %>% dplyr::filter(source %in% c('GO:BP')) %>% head(n = 10)
 day_5_down_paths_head$term_name = factor(day_5_down_paths_head$term_name, levels = rev(day_5_down_paths_head$term_name))
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/day5_downregulated_paths.pdf", width = 6, height = 4)
@@ -970,8 +987,11 @@ do.call(ggarrange, c(plotList_ic, common.legend = TRUE, legend = 'right'))
 
 #Look at functional differences between seurat clusters
 #Examine what separates day 5 from other timepoints
-macro_markers <- FindAllMarkers(macrophages_wt_infected, group.by = 'seurat_clusters')
-macro_markers_up <- dplyr::filter(macro_markers, (avg_log2FC) > 1 & p_val_adj < 0.01)
+macro_markers <- FindAllMarkers(macrophages_wt_infected, group.by = 'seurat_clusters', only.pos = TRUE)
+macro_markers_up <- dplyr::filter(macro_markers, avg_log2FC > 1 & p_val_adj < 0.01)
+
+macro_markers_up %>% write.csv(file ='~/Documents/ÖverbyLab/data/gal3/deg_lists/macro_subcluster_markers.csv', 
+                               quote = FALSE)
 
 cluster0_paths <- gprofiler2::gost(query = macro_markers_up[macro_markers_up$cluster == 3,]$gene, organism = 'mmusculus', evcodes = TRUE)
 cluster0_paths$result[1,]
@@ -1578,8 +1598,29 @@ pvm_markers <- FindMarkers(wt_cerebrum_macrophages, group.by = 'custom_clusters_
                                 ident.2 = 'non_pvm',
                                 test.use = 'MAST')
 
+pvm_vs_mock_markers <- FindMarkers(wt_cerebrum_macrophages, group.by = 'custom_clusters_collapsed', ident.1 = 'PVM',
+                           ident.2 = 'mock',
+                           test.use = 'MAST')
+
+
 mock_pvm_markers[perivascular_gene_list,]
 pvm_markers[perivascular_gene_list,]
+pvm_vs_mock_markers
+
+pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_vs_f480_supp/pvm_infected_markers.pdf', width = 7, height = 6)
+DotPlot(wt_cerebrum_macrophages, features = c('Ifit2', 'Iigp1', 'Pde7b', 'Ddx60', 'Ifit3', 'Rsad2'), 
+        group.by = 'custom_clusters_collapsed', scale = FALSE)$data %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  theme_classic()+
+  ylab('')+
+  xlab('')+ 
+  scale_x_discrete(labels= c('Mock', 'Non-PVM infected', 'PVM infected'))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        text = element_text(size = 20))
+dev.off()
 
 #Check pseudobulk
 pseudo_macro <- AggregateExpression(wt_cerebrum_macrophages, assays = "RNA", return.seurat = T, 

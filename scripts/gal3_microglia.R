@@ -257,20 +257,40 @@ DimPlot(
 dev.off()
 
 
-wt_cerebrum_microglia_markers <- FindMarkers(
+wt_cerebrum_microglia_markers <- FindAllMarkers(
   wt_cerebrum_microglia,
   group.by = "Treatment",
   test.use = "MAST",
-  ident.1 = "rLGTV"
+  only.pos = TRUE
 )
 
-sig_micro_markers <- wt_cerebrum_microglia_markers %>% dplyr::filter(abs(avg_log2FC) > 1 &
+sig_micro_markers <- wt_cerebrum_microglia_markers %>% dplyr::filter((avg_log2FC) > 1 &
   p_val_adj < 0.01)
 write.csv(x = sig_micro_markers, file = "~/Documents/ÖverbyLab/data/gal3/deg_lists/micro_lgtv_markers.csv", quote = FALSE)
 
+mock_paths <- gprofiler2::gost(
+  query = sig_micro_markers[sig_micro_markers$cluster == 'PBS',]$gene,
+  organism = "mmusculus",
+  evcodes = TRUE,
+  sources = c("GO:BP", "KEGG", "GO:CC", "GO:MP")
+)
+mock_paths$result$cluster = 'PBS'
+
+infected_paths <- gprofiler2::gost(
+  query = sig_micro_markers[sig_micro_markers$cluster == 'rLGTV',]$gene,
+  organism = "mmusculus",
+  evcodes = TRUE,
+  sources = c("GO:BP", "KEGG", "GO:CC", "GO:MP")
+)
+infected_paths$result$cluster = 'rLGTV'
+
+all_paths_inf <- rbind(mock_paths$result, infected_paths$result)
+all_paths_inf <- all_paths_inf[c('p_value',	'intersection_size',	'source',	'term_name',	'cluster')]
+write.csv2(all_paths_inf, file = "~/Documents/ÖverbyLab/data/gal3/deg_lists/micro_infected_paths.csv", quote = FALSE)
+
+wt_cerebrum_microglia_markers$cluster = ifelse(wt_cerebrum_microglia_markers$avg_log2FC > 0, yes = 'lgtv', no = 'mock')
 top_markers <- wt_cerebrum_microglia_markers %>%
-  dplyr::filter(avg_log2FC > 1 &
-    p_val_adj < 0.01) %>%
+  dplyr::filter(p_val_adj < 0.01) %>%
   dplyr::group_by(cluster) %>%
   dplyr::slice_head(n = 6)
 
@@ -421,7 +441,7 @@ dev.off()
 
 # Infected timepoint markers
 microglia_infected$time_comb <- ifelse(microglia_infected$Timepoint == "Day 5", "Day 5", "Day 3_4")
-infected_time_markers <- FindAllMarkers(microglia_infected, group.by = "time_comb", test.use = "MAST")
+infected_time_markers <- FindAllMarkers(microglia_infected, group.by = "time_comb", test.use = "MAST", only.pos = TRUE)
 top_infected_markers <- infected_time_markers %>%
   dplyr::filter(avg_log2FC > 1 &
     p_val_adj < 0.01) %>%
@@ -462,7 +482,7 @@ dev.off()
 
 #Write markers to csv to save
 infected_time_markers %>% 
-  dplyr::filter(avg_log2FC > 1 &p_val_adj < 0.01) %>% 
+  dplyr::filter(avg_log2FC > 1 & p_val_adj < 0.01) %>% 
   write.csv(
     file = "~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/infected_microglia_timepoint_markers.csv",
     row.names = FALSE,
@@ -473,6 +493,7 @@ infected_time_markers %>%
 early_infect_markers <- infected_time_markers %>%
   dplyr::filter(cluster == "Day 3_4" &
     p_val_adj < 0.01 & avg_log2FC > 1)
+
 early_infect_markers$gene %>% write.csv(
   file = "~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/early_markers.csv",
   row.names = FALSE,
@@ -520,6 +541,16 @@ late_paths <- gprofiler2::gost(
   evcodes = TRUE,
   sources = c("GO:BP", "KEGG", "GO:CC", "GO:MP")
 )
+
+early_paths_select <- early_paths$result[c('p_value', 'intersection_size', 'source', 'term_name')]
+early_paths_select$cluster = 'Day 3/4'
+
+late_paths_select <- late_paths$result[c('p_value', 'intersection_size', 'source', 'term_name')]
+late_paths_select$cluster = 'Day 5'
+
+all_paths <- rbind(early_paths_select, late_paths_select)
+all_paths %>% write.csv2("~/Documents/ÖverbyLab/data/gal3/deg_lists/micro_infected_time_paths.csv", quote = FALSE)
+
 pdf(
   "~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/late_time_paths.pdf",
   width = 6,
@@ -576,7 +607,10 @@ DimPlot(
 dev.off()
 
 # Look at markers separating day 3 and day 5 mock microglia
-mock_markers_time <- FindAllMarkers(microglia_mock, group.by = "Timepoint", test.use = "MAST")
+mock_markers_time <- FindAllMarkers(microglia_mock, group.by = "Timepoint", test.use = "MAST", only.pos = TRUE)
+
+dplyr::filter(mock_markers_time, p_val_adj < 0.01 & avg_log2FC > 1) %>% 
+  write.csv(file = "~/Documents/ÖverbyLab/data/gal3/deg_lists/micro_mock_time_markers.csv", quote = FALSE)
 
 mock_markers_3 <- dplyr::filter(
   mock_markers_time,
@@ -685,11 +719,13 @@ DimPlot(
   ylab("UMAP2") +
   xlab("UMAP1")
 
-mock_cluster_markers <- FindAllMarkers(microglia_mock, group.by = "custom_clusters", test.use = "MAST")
+mock_cluster_markers <- FindAllMarkers(microglia_mock, group.by = "custom_clusters", test.use = "MAST", only.pos = TRUE)
 sig_cluster_markers <- mock_cluster_markers %>%
   dplyr::filter(avg_log2FC > 1 &
     p_val_adj < 0.01) %>%
   dplyr::filter(cluster %in% c(0, 1, 2))
+
+write.csv(sig_cluster_markers, file = "~/Documents/ÖverbyLab/data/gal3/deg_lists/mock_micro_markers.csv", quote = FALSE)
 
 top_mock_cluster_genes <- sig_cluster_markers %>%
   dplyr::group_by(cluster) %>%
@@ -1746,6 +1782,7 @@ infected_all_sig <- dplyr::filter(infected_vs_all_markers, p_val_adj < 0.01 &
 # Get upregulated pathways in all clusters
 infected_vs_all_path_list <- list()
 
+gprofiler2::set_base_url('https://biit.cs.ut.ee/gprofiler/')
 for (i in 1:length(unique(infected_all_sig$cluster))) {
   print(paste("cluster", unique(infected_all_sig$cluster)[i]))
   cur_cluster <- infected_all_sig[infected_all_sig$cluster == unique(infected_all_sig$cluster)[i], ]
@@ -1799,7 +1836,7 @@ mock_cluster_paths %>%
   ) %>%
   ggplot(aes(
     x = -log10(p_value),
-    y = reorder(term_name, desc(reord)),
+    y = reorder(term_name, (reord)),
     fill = cluster
   )) +
   geom_col(position = "dodge") +
@@ -1809,6 +1846,17 @@ mock_cluster_paths %>%
   geom_vline(xintercept = -log10(0.05), linetype = "dashed")
 dev.off()
 
+#Save top pathways
+infected_paths <- lapply(names(infected_vs_all_path_list), FUN = function(x){
+  cur_dat <- infected_vs_all_path_list[[x]]
+  cur_dat <- cur_dat[c('p_value', 'intersection_size', 'source', 'term_name')]
+  cur_dat$cluster = x
+  cur_dat
+})
+
+infected_paths_df <- do.call(rbind, infected_paths)
+infected_paths_df <- infected_paths_df %>% dplyr::arrange(cluster, p_value)
+infected_paths_df %>% write.csv2(file = "~/Documents/ÖverbyLab/data/gal3/deg_lists/micro_cluster_pathways.csv", quote = FALSE)
 # - - - - - - - - - - - -
 #### Top deg heatmap ####
 # - - - - - - - - - - - -
@@ -3533,7 +3581,6 @@ wt_cerebrum_microglia <- AddModuleScore_UCell(
 # pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/vam_score_violin_new.pdf', height = 5, width = 7)
 vam_vln_dat <- VlnPlot(
   object = wt_cerebrum_microglia,
-  features = "vam",
   group.by = "custom_clusters",
   pt.size = 0
 )$data
