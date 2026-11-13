@@ -7,12 +7,13 @@ library(ComplexHeatmap)
 library(limma)
 library(ggrepel)
 library(MsCoreUtils)
+library(tibble)
 
 # Load data --------------------------------------------------------------------
 
 #Check true or false depending on which data you want to be read in 
-third_vent = F
-fourth_vent = T
+third_vent = T
+fourth_vent = F
 
 #Read in 3rd ventricle data if third_vent is true (change to whatever path data is in on your computer)
 if(third_vent){
@@ -45,9 +46,17 @@ rowData(prot_q[['symbol']])
 
 #The metadata in written in the abundances column names (names(prot_dat)[quant_cols])
 #Pull out relevant metadata for labelling
-sexes = unlist(lapply(names(prot_dat)[quant_cols], FUN = function(x){
-  factor(stringr::str_extract(string = x, pattern = '(M,)|(F,)')) %>% substring(1,1)
-}))
+if(third_vent){
+  sexes = unlist(lapply(names(prot_dat)[quant_cols], FUN = function(x){
+    factor(stringr::str_extract(string = x, pattern = '(M$)|(F$)')) %>% substring(1,1)
+  }))
+} else{
+  sexes = unlist(lapply(names(prot_dat)[quant_cols], FUN = function(x){
+    factor(stringr::str_extract(string = x, pattern = '(M,)|(F,)')) %>% substring(1,1)
+  }))
+}
+
+
 
 treatments = unlist(lapply(names(prot_dat)[quant_cols], FUN = function(x){
   treatment = factor(stringr::str_extract(string = x, pattern = '(PBS)|(LGTV)'), levels = c('PBS', 'LGTV'))
@@ -168,21 +177,28 @@ if(fourth_vent){
 #Plot pca
 pc$rotation %>% as.data.frame() %>% 
   cbind(meta_data_clean) %>% 
-  ggplot(aes(x = PC1, y = PC2, color = treatment, shape = sex))+
-  geom_point(size = 3)+
+  ggplot(aes(x = PC1, y = PC2, color = day, shape = sex))+
+  geom_point(size = 9)+
   geom_text(aes(label = sample), color = 'black')+
-  theme_classic()
+  theme_classic()+
+  scale_color_manual(values = c('#FCDAC5', '#F2AB7C', '#E0894F', '#D65F0F','#27A6F5'))
 
 #For third ventricle: remove S40 as it appears to be a big outlier 
 if(third_vent){
   prot_q$sample = seq(21, 40)
   prot_q <- prot_q[,!prot_q$sample == 40]
+  
+  #Try removing 34 as well
+  prot_q <- prot_q[,!prot_q$sample == 34]
 }
 
 #Sample 9 is big outlier for 4th ventricle
 if(fourth_vent){
   prot_q$sample = seq(1, 18)
   prot_q <- prot_q[,!prot_q$sample == 9]
+  
+  #Try removing 5 as well
+  #prot_q <- prot_q[,!prot_q$sample == 5]
 }
 
 #rerun pca with outliers removed
@@ -197,16 +213,41 @@ if(fourth_vent){
                                 treatment = stringr::str_extract(samp_names, pattern = '(PBS)|(LGTV)'),
                                 sex = stringr::str_extract(samp_names, pattern = '(^M)|(^F)'))
   meta_data_clean$day[is.na(meta_data_clean$day)] = 'Mock'
-  meta_data_clean$sample = seq(1:nrow(meta_data_clean))
   
+  #If removed one outliers
+  if(nrow(colData(prot_q_for_pca)) == 17){
+    meta_data_clean$sample = c(seq(1, 8), seq(10, 18))
+  }
+  
+  #If removed both outliers
+  if(nrow(colData(prot_q_for_pca)) == 16){
+    meta_data_clean$sample = c(seq(1, 4), seq(6, 8), seq(10, 18))
+  }
+}
+
+if(third_vent){
+  prot_q_for_pca <- filterNA(prot_q, i = seq_along(prot_q), pNA = 0)
+  pc <- prcomp(assay(prot_q_for_pca[['imputedAssay']]),
+               center = TRUE,
+               scale. = TRUE)
+  samp_names <- stringr::str_sub(rownames(pc$rotation), start = 26, end = -1)
+  meta_data_clean <- data.frame(day = stringr::str_extract(samp_names, pattern = 'D.'),
+                                treatment = stringr::str_extract(samp_names, pattern = '(PBS)|(LGTV)'),
+                                sex = stringr::str_extract(samp_names, pattern = '(M$)|(F$)'),
+                                sample = substr(samp_names, start = 2, stop = 3))
+  meta_data_clean$day[is.na(meta_data_clean$day)] = 'Mock'
 }
 
 pc$rotation %>% as.data.frame() %>% 
   cbind(meta_data_clean) %>% 
-  ggplot(aes(x = PC1, y = PC2, color = treatment, shape = sex))+
-  geom_point(size = 3)+
+  ggplot(aes(x = PC1, y = PC2, color = day, shape = sex))+
+  geom_point(size = 9)+
   geom_text(aes(label = sample), color = 'black')+
-  theme_classic()
+  theme_classic()+
+  scale_color_manual(values = c('#FCDAC5', '#F2AB7C', '#E0894F', '#D65F0F','#27A6F5'))
+
+#See if plotted density curves look better without outliers
+limma::plotDensities(assay(prot_q[[3]]), legend = FALSE)
 
 #Sample to sample heatmap with normalized values
 cormat <- round(cor(assay(prot_q_for_pca, "imputedAssay")), 2) 
@@ -285,6 +326,7 @@ if(timepoint_comp){
     d4_vs_mo =  D4 - Mo, 
     d5_vs_mo =  D5 - Mo, 
     d3_vs_d2 =  D3 - D2, 
+    d4_vs_d2 =  D4 - D2, 
     levels = design
   )
 }
@@ -298,6 +340,8 @@ if(sex_comp){
     trt_effect_M =  Lgtv_m - Pbs_m,
     trt_sex_interaction = (Lgtv_f - Pbs_f) - (Lgtv_m - Pbs_m),
     mock_sex_diff = Pbs_f - Pbs_m,
+    trt_m_mock_all = Lgtv_m - mean(c(Pbs_f, Pbs_m)),
+    trt_f_mock_all = Lgtv_f - mean(c(Pbs_f, Pbs_m)),
     levels = design)
 }
 
@@ -318,11 +362,12 @@ results_limma_time <- topTable(fit, coef = "d5_vs_mo",
                           number = Inf,
                           adjust.method = 'BH')
 
-results_limma_sex <- topTable(fit, coef = "trt_sex_interaction", 
+results_limma_sex <- topTable(fit, coef = "trt_effect_M", 
                                number = Inf,
                                adjust.method = 'BH')
 
 #Prep data for plotting
+#Change dataframe here depending on what was run right above
 results_limma = dplyr::mutate(results_limma_time, 
                               sig = ifelse(adj.P.Val < 0.05 & abs(logFC) >1,  yes = 'sig', no ='not_sig'))%>% 
   mutate(my_label = ifelse(sig == 'sig', ID, ''))
@@ -341,26 +386,39 @@ results_limma %>% dplyr::arrange(desc(logFC))
 
 
 #Plot specific gene
-plot_gene <- function(gene){
-  dplyr::filter(prot_dat, symbol == gene) %>%
+plot_gene <- function(gene, grouping = 'treat_time'){
+  plot_dat <- dplyr::filter(prot_dat, symbol == gene) %>%
     dplyr::select(starts_with('Abundances')) %>% 
     tidyr::pivot_longer(everything(),names_to = 'sample', values_to = 'exp_levels') %>% 
     dplyr::arrange(sample) %>% 
     dplyr::mutate(treatment = factor(stringr::str_extract(string = sample, pattern = '(PBS)|(LGTV)|(ChLGTV)'), levels = c('PBS', 'LGTV'))) %>% 
     dplyr::mutate(timepoint = stringr::str_extract(string = sample, pattern = 'D.')) %>% 
-    dplyr::mutate(sex = stringr::str_extract(string = sample, pattern = '(M|F),')) %>% 
-    ggplot(aes(x = treatment, y = exp_levels, fill = timepoint))+
-    geom_boxplot()+
-    geom_point(aes(group = timepoint, color = timepoint), position = position_dodge(width = .75))+
-    theme_classic()+
-    ggtitle(gene)
+    dplyr::mutate(sex = stringr::str_extract(string = sample, pattern = '(M|F),'))
+  
+  if(grouping == 'treat_time'){
+    p1 <- ggplot(plot_dat, aes(x = treatment, y = exp_levels, fill = timepoint))+
+      geom_boxplot()+
+      geom_point(aes(group = timepoint, color = timepoint), position = position_dodge(width = .75))+
+      theme_classic()+
+      ggtitle(gene)
+  }
+  
+  if(grouping == 'sex_treatment'){
+    p1 <- ggplot(plot_dat, aes(x = treatment, y = exp_levels, fill = sex))+
+      geom_boxplot()+
+      geom_point(aes(group = sex, color = sex), position = position_dodge(width = .75))+
+      theme_classic()+
+      ggtitle(gene)
+  }
+    
+  print(p1)
 }
 
-plot_gene('Gbp7')
-plot_gene('Lrp8')
+plot_gene('Htr2c', grouping = 'sex_treatment')
+plot_gene('Plvap')
 
 #Look directly at gene in data
-dplyr::filter(prot_dat, symbol == 'Stat1') %>%
+dplyr::filter(prot_dat, symbol == 'Isg15') %>%
   dplyr::select(starts_with('Abundances')) %>% t()
 
 
@@ -400,4 +458,25 @@ dplyr::filter(prot_dat, symbol == 'Npc1') %>%
   geom_boxplot()+
   theme_classic()+
   ggtitle('Npc1')
+
+
+#Look at receptor expression
+receptors <- c('Axl', 'Havcr1', 'Havcr2', 'Timd4', 'Tyro3', 'Lrp8', 'Lrp1',
+               'Lrp4',  'Itgb4',  'Ncam1', 'Hspa1a', 'Vim', 'Itgav',
+               'Itgb3', 'Cldn1', 'Clec5a', 'Mrc1', 'Mer', 'Scarb1', 'Dag1', 
+               'Cd209a', 'Cd209b', 'Cd209c') 
+
+pdf('~/Documents/ÖverbyLab/Proteomics_plvap/proteomics_results/receptor_plot_4th.pdf', width = 6, height = 5)
+dplyr::filter(prot_dat, symbol %in% receptors) %>%
+  dplyr::select(symbol, starts_with('Abundances')) %>% 
+  tidyr::pivot_longer( starts_with('Abundances'),names_to = 'sample', values_to = 'exp_levels') %>% 
+  dplyr::arrange(sample) %>% 
+  dplyr::mutate(treatment = factor(stringr::str_extract(string = sample, pattern = '(PBS)|(LGTV)|(ChLGTV)'), levels = c('PBS', 'LGTV'))) %>% 
+  dplyr::mutate(timepoint = stringr::str_extract(string = sample, pattern = 'D.')) %>% 
+  ggplot(aes(x = symbol, y = exp_levels))+
+  geom_boxplot()+
+  theme_classic()+
+  ggtitle('4th ventricle')
+dev.off()
+
 

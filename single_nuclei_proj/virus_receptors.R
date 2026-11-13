@@ -1,4 +1,6 @@
 library(RColorBrewer)
+library(Seurat)
+library(tidyverse)
 
 #Source functions
 source('~/Documents/ÖverbyLab/scripts/langatFunctions.R')
@@ -43,6 +45,27 @@ sn_integrated_dat$treatment_celltype <- paste(sn_integrated_dat$infected, sn_int
 
 pdf('~/Documents/ÖverbyLab/single_nuclei_proj/langat_receptors/receptor_dotplot.pdf', width = 11, height = 5)
 DotPlot(sn_integrated_dat, features = receptors, group.by = 'treatment_celltype', scale = FALSE)$data %>% 
+  tidyr::separate(col = 'id', into = c('treatment', 'celltype'), sep = '_') %>% 
+  #create 0 data for havcr1 since we don't have it
+  add_row(avg.exp = 0, pct.exp = NA, features.plot = 'Havcr1', treatment = 'FALSE', celltype = 'Astrocytes', avg.exp.scaled = NA) %>% 
+  dplyr::mutate(infected = factor(ifelse(treatment == FALSE, yes = 'Mock', no = 'LGTV'), levels = c('Mock', 'LGTV'))) %>% 
+  ggplot(aes(x = features.plot, y = celltype, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  facet_wrap(~infected)+
+  theme_classic()+
+  scale_fill_gradientn(colours = c("#F03C0C","#F57456","#FFB975","white"),
+                       values = c(1.0,0.7,0.4,0))+
+  xlab('')+
+  ylab('')+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.border = element_rect(fill = NA, color = "black", linetype = "dashed"),
+        axis.text = element_text(size = 12))
+dev.off()
+
+#Plot only wt
+sn_integrated_dat_wt <- subset(sn_integrated_dat, new_genotype %in% c('wt', 'wt (same)') )
+pdf('~/Documents/ÖverbyLab/single_nuclei_proj/langat_receptors/receptor_dotplot_wt.pdf', width = 11, height = 5)
+DotPlot(sn_integrated_dat_wt, features = receptors, group.by = 'treatment_celltype', scale = FALSE)$data %>% 
   tidyr::separate(col = 'id', into = c('treatment', 'celltype'), sep = '_') %>% 
   #create 0 data for havcr1 since we don't have it
   add_row(avg.exp = 0, pct.exp = NA, features.plot = 'Havcr1', treatment = 'FALSE', celltype = 'Astrocytes', avg.exp.scaled = NA) %>% 

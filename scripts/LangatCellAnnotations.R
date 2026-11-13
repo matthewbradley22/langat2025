@@ -435,6 +435,19 @@ DotPlot(cerebrum_samples, features = c('Aqp4', 'Fgfr3','Gfap', 'Ttr','Kl',
          color = guide_colorbar(title.position = "top", title = 'Average Scaled Expression', theme = theme(legend.key.width  = unit(4, "cm"))))
 dev.off()
 
+DotPlot(cerebrum_samples, features = c('Aqp4', 'Fgfr3','Gfap', 'Ttr','Kl', 
+                                       'Flt1', 'Pecam1','Vwf',
+                                       'Cfap54' ,'Nnat', 'Mia',
+                                       'Sox11', 'Celf4','Csf1r', 'Cx3cr1', 
+                                       'Tmem119', 'Acta2', 'Tagln',
+                                       'Snap25', 'Syt1',  
+                                       'Mag', 'Mog', 'Abcc9', 'Vtn', 
+                                       'Cd19', 'Ms4a1', 'S100a9', 'Il1r2', 
+                                       'Klra2', 'Ccr2', 'Lyz2', 
+                                       'Clnk','Nkg7','Cd3e', 'Cd3d'), 
+        group.by = 'manualAnnotation', assay = 'RNA')$data %>% dplyr::arrange(desc(id)) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig1a_dat.csv', quote = FALSE)
+
 #Look at rna features across clusters
 ParseSeuratObj_int[[]] %>% dplyr::group_by(seurat_clusters) %>% 
   dplyr::summarise(meanFeatures = mean(nFeature_RNA)) %>% arrange(desc(meanFeatures)) %>% 

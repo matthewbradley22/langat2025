@@ -64,6 +64,7 @@ metaData$library = paste0('seuObj', seq(1:7))
 scDatObj[[]] <-  left_join(scDatObj[[]], metaData, by = 'library')
 
 #Remove likely contamination/doublets. should have low mito reads since this is nuclei
+#Filter to over 300 features above so this 100 doesn't do anything, will remove
 scDatObj<- subset(scDatObj, subset = nFeature_RNA > 100 & nFeature_RNA < 5000 & percent.mt < 10)
 
 #Run through data processing and visualization before integration

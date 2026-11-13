@@ -378,6 +378,20 @@ create_dot_plot(dat = wt_cerebrum_day5, gene = 'Tspo', main_title = 'Tspo', x_va
                 combine_pbs = TRUE, flip_coords = TRUE)
 dev.off()
 
+#Get data from above plot for excel file
+wt_cerebrum_day5$geno_treat_time_celltype <- paste(wt_cerebrum_day5$Genotype,
+                                                   wt_cerebrum_day5$Treatment,
+                                                   wt_cerebrum_day5$Timepoint,
+                                                   wt_cerebrum_day5$manualAnnotation,
+                                      sep = '_')
+
+DotPlot(wt_cerebrum_day5, features = 'Tspo', 
+        group.by = 'geno_treat_time_celltype', scale = FALSE)$data %>% 
+  tidyr::separate(id, into = c('genotype', 'treatment', 'timepoint', 'cell_type'), sep = '_') %>% 
+  dplyr::arrange(cell_type) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig2e_dat.csv', quote = FALSE)
+
+
 create_dot_plot(dat = wt_cerebrum, gene = 'Lgals3', main_title = 'Lgals3', facet = 'treatment')
 
 ependymal <- subset(wt_cerebrum, manualAnnotation == 'Ependymal' & Treatment == 'rLGTV')

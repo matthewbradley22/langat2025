@@ -34,6 +34,9 @@ ParseSeuratObj_int <- subset(ParseSeuratObj_int, cells = false_macs_to_remove, i
 
 #Create all subsets that will be used
 #Subset to same cells as in gal3 project
+wt_cerebrum <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
+                              Genotype == 'WT')
+
 wt_cerebrum_day5 <-  subset(ParseSeuratObj_int, Treatment %in% c('PBS', 'rLGTV') & Organ == 'Cerebrum' & 
                               Genotype == 'WT' & (Timepoint == 'Day 5' | Treatment == 'PBS'))
 
@@ -46,7 +49,7 @@ wt_cerebrum_day5_infected <- subset(wt_cerebrum_day5, Treatment == ('rLGTV'))
 
 #Don't include extreme low low cell counts here
 immune_wt_mock <- subset(wt_cerebrum_day5_mock, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 
-                                                                   'T cells', 'B Cells'))#No Granulocytes, , Nk cells
+                                                                   'T cells', 'B Cells', 'Granulocytes' , 'Nk cells'))#No Granulocytes, , Nk cells
 
 #Not enough neurons here
 resident_wt_mock <- subset(wt_cerebrum_day5_mock, !manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
@@ -119,6 +122,23 @@ barDat %>% ggplot(aes(x = Treatment, y = prop, fill = manualAnnotation))+
   scale_fill_manual(values = umap_color_list)+
   guides(fill=guide_legend(title="Cell Type"))
 dev.off()
+
+barDat %>% dplyr::arrange(manualAnnotation, Treatment) %>% write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig1b_dat.csv', 
+                                                          quote = FALSE)
+
+barDat_all <- wt_cerebrum[[]] %>% dplyr::group_by(Treatment, Timepoint, manualAnnotation) %>% 
+  dplyr::summarise(total = n()) %>% dplyr::mutate(prop = total/sum(total)) %>% 
+  arrange(Treatment, Timepoint) 
+
+write.csv(barDat_all, '~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig1c_dat.csv', 
+          quote = FALSE)
+
+barDat_all %>% ggplot(aes(x = Timepoint, y = prop, fill = manualAnnotation))+
+  facet_wrap(~Treatment, scales = 'free_x')+
+  geom_bar(stat = 'identity', position = 'stack')+
+  theme(text = element_text(size = 23))+
+  scale_fill_manual(values = umap_color_list)+
+  guides(fill=guide_legend(title="Cell Type"))
 
 #Make barplot based on timepoint
 barDat_time <- wt_cerebrum_day5[[]] %>% dplyr::group_by(Treatment, Timepoint, manualAnnotation) %>% 
@@ -249,9 +269,37 @@ pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/mock_cells_key_genes.pdf", wi
 key_gene_dotplot(wt_cerebrum_day5_known_pbs, main_title = 'PBS')
 dev.off()
 
+DotPlot(wt_cerebrum_day5_known_pbs, features = c('Tspo', 'Lgals3', 'Adgre1', 'Cd68',  'Cd86', 'Ptprc',  'Ccr1', 'Ccr2', 
+                          'Ccr3', 'Ccr5', 'Tmem119',  'Csf1r', 'Aif1'),
+        group.by = 'manualAnnotation', scale = TRUE)$data %>% 
+  dplyr::filter(id %in% c("Microglia", 'B Cells', 'Granulocytes', 'Macrophage/Monocytes',
+                          'Nk cells', 'T cells')) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig1e_dat.csv')
+
+DotPlot(wt_cerebrum_day5_known_pbs, features = c('Tspo', 'Lgals3', 'Adgre1', 'Cd68',  'Cd86', 'Ptprc',  'Ccr1', 'Ccr2', 
+                                                 'Ccr3', 'Ccr5', 'Tmem119',  'Csf1r', 'Aif1'),
+        group.by = 'manualAnnotation', scale = TRUE)$data %>% 
+  dplyr::filter(!id %in% c("Microglia", 'B Cells', 'Granulocytes', 'Macrophage/Monocytes',
+                          'Nk cells', 'T cells')) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/suppfig1d_mock_dat.csv')
+
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/lgtv_cells_key_genes.pdf", width = 10, height = 7)
 key_gene_dotplot(wt_cerebrum_day5_known_lgtv, main_title = 'LGTV')
 dev.off()
+
+DotPlot(wt_cerebrum_day5_known_lgtv, features = c('Tspo', 'Lgals3', 'Adgre1', 'Cd68',  'Cd86', 'Ptprc',  'Ccr1', 'Ccr2', 
+                                                 'Ccr3', 'Ccr5', 'Tmem119',  'Csf1r', 'Aif1'),
+        group.by = 'manualAnnotation', scale = TRUE)$data %>% 
+  dplyr::filter(id %in% c("Microglia", 'B Cells', 'Granulocytes', 'Macrophage/Monocytes',
+                          'Nk cells', 'T cells')) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig1f_dat.csv')
+
+DotPlot(wt_cerebrum_day5_known_lgtv, features = c('Tspo', 'Lgals3', 'Adgre1', 'Cd68',  'Cd86', 'Ptprc',  'Ccr1', 'Ccr2', 
+                                                  'Ccr3', 'Ccr5', 'Tmem119',  'Csf1r', 'Aif1'),
+        group.by = 'manualAnnotation', scale = TRUE)$data %>% 
+  dplyr::filter(!id %in% c("Microglia", 'B Cells', 'Granulocytes', 'Macrophage/Monocytes',
+                          'Nk cells', 'T cells')) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/suppfig1d_lgtv_dat.csv')
 
 pdf("~/Documents/ÖverbyLab/scPlots/galectin3_proj/resident_feature_dotplot_mock.pdf", width = 9, height = 6)
 DotPlot(resident_wt_mock, features = c('Lgals3', 'Adgre1', 'Ptprc', 'Cd68', 'Cd86', 'Ccr1', 'Ccr2', 
