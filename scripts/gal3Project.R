@@ -58,6 +58,10 @@ resident_wt_mock <- subset(wt_cerebrum_day5_mock, !manualAnnotation %in% c('Micr
 immune_wt_infected <- subset(wt_cerebrum_day5_infected, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 
                                                                            'T cells', 'Granulocytes', 'Nk cells')) #'B Cells',
 
+immune_wt_infected_all <- subset(wt_cerebrum, manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 
+                                                                                    'T cells', 'Granulocytes', 'Nk cells') &
+                                   Treatment == ('rLGTV')) #'B Cells',
+
 #remove celltypes with low counts as well as infiltrating
 resident_wt_infected <- subset(wt_cerebrum_day5_infected, !manualAnnotation %in% c('Microglia', 'Macrophage/Monocytes', 'B Cells',
                                                                                 'T cells', 'Granulocytes', 'Nk cells', 'unknown',
@@ -923,5 +927,16 @@ do.call(ggarrange, c(plotList_apoptosis, common.legend = TRUE, legend = 'right')
 
 #Look at cd45 and lgals3 crossover
 
+
+#Check all immune wt cells
+immune_wt_infected_all <- prepSeuratObj(immune_wt_infected_all)
+ElbowPlot(immune_wt_infected_all, ndims = 40)
+immune_wt_infected_all <- prepUmapSeuratObj(immune_wt_infected_all, nDims = 20, 
+                                            reductionName = 'wt.immune.infected.umap', resolution_value = 0.8)
+
+DimPlot(immune_wt_infected_all, reduction = 'wt.immune.infected.umap', label = TRUE)
+DimPlot(immune_wt_infected_all, reduction = 'wt.immune.infected.umap', label = TRUE, group.by = 'scDblFinderLabel')
+
+false_macrophages_toremove <- colnames(subset(immune_wt_infected_all, seurat_clusters == 8))
 
 

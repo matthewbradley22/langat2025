@@ -6,7 +6,7 @@ source('./scripts/langatFunctions.R')
 
 #Load in data. Have now removed genes w both Xist and Eif2s3y, so must reload
 #data from beginning to see which were identified
-ParseSeuratObj_int <- LoadSeuratRds("./data/FilteredRpcaIntegratedDat.rds")
+ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab//data/FilteredRpcaIntegratedDat.rds")
 DimPlot(ParseSeuratObj_int, group.by = 'scDblFinderLabel', reduction = "umap.integrated")
 
 DimPlot(ParseSeuratObj_int, group.by = 'singleR_labels', reduction = "umap.integrated",

@@ -31,8 +31,6 @@ DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduct
         cols = newCols)
 
 #Can run this to remove odd macrophage group, but need to create immune_wt_infected below first
-#write.csv(false_macrophages_toremove, "~/Documents/ÖverbyLab/false_macs_to_remove.csv")
-
 #false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
 #or load in from csv
 false_macs_to_remove <- read.csv("~/Documents/ÖverbyLab/false_macs_to_remove.csv")[[2]]
@@ -213,6 +211,11 @@ table(macrophages_wt_infected$Timepoint) %>% as.data.frame() %>%
   guides(fill="none")
 dev.off()
 
+#Write out data for supp paper data
+table(macrophages_wt_infected$Timepoint) %>% as.data.frame() %>% 
+  dplyr::mutate(cell_prop = (Freq/sum(Freq))*100)  %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig7b_dat.csv')
+  
 #Examine what separates day 5 from other timepoints
 macrophages_wt_infected$time_collapsed <- ifelse(macrophages_wt_infected$Timepoint == 'Day 5', yes = 'Day 5',no = 'Day 3/4')
 
@@ -225,6 +228,10 @@ macro_timepoint_markers <- macro_timepoint_markers %>% dplyr::mutate(cluster = i
 macro_timepoint_markers <- macro_timepoint_markers %>% dplyr::arrange(cluster, p_val_adj)
 write.csv(x = macro_timepoint_markers,
           file ='~/Documents/ÖverbyLab/data/gal3/deg_lists/infected_macro_timepoint_markers.csv', quote = FALSE)
+
+macro_timepoint_markers$gene = rownames(macro_timepoint_markers)
+write.csv(x = macro_timepoint_markers,
+          file ='~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig7c_dat.csv', quote = FALSE, row.names = FALSE)
 
 #Genes upregulated at day 5
 day5_up_markers <- dplyr::filter(day5_macro_markers, (avg_log2FC) > 1 & p_val_adj < 0.01)
@@ -472,6 +479,10 @@ ggplot(deg_dotplot_dat, aes(x = features.plot, y = id))+
   ylab('')+
   xlab('')
 dev.off()
+
+deg_dotplot_dat%>% dplyr::arrange(features.plot, id) %>% 
+  write.csv(file ='~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig7d_dat.csv', 
+                              quote = FALSE, row.names = FALSE)
 
 #GSEA attempt
 #Takes a couple minutes to run
@@ -1485,6 +1496,13 @@ macrophages_wt_infected[[]] %>% dplyr::group_by(Timepoint, seurat_clusters) %>%
   xlab('')+
   theme(text = element_text(size = 18))
 dev.off()
+
+macrophages_wt_infected[[]] %>% dplyr::group_by(Timepoint, seurat_clusters) %>% 
+  dplyr::summarise(total_cells = n()) %>%
+  dplyr::group_by(seurat_clusters) %>% 
+  mutate(prop = total_cells/sum(total_cells)) %>% 
+  dplyr::arrange(seurat_clusters) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig8F_dat.csv', quote = FALSE, row.names = FALSE)
 
 #plot clusters for reference
 pdf('~/Documents/ÖverbyLab/scPlots/galectin3_proj/gal3_vs_f480_supp/macro_umap_clusters.pdf', width = 6, height = 6)

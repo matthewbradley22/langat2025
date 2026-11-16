@@ -22,10 +22,7 @@ newCols[11] =  '#FF8AEF'
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = newCols)
 
-#Can run this to remove odd macrophage group, but need to create immune_wt_infected below first
-#write.csv(false_macrophages_toremove, "~/Documents/ÖverbyLab/false_macs_to_remove.csv")
-#false_macrophages_toremove <- colnames(subset(immune_wt_infected, seurat_clusters == 11))
-
+#Can run this to remove further macrophage doublets, found in gal3Project.R script
 #or load in from csv
 false_macs_to_remove <- read.csv("~/Documents/ÖverbyLab/false_macs_to_remove.csv")[[2]]
 #should be 409 cells
@@ -313,6 +310,9 @@ ggplot(endo_trafficking_dot_dat, aes(x = time, y = features.plot))+
   xlab('')
 dev.off()
 
+endo_trafficking_dot_dat %>% dplyr::arrange(id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig7I_dat.csv', quote = FALSE, row.names = FALSE)
+  
 #Plot monocyte markers
 mono_trafficking_dot_dat <- DotPlot(wt_mac_mono, features = c('Pecam1', 'Pvr', 'Cd99l2', 'Epha1', 'Ephb1', 'Itgal', 'Itga4', 'Itgb1', 'Ccr1', 'Ccr2', 'Ccr5',
                                                               'Cxcr4', 'Ackr3'), 
@@ -341,6 +341,9 @@ ggplot(mono_trafficking_dot_dat, aes(x = time, y = features.plot))+
   ylab('')+
   xlab('')
 dev.off()
+
+mono_trafficking_dot_dat %>% dplyr::arrange(id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig7J_dat.csv', quote = FALSE, row.names = FALSE)
 
 #Plot perithelial markers in pericytes
 peri_trafficking_dot_dat <- DotPlot(wt_peri, features = c('Vcam1', 'Icam1', 'Icam2', 'Sele', 'Selp', 'Mcam', 'F11r', 'Jam2', 'Pecam1', 'Pvr', 'Cd99l2',
