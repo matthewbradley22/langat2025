@@ -1551,6 +1551,10 @@ DotPlot(macrophages_wt_infected, macro_gene_list, scale = FALSE)$data  %>%
   xlab('')
 dev.off()
 
+DotPlot(macrophages_wt_infected, macro_gene_list, scale = FALSE)$data %>% 
+  dplyr::arrange(features.plot) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig8g_dat.csv', row.names = FALSE, quote = FALSE)
+
 #Plot custom gene list for perivascular macrophages
 #pf4 marker https://www.jci.org/articles/view/180904
 #markers https://www.nature.com/articles/s41467-022-35166-9
@@ -1600,6 +1604,12 @@ DotPlot(wt_cerebrum_macrophages, c(perivascular_gene_list, 'Adgre1', 'Lgals3'), 
   ylab('Cluster')+
   xlab('')
 dev.off()
+
+DotPlot(wt_cerebrum_macrophages, c(perivascular_gene_list, 'Adgre1', 'Lgals3'), scale = FALSE, group.by = 'custom_clusters')$data  %>% 
+  dplyr::mutate(cluster = c(factor(id, levels = rev(c('0', '1', '2', '3', '4', '5', '6', '7', '8',
+                                                      '9', '10', 'mock'))))) %>% 
+  dplyr::arrange(features.plot, id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig8h_dat.csv', row.names = FALSE, quote = FALSE)
 
 wt_cerebrum_macrophages[[]] <- wt_cerebrum_macrophages[[]] %>% 
   dplyr::mutate(custom_clusters_collapsed = case_when(custom_clusters %in% c('0', '1', '2', '3',

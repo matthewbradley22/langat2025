@@ -150,6 +150,13 @@ table(wt_cerebrum_resident_mock$manualAnnotation) %>% # can include wt_cerebrum_
   ylab("Proportion of cells")
 dev.off()
 
+table(wt_cerebrum_resident_mock$manualAnnotation) %>% # can include wt_cerebrum_resident_mock$Timepoint to split by time
+  as.data.frame() %>%
+  dplyr::mutate(freq_props = Freq / sum(Freq)) %>% 
+  dplyr::mutate(treatment = 'PBS') %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig9a_mock_dat.csv')
+
+
 pdf(
   "~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/infected_resident_cell_bars.pdf",
   width = 6,
@@ -182,6 +189,18 @@ table(
   ggtitle("Infected resident") +
   ylab("Proportion of cells")
 dev.off()
+
+table(
+  wt_cerebrum_resident_inf$Timepoint,
+  wt_cerebrum_resident_inf$manualAnnotation
+) %>%
+  as.data.frame() %>%
+  dplyr::group_by(Var1) %>%
+  dplyr::mutate(freq_props = Freq /
+                  sum(Freq)) %>% 
+  dplyr::mutate(treatment = 'LGTV') %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig9a_dat.csv', quote = FALSE, row.names = FALSE)
+
 
 # Subset to just microglia for further analysis
 wt_cerebrum_microglia <- subset(wt_cerebrum, manualAnnotation == "Microglia")
@@ -400,6 +419,7 @@ pdf(
   width = 5,
   height = 5
 )
+
 DimPlot(
   microglia_infected,
   reduction = "micro.inf.umap",
@@ -1235,6 +1255,18 @@ table(
   ylab("Proportion of cells")
 dev.off()
 
+
+table(
+  microglia_infected$Timepoint,
+  microglia_infected$custom_clusters
+) %>%
+  as.data.frame() %>%
+  dplyr::group_by(Var1) %>%
+  dplyr::mutate(freq_props = Freq /
+                  sum(Freq)) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig9d_dat.csv', quote = FALSE, row.names = FALSE)
+
+
 #Get raw values and percent for plot above
 microglia_infected[[]] %>% dplyr::group_by(Timepoint, custom_clusters) %>% 
   dplyr::summarise(cell_count = n()) %>%
@@ -1276,6 +1308,16 @@ table(microglia_mock$Timepoint, microglia_mock$custom_clusters) %>%
   ggtitle("") +
   ylab("Proportion of cells")
 dev.off()
+
+
+table(microglia_mock$Timepoint, microglia_mock$custom_clusters) %>%
+  as.data.frame() %>%
+  dplyr::group_by(Var1) %>%
+  dplyr::mutate(freq_props = Freq /
+                  sum(Freq)) %>% 
+  dplyr::arrange(Var1) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig7a_dat.csv', quote = FALSE, row.names = FALSE)
+
 
 table(
   microglia_infected$Timepoint,
@@ -1957,6 +1999,10 @@ top_gene_dot_dat %>%
   theme(axis.text = element_text(size = 16))
 dev.off()
 
+top_gene_dot_dat %>%
+  dplyr::mutate(features.plot = factor(features.plot, levels = (gene_order))) %>%
+  dplyr::mutate(id = factor(id, levels = c("mock", "3", "4", "5", "6"))) %>% dplyr::arrange(features.plot, id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig9e_dat.csv', quote = FALSE, row.names = FALSE)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #### Microglia groups from https://www.nature.com/articles/s41590-026-02472-z ####
@@ -2104,6 +2150,15 @@ DotPlot(
   ) +
   ggtitle("Surveillance genes")
 dev.off()
+
+DotPlot(
+  wt_cerebrum_microglia,
+  features = surveilance,
+  group.by = "custom_clusters",
+  scale = FALSE
+)$data %>% dplyr::arrange(features.plot, id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig7g_dat.csv', quote = FALSE, row.names = FALSE)
+
 
 # Neuro protection
 plotList_np <- lapply(
@@ -2259,6 +2314,14 @@ DotPlot(
   ggtitle("phagocytosis genes")
 dev.off()
 
+DotPlot(
+  wt_cerebrum_microglia,
+  features = phagocytosis,
+  group.by = "custom_clusters",
+  scale = FALSE
+)$data %>% dplyr::arrange(features.plot, id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig7h_dat.csv', quote = FALSE, row.names = FALSE)
+
 # Inflammation
 plotList_inf <- lapply(
   inflammation,
@@ -2350,6 +2413,14 @@ DotPlot(
   ) +
   ggtitle("cytokine production genes")
 dev.off()
+
+DotPlot(
+  wt_cerebrum_microglia,
+  features = cyto_production,
+  group.by = "custom_clusters",
+  scale = FALSE
+)$data %>%  dplyr::arrange(features.plot, id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig7j_dat.csv', quote = FALSE, row.names = FALSE)
 
 
 # antigen presentation
@@ -2444,6 +2515,14 @@ DotPlot(
   ggtitle("Antigen presentation genes")
 dev.off()
 
+DotPlot(
+  wt_cerebrum_microglia,
+  features = antigen_pres,
+  group.by = "custom_clusters",
+  scale = FALSE
+)$data %>% dplyr::arrange(features.plot, id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig7l_dat.csv', quote = FALSE, row.names = FALSE)
+  
 # ifn sig
 plotList_ifn <- lapply(
   ifn_sig,
@@ -2547,7 +2626,13 @@ DotPlot(
   ggtitle("Proliferation genes")
 dev.off()
 
-
+DotPlot(
+  wt_cerebrum_microglia,
+  features = proliferation,
+  group.by = "custom_clusters",
+  scale = FALSE
+)$data %>% dplyr::arrange(features.plot, id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig7m_dat.csv', quote = FALSE, row.names = FALSE)
 # - - - - - - - - - - - - - - - - - - - - - - -
 #### Custom cluster degs to compare pathway genes
 # - - - - - - - - - - - - - - - - - - - - - - -
@@ -2959,6 +3044,10 @@ ggplot(
   ggtitle("Homeostatic genes")
 dev.off()
 
+homeo_markers %>% dplyr::arrange(features.plot) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig7e_dat.csv', quote = FALSE, row.names = FALSE)
+
+
 wt_cerebrum_microglia <- AddModuleScore_UCell(
   wt_cerebrum_microglia,
   features = list("homeostasis" = c(
@@ -3130,6 +3219,9 @@ ggplot(
   ) +
   ggtitle("IAM (inflammatory markers)")
 dev.off()
+
+lps_dot %>% dplyr::arrange(features.plot, id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig7i_dat.csv', quote = FALSE, row.names = FALSE)
 
 wt_cerebrum_microglia <- AddModuleScore_UCell(
   wt_cerebrum_microglia,
@@ -3395,6 +3487,17 @@ DotPlot(
   ggtitle("F4/80")
 dev.off()
 
+
+DotPlot(
+  wt_cerebrum_microglia,
+  features = "Adgre1",
+  group.by = "custom_clusters",
+  scale = FALSE
+)$data %>%
+  dplyr::arrange(id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/fig9g_dat.csv', quote = FALSE, row.names = FALSE)
+
+
 # Lgals3 plots
 pdf(
   "~/Documents/ÖverbyLab/scPlots/galectin3_proj/microglia/Lgals3_feature_plot.pdf",
@@ -3569,6 +3672,9 @@ ggplot(
   ) +
   ggtitle("VAM Markers")
 dev.off()
+
+vam_dot %>% dplyr::arrange(features.plot, id) %>% 
+  write.csv('~/Documents/ÖverbyLab/data/gal3/gal3_source_data_csvs/supfig7j_dat.csv', quote = FALSE, row.names = FALSE)
 
 # Score and violin plot of vam genes
 wt_cerebrum_microglia <- AddModuleScore_UCell(

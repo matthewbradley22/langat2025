@@ -41,6 +41,7 @@ chp_clust_markers %>% dplyr::filter(p_val_adj < 0.01) %>%
 
 #Create WT data for use in some plots
 chp_wt <- subset(chp, Genotype == 'WT')
+chp_mavs <- subset(chp, Genotype == 'IPS1')
 
 #This paper has adult marker genes
 #https://www.cell.com/cell/fulltext/S0092-8674(21)00438-4
@@ -133,6 +134,19 @@ DotPlot(chp_wt, features = tj, scale = FALSE, group.by = 'time_treatment')$data 
   scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
                        values = c(0, 0.3, 0.6, 1))+
   ggtitle('ChP WT')
+
+#Look across timepoints and clusters
+chp_mavs$time_treatment = paste(chp_mavs$Treatment, chp_mavs$Timepoint, sep = '_')
+chp_mavs$time_treatment = ifelse(chp_mavs$Treatment == 'PBS', 'PBS', chp_mavs$time_treatment)
+
+DotPlot(chp_mavs, features = tj, scale = FALSE, group.by = 'time_treatment')$data %>% 
+  ggplot(aes(x = id, y = features.plot, fill = avg.exp.scaled, size = pct.exp))+
+  geom_point(pch = 21)+
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1))+
+  scale_fill_gradientn(colours = c('white', '#FFD991', '#FF7530', '#FF4024'), 
+                       values = c(0, 0.3, 0.6, 1))+
+  ggtitle('ChP MAVS')
 
 # - - - - - - - - - - - - - - - -
 #### Single nuclei ChP genes ####

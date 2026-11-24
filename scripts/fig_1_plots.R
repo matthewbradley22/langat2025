@@ -8,12 +8,11 @@ library(readr)
 
 #Load data
 ParseSeuratObj_int <- LoadSeuratRds("~/Documents/ÖverbyLab/data/FilteredRpcaIntegratedDatNoDoublets.rds") 
-ParseSeuratObj_int$manualAnnotation = ifelse(ParseSeuratObj_int$manualAnnotation == 'DC', yes = 'Macrophage/Monocytes',
-                                             no = ParseSeuratObj_int$manualAnnotation)
+
 #Check data
 umap_color_list <- c( "#7047A1", "#B370AE","#292270",  "#166DF0","#6D92F8",  "#6DC3F8", "#8a0000","#F76363", "#FF96A2", "#D6644B", 
                       "#F08C3A", "#fdc087","#074F00", "#208d1f","#7bcd79", 
-                        "gray")
+                        "#D3DEA2", "gray")
 
 DimPlot(ParseSeuratObj_int, label = FALSE, group.by = 'manualAnnotation', reduction = 'umap.integrated',
         cols = umap_color_list)+
@@ -29,7 +28,7 @@ chimeric_mock <- subset(ParseSeuratObj_int, Treatment != 'rLGTV' & manualAnnotat
 
 chimeric_mock$manualAnnotation <- factor(chimeric_mock$manualAnnotation, 
                                          levels = rev(c( 'unknown',  'T cells',   'Nk cells', 'Macrophage/Monocytes', 
-                                                     'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                                                     'Granulocytes', 'DC', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
                                                      'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
                                                      'Choroid Plexus', 'Astrocytes')))
 
@@ -177,7 +176,8 @@ DotPlot(chimeric_mock, features = c('Aqp4', 'Fgfr3','Gfap', 'Ttr','Kl',
                                        'Tmem119', 'Acta2', 'Tagln',
                                        'Snap25', 'Syt1',  
                                        'Mag', 'Mog', 'Abcc9', 'Vtn', 
-                                       'Cd19', 'Ms4a1', 'S100a9', 'Il1r2', 
+                                       'Cd19', 'Ms4a1', 'Flt3', 'Cacnb3',
+                                    'S100a9', 'Il1r2',
                                        'Klra2', 'Ccr2', 'Lyz2', 
                                        'Clnk','Nkg7','Cd3e', 'Cd3d'), 
         group.by = 'manualAnnotation', assay = 'RNA')+
@@ -299,8 +299,8 @@ dev.off()
 
 #Infiltrating cell counts over time, normalized to day 3
 wt_chimeric_infiltrating <- subset(chimeric_mock, manualAnnotation %in% c("T cells", "Nk cells",
-                                                                        "Granulocytes", "B Cells"))
-levels_infil <- (c('B Cells', 'Granulocytes', 
+                                                                        "Granulocytes", 'DC', "B Cells"))
+levels_infil <- (c('B Cells', 'DC', 'Granulocytes', 
                   'Nk cells',
                   'T cells'))
 
@@ -395,7 +395,7 @@ pdf('~/Documents/ÖverbyLab/single_cell_ISG_figures/fig_1_plots/lrp8_mock_reside
 lrp8_dat %>% tidyr::separate(col = id, into = c('geno', 'treatment', 'celltype'), sep = '_') %>% 
   dplyr::filter(treatment == 'PBS' & !celltype %in% c('T cells', 'Nk cells', 'Macrophage/Monocytes', 'Granulocytes', 'B Cells', 'Pericytes', 'Muscle cells', 'unknown')) %>% 
   dplyr::mutate(celltype = factor(celltype, levels = c( 'unknown',  'T cells',   'Nk cells', 'Macrophage/Monocytes', 
-                                                        'Granulocytes', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
+                                                        'Granulocytes', 'DC', 'B Cells',  'Pericytes', 'Oligodendrocytes','Neurons',
                                                         'Muscle cells', 'Microglia', 'Immature Neurons', 'Ependymal','Endothelial', 
                                                         'Choroid Plexus', 'Astrocytes'))) %>% 
   dplyr::mutate(geno = factor(geno, levels = c('WT', 'IPS1'))) %>% 

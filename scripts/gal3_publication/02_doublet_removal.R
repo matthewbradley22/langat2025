@@ -1,4 +1,3 @@
-#Manual check of labelled doublets
 library(Seurat)
 library(dplyr)
 library(ggplot2)
